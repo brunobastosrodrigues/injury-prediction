@@ -1,0 +1,2 @@
+calendarDate,activityType,durationInSeconds,averageHeartRateInBeatsPerMinute,maxHeartRateInBeatsPerMinute,averageBikeCadenceInRoundsPerMinute,averageRunCadenceInStepsPerMinute,activeKilocalories,distanceInMeters
+2025-01-08,RUNNING,4200,141,174,,160.79688,1133,14529.85
