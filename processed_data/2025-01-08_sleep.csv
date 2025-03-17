@@ -1,2 +1,0 @@
-calendarDate,durationInSeconds,overallSleepScore,sleepScores
-2025-01-08,24720,"{'value': 81, 'qualifierKey': 'GOOD'}","{'totalDuration': {'qualifierKey': 'FAIR'}, 'stress': {'qualifierKey': 'EXCELLENT'}, 'awakeCount': {'qualifierKey': 'FAIR'}, 'remPercentage': {'qualifierKey': 'FAIR'}, 'restlessness': {'qualifierKey': 'GOOD'}, 'lightPercentage': {'qualifierKey': 'GOOD'}, 'deepPercentage': {'qualifierKey': 'EXCELLENT'}}"

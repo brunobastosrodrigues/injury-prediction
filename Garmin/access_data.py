@@ -16,19 +16,25 @@ class DataCollector:
         self.data_dir = f"user_data/{user_id}"
         os.makedirs(self.data_dir, exist_ok=True)
         
-    def collect_historical_data(self, days_back=2):
+    def collect_historical_data(self, injury_dates, days_back=8):
         """Collect historical data for each day of the past year"""
         all_daily_data = []
         # Get the current time in UTC
         end_date = datetime.now(timezone.utc)
-        end_date = end_date.replace(hour=0, minute=59, second=59, microsecond=999999)
+        end_date = end_date.replace(hour=0, minute=00, second=00, microsecond=999999)
         
         # Collect data day-by-day for the past year
         for i in range(days_back):
             # Calculate the specific day in the past year
             start = end_date - timedelta(days=1+i)
             end = start.replace(hour=23, minute=59, second=59, microsecond=999999)
-            daily_df = self._collect_data(start, end)
+            # Convert injury_dates to datetime.date objects
+            injury_dates_as_date = [datetime.strptime(date_str, '%Y-%m-%d').date() for date_str in injury_dates]
+
+            # Check if start.date() matches any injury_date
+            injury = any(start.date() == injury_date for injury_date in injury_dates_as_date)
+            
+            daily_df = self._collect_data(start, end, injury)
             all_daily_data.append(daily_df)
         data_processor = GarminDataProcessor()
         user_combined_df = data_processor.combine_all_days(all_daily_data)
@@ -38,7 +44,7 @@ class DataCollector:
 
 
 
-    def _collect_data(self, start_date, end_date):
+    def _collect_data(self, start_date, end_date, injury):
         """Core data collection logic"""
         start_str = int(start_date.timestamp())
         end_str = int(end_date.timestamp())
@@ -54,20 +60,20 @@ class DataCollector:
         daily_summary_df = data_processor.process_daily_summaries(data_points["daily_summaries"])
         sleep_df = data_processor.process_sleep(data_points["sleep"])
         activities_df = data_processor.process_activities(data_points["activities"])
-        combined_data = data_processor.combine_daily_data(daily_summary_df, sleep_df, activities_df)
+        combined_data = data_processor.combine_daily_data(daily_summary_df, sleep_df, activities_df, injury)
 
-        data_processor.save_to_csv(combined_data, start_date.strftime('%Y-%m-%d')+ "_data.csv")
+        #data_processor.save_to_csv(combined_data, start_date.strftime('%Y-%m-%d')+ "_data.csv")
 
-        data_processing_tasks = [
-            ("daily_summaries", data_processor.process_daily_summaries, start_date.strftime('%Y-%m-%d') + "_daily_summaries.csv"),
-            ("sleep", data_processor.process_sleep, start_date.strftime('%Y-%m-%d') + "_sleep.csv"),
-            ("activities", data_processor.process_activities, start_date.strftime('%Y-%m-%d') + "_activities.csv")
-        ]
+        #data_processing_tasks = [
+        #   ("daily_summaries", data_processor.process_daily_summaries, start_date.strftime('%Y-%m-%d') + "_daily_summaries.csv"),
+        #    ("sleep", data_processor.process_sleep, start_date.strftime('%Y-%m-%d') + "_sleep.csv"),
+        #    ("activities", data_processor.process_activities, start_date.strftime('%Y-%m-%d') + "_activities.csv")
+        #]
 
         # Process and save each data category
-        for category, process_function, output_filename in data_processing_tasks:
-            processed_data = process_function(data_points[category])
-            data_processor.save_to_csv(processed_data, output_filename)
+        #for category, process_function, output_filename in data_processing_tasks:
+        #    processed_data = process_function(data_points[category])
+        #    data_processor.save_to_csv(processed_data, output_filename)
         
         return combined_data
 

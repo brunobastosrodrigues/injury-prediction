@@ -43,8 +43,8 @@ class GarminDataProcessor:
         # Filter the dataframe to keep only the rows with the maximum calendarDate
         df_latest = df[df['calendarDate'] == max_date]
 
-        # Sort values by 'calendarDate' and 'startTimeInSeconds'
-        df_latest = df_latest.sort_values(by=['calendarDate', 'startTimeInSeconds'], ascending=[True, True])
+        # Sort values by 'startTimeInSeconds'
+        df_latest = df_latest.sort_values(by=['startTimeInSeconds'], ascending=[True])
 
         # Keep only the last entry of the latest date (in case there are multiple entries for the same date)
         df_last_entry = df_latest.groupby('calendarDate').last().reset_index()
@@ -106,12 +106,21 @@ class GarminDataProcessor:
         df = df[columns]
         return df
     
-    def combine_daily_data(self, daily_df, sleep_df, activities_df):
+    def combine_daily_data(self, daily_df, sleep_df, activities_df, injury_occured):
+
+         # Check for None or empty input DataFrames and create defaults
+        if daily_df is None or daily_df.empty:
+            daily_df = pd.DataFrame(columns=["calendarDate"])  # Replace with default structure
+        if sleep_df is None or sleep_df.empty:
+            sleep_df = pd.DataFrame(columns=["calendarDate", "durationInSeconds", "overallSleepScore", "sleepScores"])
+        if activities_df is None or activities_df.empty:
+            activities_df = pd.DataFrame(columns=["calendarDate", "activityType", "durationInSeconds"])
+        
         # Make copies to avoid modifying original dataframes
         daily = daily_df.copy()
         sleep = sleep_df.copy()
         activities = activities_df.copy()
-        
+
         # Group activities by date
         activities_grouped = activities.groupby('calendarDate').apply(
             lambda x: x.drop('calendarDate', axis=1).to_dict('records')
@@ -168,6 +177,10 @@ class GarminDataProcessor:
         
         final_df['activities'] = final_df['activities'].apply(handle_activities)
         final_df['sleep_data'] = final_df['sleep_data'].apply(handle_sleep)
+        if injury_occured:
+            final_df["injuryOccured"] = 1
+        else:
+            final_df["injuryOccured"] = 0
         
         return final_df
     

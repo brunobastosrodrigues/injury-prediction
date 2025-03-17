@@ -1,9 +1,10 @@
 import requests
 from requests_oauthlib import OAuth1
-from flask import Flask, request, redirect, session, url_for
+from flask import Flask, request, redirect, session, url_for, render_template, jsonify
 import os
 from urllib.parse import parse_qs
 from access_data import DataCollector
+from threading import Thread
 
 # Garmin API credentials
 CONSUMER_KEY = "6d993b8f-15f9-4fd0-bd8e-4208fe376f18"
@@ -23,10 +24,12 @@ app.secret_key = os.urandom(24)
 @app.route("/")
 def home():
     """Landing page with auth start button"""
-    return '''
-        <h1>Garmin OAuth Example</h1>
-        <a href="/start_auth">Start Authentication</a>
-    '''
+    return render_template('home.html')
+
+@app.route("/about")
+def about():
+    """About page"""
+    return render_template('about.html')
 
 @app.route("/start_auth")
 def start_auth():
@@ -109,6 +112,8 @@ def get_user_id():
         # Get tokens from session
         access_token = session.get('access_token')
         access_token_secret = session.get('access_token_secret')
+        session[access_token] = access_token
+        session[access_token_secret] = access_token_secret
 
         if not access_token or not access_token_secret:
             return "No access token found in session.", 400
@@ -120,7 +125,6 @@ def get_user_id():
             resource_owner_key=access_token,
             resource_owner_secret=access_token_secret
         )
-
         # Make request to get user ID
         response = requests.get(USER_ID_URL, auth=oauth)
         
@@ -128,19 +132,66 @@ def get_user_id():
             return f"Failed to get user ID. Status: {response.status_code}, Response: {response.text}", 500
 
         user_id = response.json().get("userId")
-        # Initialize data collector and start collection
-        collector = DataCollector(oauth, user_id)
+        # Save the user_id to the session
+        session['user_id'] = user_id
         
-        # Collect historical data first
-        historical_result = collector.collect_historical_data()
-        
-        # Store collection status in session
-        session['collection_status'] = historical_result
-        
-        return f"Thank you for your submission! Your data has been received and is being processed."
+        return redirect(url_for('authentification_success'))
 
     except Exception as e:
         return f"Error fetching user ID: {str(e)}", 500
+    
+@app.route('/authentification-success')
+def authentification_success():
+    """Page to show the user that the authentication was successful."""
+    return render_template('authentification_successful.html')
+    
+@app.route('/thank-you')
+def thank_you():
+    """Thank you page after sharing data."""
+    # Get the session data
+    access_token = session.get('access_token')
+    access_token_secret = session.get('access_token_secret')
+    user_id = session.get('user_id')
+    injuries = session.get('injury_dates', [])
+
+    # Create OAuth object
+    oauth = OAuth1(
+        CONSUMER_KEY,
+        client_secret=CONSUMER_SECRET,
+        resource_owner_key=access_token,
+        resource_owner_secret=access_token_secret
+    )
+    
+    # Start data collection in background
+    Thread(target=collect_data_async, args=(oauth, user_id, injuries)).start()
+    
+    # Return the page immediately
+    return render_template('thank_you.html')
+
+def collect_data_async(oauth, user_id, injuries):
+    collector = DataCollector(oauth, user_id)
+    collector.collect_historical_data(injuries)
+
+@app.route('/report-injuries', methods=['GET'])
+def show_injury_form():
+    return render_template('report_injuries.html')
+
+# Route to handle form submission
+@app.route('/report-injuries', methods=['POST'])
+def report_injury():
+    try:
+        data = request.get_json()
+        injury_dates = data.get('injuryDates', [])
+        
+        if not injury_dates:
+            return jsonify({'error': 'No injury dates provided'}), 400
+            
+        session['injury_dates'] = injury_dates
+        return jsonify({'message': 'Injury dates received successfully!'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)

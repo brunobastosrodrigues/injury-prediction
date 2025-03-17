@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Report Injury Dates</title>
+</head>
+<body>
+    <h1>Report Injury Dates</h1>
+    
+    <form id="injuryForm">
+        <div>
+            <label>Injury Date:</label>
+            <input type="date" id="injuryDate">
+            <button type="button" onclick="addDate()">Add Injury Date</button>
+        </div>
+        
+        <h3>Reported Injury Dates:</h3>
+        <ul id="datesList"></ul>
+        
+        <button type="submit" onclick="submitForm(event)">Submit Report</button>
+    </form>
+
+    <script>
+        let dates = [];
+        
+        function addDate() {
+            const date = document.getElementById('injuryDate').value;
+            if (date) {
+                dates.push(date);
+                updateDatesList();
+                document.getElementById('injuryDate').value = '';
+            }
+        }
+        
+        function updateDatesList() {
+            const list = document.getElementById('datesList');
+            list.innerHTML = dates.map(date => `<li>${date}</li>`).join('');
+        }
+        
+        async function submitForm(event) {
+            event.preventDefault();
+            console.log('Submit button clicked');
+            
+            if (dates.length === 0) {
+                alert('Please add at least one injury date');
+                return;
+            }
+            
+            console.log('Sending dates:', dates);
+            
+            try {
+                const response = await fetch('/report-injuries', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ injuryDates: dates })
+                });
+                
+                console.log('Response received:', response);
+                
+                const result = await response.json();
+                console.log('Response data:', result);
+                
+                if (response.ok) {
+                    window.location.href = '/thank-you';
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error details:', error);
+                alert('An error occurred while submitting the report');
+            }
+        }
+    </script>
+</body>
+</html>
