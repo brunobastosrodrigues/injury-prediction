@@ -1,11 +1,11 @@
 import datetime, random
 import numpy as np
-from trainingPlan import generate_annual_training_plan
-from trainingLoad import initialize_tss_history, initialize_hrv_history, calculate_training_metrics, update_history, calculate_max_daily_tss
-from sensorDataSim import simulate_morning_sensor_data, simulate_evening_sensor_data
-from athleteProfiles import generate_athlete_cohort
-from injurySim import calculate_baseline_injury_risk, check_injury_occurence
-from simulateActivities import simulate_training_day_with_wearables
+from logistics.training_plan import generate_annual_training_plan
+from training_response.fitness_fatigue_form import initialize_tss_history, initialize_hrv_history, calculate_training_metrics, update_history, calculate_max_daily_tss
+from sensor_data.daily_metrics_simulation import simulate_morning_sensor_data, simulate_evening_sensor_data
+from logistics.athlete_profiles import generate_athlete_cohort
+from training_response.injury_simulation import calculate_baseline_injury_risk, check_injury_occurrence
+from sensor_data.simulate_activities import simulate_training_day_with_wearables
 import pandas as pd
 
 # Random seed for reproducibility
@@ -26,13 +26,12 @@ def simulate_full_year(athlete, year=2024):
 
     baseline_injury_risk = calculate_baseline_injury_risk(athlete)
     tss_history = initialize_tss_history(athlete, start_date)
-    hrv_history = initialize_hrv_history(athlete, tss_history, start_date)
-
-    print(hrv_history)
+    hrv_history = initialize_hrv_history(athlete, tss_history)
+    acwr_timeline = []
 
     # Initialize fitness/fatigue/form
     fitness, fatigue, form, acwr = calculate_training_metrics(tss_history, hrv_history, athlete['hrv_baseline'])
-
+    acwr_timeline.append(acwr)
     # Simulate each day
     daily_data = []
     activity_data = []
@@ -48,7 +47,7 @@ def simulate_full_year(athlete, year=2024):
     }
     for index, day in annual_plan.iterrows():
         # Step 1: Simulate morning sensor data
-        day_data = simulate_morning_sensor_data(athlete, day['date'], prev_day, recovery_days_remaining, max_daily_tss)
+        day_data = simulate_morning_sensor_data(athlete, day['date'], prev_day, recovery_days_remaining, max_daily_tss, tss_history, acwr)
         sleep_quality = day_data['sleep_quality']
         hrv = day_data['hrv']
 
@@ -63,13 +62,13 @@ def simulate_full_year(athlete, year=2024):
 
         # Step 3: Update fitness/fatigue/form after training 
         fitness, fatigue, form, acwr = calculate_training_metrics(tss_history, hrv_history, athlete['hrv_baseline'])
-        print(f"Day {index+1}: Fitness: {fitness}, Fatigue: {fatigue}, Form: {form}")
+        acwr_timeline.append(acwr)
         # Step 4: Simulate the remaining daily sensor data (stress)
         simulate_evening_sensor_data(athlete, fatigue, day_data)
 
         # Step 5: If not already injured, simulate injury occurrence randomly based on probabilities
         if recovery_days_remaining == 0:
-            injury = check_injury_occurence(athlete, baseline_injury_risk, form, fatigue, acwr, tss_today, day_data['hrv'], day_data['sleep_hours'], sleep_quality, day_data['resting_hr'])
+            injury = check_injury_occurrence(athlete, baseline_injury_risk, form, fatigue, acwr_timeline, tss_history, hrv_history, day_data['sleep_hours'], sleep_quality, day_data['resting_hr'])
             if injury:
                 day_data['injury'] = 1
                 recovery_days_remaining = np.random.randint(3, 10)  # Set recovery time
@@ -96,7 +95,7 @@ def simulate_full_year(athlete, year=2024):
         'activity_data': activity_data
     }
 
-def generate_simulation_dataset(n_athletes=100):
+def generate_simulation_dataset(n_athletes):
     # Generate athlete cohort
     athletes = generate_athlete_cohort(n_athletes)
     
@@ -133,6 +132,7 @@ def save_simulation_data(simulated_data, output_folder="simulated_data"):
             'hrv_range': athlete['hrv_range'],
             'max_hr': round(athlete['max_hr'], 1),
             'resting_hr': round(athlete['resting_hr'], 1),
+            'lthr': round(athlete['lthr'], 1),
             'hr_zones': athlete['hr_zones'],
             'vo2max': round(athlete['vo2max'], 1),
             'running_threshold_pace': athlete['run_threshold_pace'],
@@ -181,7 +181,6 @@ def save_simulation_data(simulated_data, output_folder="simulated_data"):
                 'date': workout_data['date'],
                 'sport': workout_data['sport'],  
                 'workout_type': workout_data['workout_type'],
-                'workout_description': workout_data['workout_description'],
                 'duration_minutes': workout_data['duration_minutes'],
                 'tss': workout_data['tss'],
                 'intensity_factor': workout_data['intensity_factor'],
@@ -192,24 +191,15 @@ def save_simulation_data(simulated_data, output_folder="simulated_data"):
                 'avg_speed_kph': workout_data.get('avg_speed_kph'),
                 'avg_power': workout_data.get('avg_power'),
                 'normalized_power': workout_data.get('normalized_power'),
-                'avg_cadence': workout_data.get('avg_cadence'),
                 'power_zones': workout_data.get('power_zones'),
                 'intensity_variability': workout_data.get('intensity_variability'),
                 'work_kilojoules': workout_data.get('work_kilojoules'),
                 'elevation_gain': workout_data.get('elevation_gain'),
                 'avg_pace_min_km': workout_data.get('avg_pace_min_km'),
-                'avg_cadence_spm': workout_data.get('avg_cadence_spm'),
-                'vertical_oscillation_cm': workout_data.get('vertical_oscillation_cm'),
-                'ground_contact_ms': workout_data.get('ground_contact_ms'),
-                'stride_length_m': workout_data.get('stride_length_m'),
                 'training_effect_aerobic': workout_data.get('training_effect_aerobic'),
                 'training_effect_anaerobic': workout_data.get('training_effect_anaerobic'),
                 'distance_m': workout_data.get('distance_m'),
-                'avg_pace_min_100m': workout_data.get('avg_pace_min_100m'),
-                'stroke_rate': workout_data.get('stroke_rate'),
-                'stroke_length_m': workout_data.get('stroke_length_m'),
-                'swolf_score': workout_data.get('swolf_score'),
-                'strokes_per_length': workout_data.get('strokes_per_length')
+                'avg_pace_min_100m': workout_data.get('avg_pace_min_100m')
             })
         
 

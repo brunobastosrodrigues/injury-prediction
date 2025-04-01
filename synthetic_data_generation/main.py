@@ -1,9 +1,9 @@
-from simYear import generate_simulation_dataset, save_simulation_data
+from simulate_year import generate_simulation_dataset, save_simulation_data
 
 def main():
     # 1. Generate simulated data
     print("Generating simulation dataset...")
-    simulated_data = generate_simulation_dataset(n_athletes=1)
+    simulated_data = generate_simulation_dataset(n_athletes=1000)
     
     # 2. Save simulated data to CSV
     print("Saving simulated data to CSV...")

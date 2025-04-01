@@ -1,4 +1,6 @@
+import random
 import numpy as np
+import pandas as pd
 
 def calculate_baseline_injury_risk(athlete):
     # ----- Baseline risk factors -----
@@ -28,98 +30,113 @@ def calculate_baseline_injury_risk(athlete):
 
     return baseline_risk
 
-def check_injury_occurence(athlete, baseline_risk, performance, fatigue, acwr, tss, hrv, sleep_hours, sleep_quality, resting_hr):
+def check_injury_occurrence(athlete, baseline_risk, performance, fatigue, acwr_timeline, tss_history, hrv_history, sleep_hours, sleep_quality, resting_hr):
     """
-    Calculate injury probability based on various athlete metrics and training load.
-    
+    Calculate injury probability based on various athlete metrics and training load trends.
+
     Returns:
     --------
     bool
         True if an injury occurs, False otherwise
     """
-    import random
-    
-    # Establish realistic injury rates
-    # Elite triathletes might experience 1-3 significant injuries per year
-    # This means a daily injury probability of approximately 0.005-0.008 (0.5-0.8%)
-    # We'll use baseline_risk to establish the athlete's intrinsic injury risk
-    
-    # Normalize baseline_risk to a very low probability (max 0.2% daily injury chance)
+
+    # --- Establish baseline injury risk ---
     base_daily_risk = baseline_risk * 0.002
-    
-    # ----- Acute risk factors -----
-    # Much more conservative risk factors
-    
+
+    # --- Extract ACWR features ---
+    acwr_series = pd.Series(acwr_timeline)
+    acwr_last = acwr_series.iloc[-1]  # Most recent ACWR
+    acwr_ma7 = acwr_series.rolling(7).mean().iloc[-1]  # 7-day moving average
+    acwr_volatility = acwr_series.rolling(7).std().iloc[-1]  # ACWR variability
+
+    # --- Extract TSS features ---
+    tss_series = pd.Series(tss_history)
+    acute_load = tss_series.rolling(7).sum().iloc[-1]  # Last 7 days sum
+    chronic_load = tss_series.rolling(28).sum().iloc[-1]  # Last 28 days sum
+    tss_ratio = acute_load / (chronic_load + 1e-6)  # Acute:Chronic ratio
+
+    # --- Extract HRV features ---
+    hrv_series = pd.Series(hrv_history)
+    hrv_ma7 = hrv_series.rolling(7).mean().iloc[-1]  # 7-day HRV average
+    hrv_trend = hrv_series.iloc[-1] - hrv_series.iloc[0]  # Change in HRV over 28 days
+    hrv_volatility = hrv_series.rolling(7).std().iloc[-1]  # HRV variability
+
+    # --- Acute risk factors ---
+
     # Fatigue-to-Performance ratio
-    # Only significant when fatigue is much higher than performance
     fatigue_performance_ratio = fatigue / max(performance, 1)
     fatigue_risk = max(0, (fatigue_performance_ratio - 1.3) * 0.1)
-    
-    # HRV risk - only significant when HRV is substantially depressed
+
+    # HRV risk - Only significant when HRV is substantially depressed
     hrv_baseline = athlete['hrv_baseline']
-    hrv_ratio = hrv / max(hrv_baseline, 1)
+    hrv_ratio = hrv_ma7 / max(hrv_baseline, 1)
     hrv_risk = max(0, (0.7 - hrv_ratio) * 0.2) if hrv_ratio < 0.7 else 0
-    
-    # Resting HR risk - only significant when RHR is substantially elevated
+
+    # Resting HR risk
     rhr_baseline = athlete['resting_hr']
     rhr_ratio = resting_hr / max(rhr_baseline, 40)
     rhr_risk = max(0, (rhr_ratio - 1.2) * 0.15) if rhr_ratio > 1.2 else 0
-    
-    # Sleep debt risk - only significant with substantial sleep debt
+
+    # Sleep debt risk
     sleep_norm = athlete['sleep_time_norm']
     sleep_debt = max(0, sleep_norm - sleep_hours)
     sleep_hours_risk = max(0, (sleep_debt - 2) * 0.02) if sleep_debt > 2 else 0
-    
-    # Sleep quality risk - only significant with very poor sleep quality
+
+    # Sleep quality risk
     sleep_quality_risk = max(0, (0.5 - sleep_quality) * 0.08) if sleep_quality < 0.5 else 0
-    
-    # Nutrition risk - only significant with very poor nutrition
+
+    # Nutrition risk
     nutrition_risk = max(0, (0.4 - athlete['nutrition_factor']) * 0.05) if athlete['nutrition_factor'] < 0.4 else 0
-    
-    # Stress risk - only significant with high stress
+
+    # Stress risk
     stress_risk = max(0, (athlete['stress_factor'] - 0.7) * 0.05) if athlete['stress_factor'] > 0.7 else 0
-    
-    # Alcohol/smoking risk - still significant but reduced
+
+    # Lifestyle risk
     lifestyle_risk = (
         athlete['smoking_factor'] * 0.1 + 
         athlete['drinking_factor'] * 0.05
     )
-    
-    # ----- Training load risks -----
-    
-    # Acute high TSS risk - much more tolerant based on experience
-    tss_threshold = 200 + (athlete['training_experience'] * 15)  # Experience increases threshold
-    tss_risk = max(0, (tss - tss_threshold) / 400) * 0.2  # Dramatically reduced impact
-    
-    # ACWR risk - much wider optimal range (0.6-1.8)
-    if acwr < 0.6:
-        # Detraining risk
-        acwr_risk = (0.6 - acwr) * 0.05
-    elif acwr > 1.8:  # Much more tolerant upper bound
-        # Overload risk (linear growth)
-        acwr_risk = (acwr - 1.8) * 0.1
+
+    # --- Training load risks ---
+
+    # TSS risk (high workload)
+    tss_threshold = 200 + (athlete['training_experience'] * 15)
+    tss_risk = max(0, (tss_ratio - 1.5) * 0.2) if tss_ratio > 1.5 else 0
+
+    # ACWR risk - considers trends and volatility
+    if acwr_last < 0.6:
+        acwr_risk = (0.6 - acwr_last) * 0.05
+    elif acwr_last > 1.8:
+        acwr_risk = (acwr_last - 1.8) * 0.1
     else:
         acwr_risk = 0
-    
-    # ----- Risk modifiers -----
-    
-    # Recovery rate modifier (athletes with better recovery have lower risk)
+
+    acwr_volatility_risk = min(0.1, acwr_volatility * 0.2)  # More variability increases risk
+
+    # HRV volatility risk (unstable HRV patterns suggest poor recovery)
+    hrv_volatility_risk = min(0.1, hrv_volatility * 0.15)
+
+    # --- Risk modifiers ---
+
+    # Recovery rate modifier
     recovery_modifier = 1.0 - (athlete['recovery_rate'] * 0.3)
-    
-    # Experience modifier (more experienced athletes have lower risk)
+
+    # Experience modifier
     experience_modifier = 1.0 - (min(athlete['training_experience'], 10) * 0.03)
-    
-    # Combined modifier (can reduce risk by up to 50%)
+
+    # Combined modifier (caps risk reduction at 50%)
     risk_modifier = max(0.5, recovery_modifier * experience_modifier)
-    
-    # ----- Combine all risk factors -----
-    
+
+    # --- Combine all risk factors ---
+
     # Training load composite risk
     training_load_risk = (
         tss_risk * 0.1 +
-        acwr_risk * 0.2 
+        acwr_risk * 0.15 +
+        acwr_volatility_risk * 0.05 +
+        hrv_volatility_risk * 0.05
     )
-    
+
     # Acute risks composite
     acute_risk_composite = (
         fatigue_risk * 0.15 +
@@ -130,26 +147,21 @@ def check_injury_occurence(athlete, baseline_risk, performance, fatigue, acwr, t
         nutrition_risk * 0.03 +
         stress_risk * 0.03 +
         lifestyle_risk * 0.04 +
-        training_load_risk * 0.15
+        training_load_risk * 0.2
     )
-    
-    # High risk situations multiplier
-    # This adds non-linearity - when multiple risk factors align, risk increases more than linearly
+
+    # High risk multiplier (non-linearity when many factors align)
     high_risk_threshold = 0.3
-    high_risk_multiplier = 1.0
-    if acute_risk_composite > high_risk_threshold:
-        high_risk_multiplier = 1.0 + ((acute_risk_composite - high_risk_threshold) * 2.0)
-    
+    high_risk_multiplier = 1.0 + max(0, (acute_risk_composite - high_risk_threshold) * 2.0)
+
     # Final probability calculation
     raw_injury_probability = (base_daily_risk + (acute_risk_composite * 0.01)) * high_risk_multiplier * risk_modifier
-    
-    # Cap the probability at a reasonable level (max 5% chance per day even in worst conditions)
-    injury_probability = min(0.05, raw_injury_probability)
-    
-    # With this model, even a high-risk day should have <5% chance of injury
-    # This will yield approximately 1-3 injuries per year for most athletes
-    
+    noise_factor = np.random.normal(1.0, 0.1)  # Small noise factor
+
+    # Cap injury probability at 5%
+    injury_probability = min(0.05, raw_injury_probability * noise_factor)
+
     # Determine if injury occurs
     injury_occurs = random.random() < injury_probability
-    
+
     return injury_occurs

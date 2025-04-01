@@ -2,6 +2,11 @@ import datetime
 import pandas as pd
 from datetime import datetime, timedelta
 import random
+import numpy as np
+
+# Random seed for reproducibility
+np.random.seed(42)
+random.seed(42)
 
 def generate_annual_training_plan(athlete, start_date= None, include_races=True):
     """Generates a structured annual training plan based on athlete profile."""
@@ -14,6 +19,7 @@ def generate_annual_training_plan(athlete, start_date= None, include_races=True)
     ftp = athlete['ftp']
     weight = athlete['weight']
     W_per_kilo = ftp / weight
+    specialization = athlete['specialization']
 
     ability_level = calculate_athlete_ability(training_experience, age, vo2max, weekly_hours, W_per_kilo)
     exp_levels = {
@@ -235,14 +241,39 @@ def generate_annual_training_plan(athlete, start_date= None, include_races=True)
     # More training on weekends, less on Mon/Fri for typical schedule
     dow_tss_factor = [0.8, 1.0, 1.1, 1.0, 0.7, 1.2, 1.3]
     
-    # Sport distribution (swim, bike, run, strength, rest)
-    sport_distribution = {
-        'swim': 0.2,
-        'bike': 0.5,
-        'run': 0.25,
-        'strength': 0.05,
-        'rest': 0.0  # Rest days will be calculated separately
-    }
+    # Sport distribution (swim, bike, run, strength, rest) more focus on weakness but most volume on bike to minimize injury
+    if specialization == 'bike_strong':
+        sport_distribution = {
+            'swim': 0.25,
+            'bike': 0.4,
+            'run': 0.3,
+            'strength': 0.05,
+            'rest': 0.0
+        }
+    elif specialization == 'run_strong':
+        sport_distribution = {
+            'swim': 0.3,
+            'bike': 0.5,
+            'run': 0.15,
+            'strength': 0.05,
+            'rest': 0.0
+        }
+    elif specialization == 'swim_strong':
+        sport_distribution = {
+            'swim': 0.1,
+            'bike': 0.55,
+            'run': 0.33,
+            'strength': 0.05,
+            'rest': 0.0
+        }
+    else:
+        sport_distribution = {
+            'swim': 0.2,
+            'bike': 0.5,
+            'run': 0.25,
+            'strength': 0.05,
+            'rest': 0.0  # Rest days will be calculated separately
+        }
     
     # Generate detailed day plan for each phase
     current_date = start_date
@@ -395,9 +426,90 @@ def generate_annual_training_plan(athlete, start_date= None, include_races=True)
     # Convert to DataFrame
     plan_df = pd.DataFrame(plan_data)
 
+    # Add week number column
+    plan_df['week_number'] = ((plan_df['date'] - start_date).dt.days // 7) + 1
+    
+    # Calculate weekly totals
+    weekly_totals = plan_df.groupby('week_number').agg({
+        'total_tss': 'sum',
+        'swim_tss': 'sum',
+        'bike_tss': 'sum',
+        'run_tss': 'sum',
+        'strength_tss': 'sum'
+    }).reset_index()
+    
+    # Check if weekly totals respect 10% rule
+    adjusted_weekly_totals = apply_progressive_overload_rule(weekly_totals, athlete['weekly_training_hours'])
+    
+    # Apply the adjusted weekly totals back to the daily plan
+    for week in adjusted_weekly_totals.itertuples():
+        week_idx = week.week_number
+        
+        # Calculate adjustment factor
+        if weekly_totals.loc[weekly_totals['week_number'] == week_idx, 'total_tss'].values[0] > 0:
+            adj_factor = week.total_tss / weekly_totals.loc[weekly_totals['week_number'] == week_idx, 'total_tss'].values[0]
+        else:
+            adj_factor = 1.0
+        
+        # Apply adjustment to each day in the week
+        mask = plan_df['week_number'] == week_idx
+        plan_df.loc[mask, 'total_tss'] = (plan_df.loc[mask, 'total_tss'] * adj_factor).round()
+        plan_df.loc[mask, 'swim_tss'] = (plan_df.loc[mask, 'swim_tss'] * adj_factor).round()
+        plan_df.loc[mask, 'bike_tss'] = (plan_df.loc[mask, 'bike_tss'] * adj_factor).round()
+        plan_df.loc[mask, 'run_tss'] = (plan_df.loc[mask, 'run_tss'] * adj_factor).round()
+        plan_df.loc[mask, 'strength_tss'] = (plan_df.loc[mask, 'strength_tss'] * adj_factor).round()
+
     detailed_plan = add_workout_details(plan_df, athlete)
     
     return detailed_plan, race_dates
+
+def apply_progressive_overload_rule(weekly_totals, weekly_hours):
+    """Apply the 10% progressive overload rule and ensure weekly TSS matches athlete's indicated hours"""
+    
+    # Calculate target weekly TSS based on athlete's indicated hours
+    # Using an average conversion factor of 60-70 TSS per hour
+    target_weekly_tss = weekly_hours * 65
+    
+    # Start with a base TSS that's lower than the target to allow for progression
+    starting_tss = target_weekly_tss * 0.7
+    
+    # Initialize the first week
+    adjusted_totals = weekly_totals.copy()
+    adjusted_totals.loc[0, 'total_tss'] = int(round(starting_tss))
+    
+    # Apply 10% rule to subsequent weeks (except recovery/taper weeks)
+    for i in range(1, len(weekly_totals)):
+        prev_week_tss = adjusted_totals.loc[i-1, 'total_tss']
+        current_week_tss = weekly_totals.loc[i, 'total_tss']
+        
+        # Check if this is a recovery/taper week (significantly lower TSS than previous week)
+        is_recovery_week = current_week_tss < prev_week_tss * 0.8
+        
+        if is_recovery_week:
+            # Keep recovery weeks at 60-70% of previous week
+            adjusted_totals.loc[i, 'total_tss'] = int(round(prev_week_tss * 0.65))
+        else:
+            # Apply 10% rule for normal progression weeks
+            max_allowed_tss = prev_week_tss * 1.1
+            
+            # Cap at target TSS based on athlete's weekly hours
+            max_allowed_tss = min(max_allowed_tss, target_weekly_tss * 1.05)
+            
+            # Set the adjusted value
+            if current_week_tss > max_allowed_tss:
+                adjusted_totals.loc[i, 'total_tss'] = int(round(max_allowed_tss))
+    
+    # Adjust distribution across disciplines proportionally
+    for i in range(len(weekly_totals)):
+        if weekly_totals.loc[i, 'total_tss'] > 0:
+            adj_factor = adjusted_totals.loc[i, 'total_tss'] / weekly_totals.loc[i, 'total_tss']
+            
+            adjusted_totals.loc[i, 'swim_tss'] = (weekly_totals.loc[i, 'swim_tss'] * adj_factor).round()
+            adjusted_totals.loc[i, 'bike_tss'] = (weekly_totals.loc[i, 'bike_tss'] * adj_factor).round()
+            adjusted_totals.loc[i, 'run_tss'] = (weekly_totals.loc[i, 'run_tss'] * adj_factor).round()
+            adjusted_totals.loc[i, 'strength_tss'] = (weekly_totals.loc[i, 'strength_tss'] * adj_factor).round()
+    
+    return adjusted_totals
 
 def add_workout_details(training_plan, athlete_profile):
     """
@@ -451,7 +563,7 @@ def add_workout_details(training_plan, athlete_profile):
     
     # Swimming speeds based on experience (in seconds per 100m)
     swim_zones = {
-        1: (1.1 * css, 1,2 * css),  # Easy/Recovery
+        1: (1.1 * css, 1.2 * css),  # Easy/Recovery
         2: (1.02 * css, 1.09 * css),  # Steady/Endurance
         3: (0.98 * css, 1.01 * css),  # Threshold
         4: (0.9 * css, 0.97 * css),  # Fast/Interval
@@ -464,25 +576,25 @@ def add_workout_details(training_plan, athlete_profile):
             'name': 'Easy Swim',
             'description': 'Easy technique-focused swim with drills',
             'zones': [swim_zones[1], swim_zones[2]],
-            'tss_per_hour': 40
+            'tss_per_hour': 25
         },
         'endurance': {
             'name': 'Endurance Swim',
             'description': 'Steady-paced endurance swim with some drill sets',
             'zones': [swim_zones[2]],
-            'tss_per_hour': 60
+            'tss_per_hour': 50
         },
         'intervals': {
             'name': 'Swim Intervals',
             'description': 'Mixed intervals focusing on speed and technique',
             'zones': [swim_zones[3], swim_zones[4]],
-            'tss_per_hour': 80
+            'tss_per_hour': 90
         },
         'threshold': {
             'name': 'Threshold Swim',
             'description': 'Sustained effort at or near threshold pace',
             'zones': [swim_zones[4]],
-            'tss_per_hour': 90
+            'tss_per_hour': 80
         },
         'speed': {
             'name': 'Speed Work',
@@ -503,36 +615,30 @@ def add_workout_details(training_plan, athlete_profile):
             'name': 'Endurance Ride',
             'description': 'Steady effort to build aerobic endurance',
             'zones': [power_zones[2]],
-            'tss_per_hour': 60
+            'tss_per_hour': 40
         },
         'tempo': {
             'name': 'Tempo Ride',
             'description': 'Sustained moderate effort with some harder efforts',
             'zones': [power_zones[3]],
-            'tss_per_hour': 75
+            'tss_per_hour': 60
         },
         'sweetspot': {
             'name': 'Sweet Spot Intervals',
             'description': 'Intervals at 88-93% of FTP',
             'zones': [power_zones[3], power_zones[4]],
-            'tss_per_hour': 85
+            'tss_per_hour': 70
         },
         'threshold': {
             'name': 'Threshold Intervals',
             'description': 'Intervals at or just below FTP',
             'zones': [power_zones[4]],
-            'tss_per_hour': 95
+            'tss_per_hour': 80
         },
         'vo2max': {
             'name': 'VO2max Intervals',
             'description': 'Short, high-intensity intervals',
             'zones': [power_zones[5]],
-            'tss_per_hour': 110
-        },
-        'hills': {
-            'name': 'Hill Repeats',
-            'description': 'Uphill intervals to build strength',
-            'zones': [power_zones[4], power_zones[5]],
             'tss_per_hour': 100
         }
     }
@@ -542,25 +648,25 @@ def add_workout_details(training_plan, athlete_profile):
             'name': 'Recovery Run',
             'description': 'Very easy pace to promote recovery',
             'zones': [hr_zones[1], hr_zones[2]],
-            'tss_per_hour': 40
+            'tss_per_hour': 30
         },
         'endurance': {
             'name': 'Endurance Run',
             'description': 'Steady effort to build aerobic endurance',
             'zones': [hr_zones[2]],
-            'tss_per_hour': 70
+            'tss_per_hour': 50
         },
         'long': {
             'name': 'Long Run',
             'description': 'Extended duration at easy to moderate pace',
             'zones': [hr_zones[2]],
-            'tss_per_hour': 80
+            'tss_per_hour': 50
         },
         'tempo': {
             'name': 'Tempo Run',
             'description': 'Sustained effort at moderate intensity',
             'zones': [hr_zones[3]],
-            'tss_per_hour': 85
+            'tss_per_hour': 70
         },
         'threshold': {
             'name': 'Threshold Intervals',
@@ -571,12 +677,6 @@ def add_workout_details(training_plan, athlete_profile):
         'intervals': {
             'name': 'Speed Intervals',
             'description': 'Short, high-intensity repeats with recovery',
-            'zones': [hr_zones[4], hr_zones[5]],
-            'tss_per_hour': 110
-        },
-        'hills': {
-            'name': 'Hill Repeats',
-            'description': 'Uphill intervals to build strength and form',
             'zones': [hr_zones[4], hr_zones[5]],
             'tss_per_hour': 100
         }
@@ -627,6 +727,19 @@ def add_workout_details(training_plan, athlete_profile):
         phase = day['phase']
         low_intensity, high_intensity = phase_intensity_distribution[phase]
 
+        def assign_workout(discipline, tss, workout_dict):
+            if tss == 0:
+                return None, 0
+
+            intensity = select_intensity(tss, discipline)
+            workout_weights = get_workout_weights(tss, intensity, discipline)
+            workout_type = max(workout_weights, key=workout_weights.get)  
+
+            workout = workout_dict[workout_type]
+            duration_minutes = round((tss / workout['tss_per_hour']) * 60)
+
+            return workout['name'], duration_minutes
+
         # Function to randomly assign intensity based on 80/20 principle
         def select_intensity(tss, discipline):
             if discipline == 'bike' and tss < 70:
@@ -639,54 +752,11 @@ def add_workout_details(training_plan, athlete_profile):
                 return "high"
             else:
                 return "low" if random.randint(1, 100) <= low_intensity else "high"
-
+            
         # Handle each sport
-        # Swim
-        if day['swim_tss'] > 0:
-            intensity = select_intensity(day['swim_tss'], 'swim')
-            swim_workout_weights = get_workout_weights(day['swim_tss'], intensity, 'swim')
-            swim_workout_type = random.choices(list(swim_workout_weights.keys()), weights=list(swim_workout_weights.values()))[0]
-            
-            swim_workout = swim_workouts[swim_workout_type]
-            
-            # Calculate duration based on TSS
-            swim_duration_hours = day['swim_tss'] / swim_workout['tss_per_hour']
-            swim_duration_minutes = round(swim_duration_hours * 60)
-            
-            # Update plan
-            detailed_plan.at[idx, 'swim_workout'] = swim_workout['name']
-            detailed_plan.at[idx, 'swim_duration'] = swim_duration_minutes
-        
-        # Bike
-        if day['bike_tss'] > 0:
-            intensity = select_intensity(day['bike_tss'], 'bike')
-            bike_workout_weights = get_workout_weights(day['bike_tss'], intensity, 'bike')
-            bike_workout_type = random.choices(list(bike_workout_weights.keys()), weights=list(bike_workout_weights.values()))[0]
-            
-            bike_workout = bike_workouts[bike_workout_type]
-            
-            # Calculate duration based on TSS
-            bike_duration_hours = day['bike_tss'] / bike_workout['tss_per_hour']
-            bike_duration_minutes = round(bike_duration_hours * 60)
-
-            # Update plan
-            detailed_plan.at[idx, 'bike_workout'] = bike_workout['name']
-            detailed_plan.at[idx, 'bike_duration'] = bike_duration_minutes
-        
-        # Run
-        if day['run_tss'] > 0:
-            intensity = select_intensity(day['run_tss'], 'run')
-            run_workout_weights = get_workout_weights(day['run_tss'], intensity, 'run')
-            run_workout_type = random.choices(list(run_workout_weights.keys()), weights=list(run_workout_weights.values()))[0]
-
-            run_workout = run_workouts[run_workout_type]
-            # Calculate duration based on TSS
-            run_duration_hours = day['run_tss'] / run_workout['tss_per_hour']
-            run_duration_minutes = round(run_duration_hours * 60)
-
-            # Update plan
-            detailed_plan.at[idx, 'run_workout'] = run_workout['name']
-            detailed_plan.at[idx, 'run_duration'] = run_duration_minutes
+        detailed_plan.at[idx, 'swim_workout'], detailed_plan.at[idx, 'swim_duration'] = assign_workout('swim', day['swim_tss'], swim_workouts)
+        detailed_plan.at[idx, 'bike_workout'], detailed_plan.at[idx, 'bike_duration'] = assign_workout('bike', day['bike_tss'], bike_workouts)
+        detailed_plan.at[idx, 'run_workout'], detailed_plan.at[idx, 'run_duration'] = assign_workout('run', day['run_tss'], run_workouts)
 
         # Strength
         if day['strength_tss'] > 0:
@@ -826,25 +896,3 @@ def get_workout_weights(tss, intensity, discipline):
                 return {'tempo': 0.3, 'threshold': 0.4, 'intervals': 0.2, 'hills': 0.1}
             else:
                 return {'tempo': 0.2, 'threshold': 0.3, 'intervals': 0.3, 'hills': 0.2}
-
-
-athlete = {
-    'age': 30,  # age of athlete
-    'weight': 70,  # weight of athlete in kg
-    'vo2max': 55,  # vo2max value
-    'max_hr': 185,  # maximum heart rate
-    'css': 100,  # Critical Swim Speed in seconds per 100m
-    'training_experience': 6,  
-    'recovery_rate': 1.2,  # recovery rate from 0 (fast) to 1 (slow)
-    'weekly_training_hours': 12,  # total weekly training hours
-    'ftp': 300,  # Functional Threshold Power (FTP) in watts
-    'weight': 70  # athlete's weight in kg
-}
-
-# Generate the annual training plan
-#training_plan = generate_annual_training_plan(athlete, start_date=datetime(2024, 1, 1), include_races=True)
-
-# Save the training plan to CSV
-#training_plan.to_csv('athlete_annual_training_plan.csv', index=False)
-
-#print("Training plan saved to 'athlete_annual_training_plan.csv'")
