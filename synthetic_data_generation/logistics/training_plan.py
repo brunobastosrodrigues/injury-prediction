@@ -784,69 +784,36 @@ def add_workout_details(training_plan, athlete_profile):
         
 
 def calculate_athlete_ability(years_experience, age, vo2max, weekly_hours, ftp_kg):
-    # Scoring based on defined ranges
+    """Calculates an athlete's ability level based on multiple performance factors."""
 
-    # Years of Experience
-    experience_score = min(20, years_experience * 2) if years_experience < 10 else 20
+    # Define scoring ranges
+    score_ranges = {
+        "experience": [(10, 20), (float("inf"), lambda x: min(20, x * 2))],
+        "age": [(25, 8), (35, 10), (45, 7), (55, 6), (float("inf"), 3)],
+        "vo2max": [(40, 5), (50, 10), (60, 15), (70, 20), (float("inf"), 25)],
+        "weekly_hours": [(7, 5), (9, 10), (12, 15), (float("inf"), 20)],
+        "ftp_kg": [(3, 5), (3.5, 10), (4.5, 15), (5.5, 20), (float("inf"), 25)],
+    }
 
-    # Age Factor
-    if age <= 25:
-        age_score = 8
-    elif 26 <= age <= 35:
-        age_score = 10
-    elif 36 <= age <= 45:
-        age_score = 7
-    elif 46 <= age <= 55:
-        age_score = 6
-    else:
-        age_score = 3
+    # Helper function to get score from ranges
+    def get_score(value, category):
+        for threshold, score in score_ranges[category]:
+            if value < threshold:
+                return score(value) if callable(score) else score
 
-    # VO2max
-    if vo2max < 40:
-        vo2max_score = 5
-    elif 40 <= vo2max < 50:
-        vo2max_score = 10
-    elif 50 <= vo2max < 60:
-        vo2max_score = 15
-    elif 60 <= vo2max < 70:
-        vo2max_score = 20
-    else:
-        vo2max_score = 25
+    # Calculate individual scores
+    experience_score = get_score(years_experience, "experience")
+    age_score = get_score(age, "age")
+    vo2max_score = get_score(vo2max, "vo2max")
+    weekly_score = get_score(weekly_hours, "weekly_hours")
+    ftp_score = get_score(ftp_kg, "ftp_kg")
 
-    # Weekly Training Hours
-    if weekly_hours < 7:
-        weekly_score = 5
-    elif 7 <= weekly_hours < 9:
-        weekly_score = 10
-    elif 9 <= weekly_hours < 12:
-        weekly_score = 15
-    else:
-        weekly_score = 20
+    # Total Score Calculation
+    total_score = sum([experience_score, age_score, vo2max_score, weekly_score, ftp_score])
 
-    # FTP (W/kg)
-    if ftp_kg < 3:
-        ftp_score = 5
-    elif 3 <= ftp_kg < 3.5:
-        ftp_score = 10
-    elif 3.5 <= ftp_kg < 4.5:
-        ftp_score = 15
-    elif 4.5 <= ftp_kg < 5.5:
-        ftp_score = 20
-    else:
-        ftp_score = 25
-
-    # Total Score
-    total_score = experience_score + age_score + vo2max_score + weekly_score + ftp_score
-
-    # Categorizing Ability Level
-    if total_score <= 30:
-        ability_level = "Beginner"
-    elif total_score <= 50:
-        ability_level = "Intermediate"
-    elif total_score <= 75:
-        ability_level = "Advanced"
-    else:
-        ability_level = "Elite"
+    # Ability Level Categorization
+    ability_levels = [(30, "Beginner"), (50, "Intermediate"), (75, "Advanced"), (float("inf"), "Elite")]
+    ability_level = next(label for threshold, label in ability_levels if total_score <= threshold)
 
     return ability_level
 
