@@ -79,6 +79,8 @@ def generate_athlete_profile(athlete_id = None):
 
     hrv = estimate_hrv(age, vo2max, resting_hr, lifestyle_factors['sleep'], lifestyle_factors['stress'], lifestyle_factors['smoking'], lifestyle_factors['drinking'], training_experience)
 
+    recovery_profile, recovery_signature = add_recovery_characteristics()
+
     return {
         'id': athlete_id,
         'gender': gender,
@@ -107,7 +109,9 @@ def generate_athlete_profile(athlete_id = None):
         'stress_factor': lifestyle_factors['stress'],
         'smoking_factor': lifestyle_factors['smoking'],
         'drinking_factor': lifestyle_factors['drinking'],
-        'specialization': athlete_type
+        'specialization': athlete_type,
+        'recovery_profile': recovery_profile,
+        'recovery_signature': recovery_signature
     }
 
 def get_training_experience(age):
@@ -554,6 +558,39 @@ def calculate_power_zones(ftp):
         "Z5": (1.06 * ftp, 1.20 * ftp),         # VO2 Max
         "Z6": (1.21 * ftp, float("inf"))        # Aneaerobic Capacity
     }
+
+def add_recovery_characteristics():
+    # Add recovery profile characteristics
+    recovery_profile = random.choice([
+        "hrv_dominant",      # Shows strong HRV changes with fatigue
+        "sleep_dominant",    # Shows strong sleep disruption with fatigue
+        "rhr_dominant",      # Shows strong RHR changes with fatigue
+        "stress_dominant",   # Shows strong stress response with fatigue
+        "balanced"           # Shows balanced changes across metrics
+    ])
+
+    recovery_signature = {
+        "hrv_sensitivity": random.uniform(0.8, 1.2),
+        "sleep_sensitivity": random.uniform(0.8, 1.2),
+        "rhr_sensitivity": random.uniform(0.8, 1.2),
+        "stress_sensitivity": random.uniform(0.8, 1.2)
+    }
+
+    # Adjust sensitivities based on recovery profile
+    if recovery_profile == "hrv_dominant":
+        recovery_signature["hrv_sensitivity"] *= 1.6
+        recovery_signature["sleep_sensitivity"] *= 0.8
+    elif recovery_profile == "sleep_dominant":
+        recovery_signature["sleep_sensitivity"] *= 1.6
+        recovery_signature["hrv_sensitivity"] *= 0.9
+    elif recovery_profile == "rhr_dominant":
+        recovery_signature["rhr_sensitivity"] *= 1.6
+        recovery_signature["hrv_sensitivity"] *= 0.9
+    elif recovery_profile == "stress_dominant":
+        recovery_signature["stress_sensitivity"] *= 1.6
+        recovery_signature["sleep_sensitivity"] *= 0.8
+
+    return recovery_profile, recovery_signature
 
 def generate_athlete_cohort(n):
     """Generate a cohort of athletes with specializations."""

@@ -165,3 +165,132 @@ def check_injury_occurrence(athlete, baseline_risk, performance, fatigue, acwr_t
     injury_occurs = random.random() < injury_probability
 
     return injury_occurs
+
+def check_injury_patterns(athlete_data, recent_days=7):
+    """
+    Calculate the probability of injury based on patterns in recent data.
+    This provides a more deterministic approach to injury prediction.
+    
+    Parameters:
+    -----------
+    athlete_data : dict
+        Dictionary containing athlete information and daily data
+    recent_days : int
+        Number of recent days to analyze for patterns
+    
+    Returns:
+    --------
+    float
+        Probability of injury (0-1)
+    """
+    athlete = athlete_data['athlete']
+    daily_data = athlete_data['daily_data']
+    
+    # If we don't have enough data yet, return low probability
+    if len(daily_data) < recent_days:
+        return 0.01
+    
+    # Get the most recent days' data
+    recent_data = daily_data[-recent_days:]
+    
+    # Initialize risk factors
+    risk_factors = {
+        'hrv_decline': 0,
+        'rhr_increase': 0,
+        'sleep_quality_decline': 0,
+        'body_battery_decline': 0,
+        'high_acwr': 0,
+        'consecutive_high_load': 0,
+        'stress_increase': 0
+    }
+    
+    # 1. Check for HRV decline trend
+    hrv_values = [day['hrv'] for day in recent_data]
+    hrv_baseline = athlete['hrv_baseline']
+    hrv_trend = np.polyfit(range(len(hrv_values)), hrv_values, 1)[0]  # Slope of linear fit
+    hrv_latest_ratio = hrv_values[-1] / hrv_baseline
+    
+    if hrv_trend < -0.5:  # Significant negative trend
+        risk_factors['hrv_decline'] = min(1.0, abs(hrv_trend) * 0.3)
+    if hrv_latest_ratio < 0.8:  # Latest HRV below 80% of baseline
+        risk_factors['hrv_decline'] += min(1.0, (1 - hrv_latest_ratio) * 2)
+    
+    # 2. Check for RHR increase trend
+    rhr_values = [day['resting_hr'] for day in recent_data]
+    rhr_baseline = athlete['resting_hr']
+    rhr_trend = np.polyfit(range(len(rhr_values)), rhr_values, 1)[0]
+    rhr_latest_ratio = rhr_values[-1] / rhr_baseline
+    
+    if rhr_trend > 0.3:  # Significant positive trend
+        risk_factors['rhr_increase'] = min(1.0, rhr_trend * 0.5)
+    if rhr_latest_ratio > 1.08:  # Latest RHR more than 8% above baseline
+        risk_factors['rhr_increase'] += min(1.0, (rhr_latest_ratio - 1) * 5)
+    
+    # 3. Check for sleep quality decline
+    sleep_quality_values = [day['sleep_quality'] for day in recent_data]
+    sleep_quality_trend = np.polyfit(range(len(sleep_quality_values)), sleep_quality_values, 1)[0]
+    
+    if sleep_quality_trend < -0.03:  # Negative trend in sleep quality
+        risk_factors['sleep_quality_decline'] = min(1.0, abs(sleep_quality_trend) * 10)
+    
+    # 4. Check body battery trend (morning)
+    if 'body_battery_morning' in recent_data[0]:
+        bb_values = [day.get('body_battery_morning', 50) for day in recent_data]
+        bb_trend = np.polyfit(range(len(bb_values)), bb_values, 1)[0]
+        
+        if bb_trend < -1.5:  # Significant negative trend
+            risk_factors['body_battery_decline'] = min(1.0, abs(bb_trend) * 0.2)
+    
+    # 5. Check ACWR (if available)
+    if len(daily_data) > 28:
+        # Calculate ACWR
+        recent_tss = sum([day.get('actual_tss', 0) for day in daily_data[-7:]])
+        chronic_tss = sum([day.get('actual_tss', 0) for day in daily_data[-28:]]) / 4
+        acwr = recent_tss / chronic_tss if chronic_tss > 0 else 1.0
+        
+        if acwr > 1.3:
+            risk_factors['high_acwr'] = min(1.0, (acwr - 1.3) * 2)
+    
+    # 6. Check for consecutive high load days
+    max_daily_tss = calculate_max_daily_tss(athlete['weekly_training_hours'], athlete['training_experience'])
+    high_load_count = sum(1 for day in recent_data if day.get('actual_tss', 0) > max_daily_tss * 0.9)
+    
+    if high_load_count >= 3:
+        risk_factors['consecutive_high_load'] = min(1.0, high_load_count * 0.2)
+    
+    # 7. Check stress increase
+    stress_values = [day.get('stress', 50) for day in recent_data]
+    stress_trend = np.polyfit(range(len(stress_values)), stress_values, 1)[0]
+    
+    if stress_trend > 2:  # Positive trend in stress
+        risk_factors['stress_increase'] = min(1.0, stress_trend * 0.1)
+    
+    # Calculate overall risk score (weighted sum of risk factors)
+    weights = {
+        'hrv_decline': 0.25,
+        'rhr_increase': 0.20,
+        'sleep_quality_decline': 0.15,
+        'body_battery_decline': 0.10,
+        'high_acwr': 0.15,
+        'consecutive_high_load': 0.10,
+        'stress_increase': 0.05
+    }
+    
+    risk_score = sum(risk_factors[k] * weights[k] for k in risk_factors)
+    
+    # Apply non-linear transformation to make injury more likely when multiple factors align
+    if risk_score > 0.4:
+        risk_score = min(0.95, risk_score * 1.5)
+    
+    # Add some randomness for variable onset
+    risk_score = min(0.99, risk_score * (0.9 + np.random.random() * 0.2))
+    
+    return risk_score
+
+def calculate_max_daily_tss(weekly_hours, training_experience):
+    """Calculate maximum sustainable daily TSS based on athlete factors."""
+    # Base value scaled by training hours and experience
+    base_tss = 75 + (weekly_hours * 4)
+    experience_factor = 1 + (min(training_experience, 15) / 30)
+    
+    return base_tss * experience_factor

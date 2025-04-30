@@ -2,11 +2,11 @@ import datetime, random
 import numpy as np
 from logistics.training_plan import generate_annual_training_plan
 from training_response.fitness_fatigue_form import initialize_tss_history, initialize_hrv_history, calculate_training_metrics, update_history, calculate_max_daily_tss
-from sensor_data.daily_metrics_simulation import simulate_morning_sensor_data, simulate_evening_sensor_data
+from sensor_data.daily_metrics_simulation import simulate_morning_sensor_data, simulate_evening_sensor_data, inject_realistic_injury_patterns, create_false_alarm_patterns
 from logistics.athlete_profiles import generate_athlete_cohort
-from training_response.injury_simulation import calculate_baseline_injury_risk, check_injury_occurrence
 from sensor_data.simulate_activities import simulate_training_day_with_wearables
 import pandas as pd
+from datetime import timedelta
 
 # Random seed for reproducibility
 np.random.seed(42)
@@ -24,7 +24,6 @@ def simulate_full_year(athlete, year=2024):
     # Initialize injury tracking
     recovery_days_remaining = 0
 
-    baseline_injury_risk = calculate_baseline_injury_risk(athlete)
     tss_history = initialize_tss_history(athlete, start_date)
     hrv_history = initialize_hrv_history(athlete, tss_history)
     acwr_timeline = []
@@ -45,6 +44,11 @@ def simulate_full_year(athlete, year=2024):
         'form': form,
         'body_battery_evening': 50
     }
+
+    # Track when we should inject injury patterns
+    pending_injury_date = None
+    days_to_next_false_alarm = random.randint(30, 60)  # Schedule first false alarm
+
     for index, day in annual_plan.iterrows():
         # Step 1: Simulate morning sensor data
         day_data = simulate_morning_sensor_data(athlete, day['date'], prev_day, recovery_days_remaining, max_daily_tss, tss_history, acwr)
@@ -66,34 +70,67 @@ def simulate_full_year(athlete, year=2024):
         # Step 4: Simulate the remaining daily sensor data (stress)
         simulate_evening_sensor_data(athlete, fatigue, day_data)
 
-        # Step 5: If not already injured, simulate injury occurrence randomly based on probabilities
+        # Step 5: Handle injury occurrence with more realism
         if recovery_days_remaining == 0:
-            injury = check_injury_occurrence(athlete, baseline_injury_risk, form, fatigue, acwr_timeline, tss_history, hrv_history, day_data['sleep_hours'], sleep_quality, day_data['resting_hr'])
-            if injury:
+            # If there's a pending injury date and we've reached it
+            if pending_injury_date and day['date'] == pending_injury_date:
+                # Only inject patterns once - right when the injury occurs
+                daily_data = inject_realistic_injury_patterns(
+                    athlete, 
+                    daily_data, 
+                    len(daily_data) - 1,  # Current day index 
+                    14  # Look back up to 14 days to modify
+                )
                 day_data['injury'] = 1
-                recovery_days_remaining = np.random.randint(3, 10)  # Set recovery time
+                recovery_days_remaining = np.random.randint(3, 10)
+                pending_injury_date = None
             else:
-                day_data['injury'] = 0
+                # Add some truly random injuries (unexplained, no patterns)
+                if random.random() < 0.003:  # ~1 random injuries per year
+                    day_data['injury'] = 1
+                    recovery_days_remaining = np.random.randint(3, 7)  # Shorter recovery for sudden injuries
+                # Plan future injuries with patterns
+                elif len(daily_data) > 30 and random.random() < 0.0135:  # ~4.5-5 pattern-based injuries per year
+                    # Variable warning period (longer is more realistic)
+                    injury_warning_days = random.randint(7, 14)
+                    injury_date = day['date'] + timedelta(days=injury_warning_days)
+                    pending_injury_date = injury_date
+                else:
+                    day_data['injury'] = 0
         else:
-            day_data['injury'] = 1  # Mark as still injured
-            recovery_days_remaining -= 1  # Continue recovery
-
+            # Still in recovery period
+            day_data['injury'] = 1
+            recovery_days_remaining -= 1
+            
         daily_data.append(day_data)
-
+        
         # Update previous day data
         prev_day['fatigue'] = fatigue
         prev_day['form'] = form
         prev_day['resting_hr'] = day_data['resting_hr']
         prev_day['hrv'] = day_data['hrv']
         prev_day['stress'] = day_data['stress']
-        prev_day['training_stress'] = day_data['actual_tss']
+        prev_day['training_stress'] = day_data['actual_tss'] 
         prev_day['body_battery_evening'] = day_data['body_battery_evening']
+        
+        # Handle false alarm pattern injection (patterns that look like injuries but don't result in one)
+        days_to_next_false_alarm -= 1
+        if days_to_next_false_alarm <= 0 and recovery_days_remaining == 0 and not pending_injury_date:
+            # Insert a false alarm pattern
+            false_alarm_days = random.randint(7, 12)
+            create_false_alarm_patterns(athlete, daily_data, len(daily_data) - 1, false_alarm_days)
+            # Schedule next false alarm
+            days_to_next_false_alarm = random.randint(20, 35)
+
     
-    return {
+    result = {
         'athlete': athlete,
         'daily_data': daily_data,
         'activity_data': activity_data
     }
+    
+    return result
+
 
 def generate_simulation_dataset(n_athletes):
     # Generate athlete cohort
