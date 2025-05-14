@@ -10,6 +10,7 @@ Given sufficient time this repository also offers strategies for real data colle
 
 ## Repository Structure
 
+```text
 ├── explored_unused_solutions/    # Alternative approaches explored for real data access
 │   ├── garmin_api_interface/     # Web interface for Garmin API data collection
 │   └── strava_api_integration/   # Implementation for Strava API access
@@ -34,6 +35,7 @@ Given sufficient time this repository also offers strategies for real data colle
     ├── main.py                   # Main orchestration script
     ├── simulate_year.py          # Annual simulation controller
     └── README.md                 # Module-specific documentation
+```
 
 ## Key Features
 
@@ -46,16 +48,23 @@ Given sufficient time this repository also offers strategies for real data colle
 ## Installation
 
 1. Clone the repository: 
+
 ```bash git clone https://github.com/redsleo02/Bachelorarbeit.git cd synthetic-athlete-data ``` 
 
 2. Create a virtual environment and install the dependencies: 
+
 ```bash python -m venv venv source venv/bin/activate # On Windows: venv\Scripts\activate pip install -r requirements.txt ``` 
 
 ## Usage 
 ### Generating Synthetic Data 
 To run the full simulation pipeline and generate all datasets: 
+
 ```bash python synthetic_data_generation/main.py ``` 
-This will generate multiple CSV files in the `simulated_data/` directory: - `athletes.csv`: Synthetic athlete profiles - `daily_data.csv`: Daily physiological readings - `activity_data.csv`: Wearable activity logs </pre>
+
+This will generate multiple CSV files in the `simulated_data/` directory: 
+- `athletes.csv`: Synthetic athlete profiles 
+- `daily_data.csv`: Daily physiological readings 
+- `activity_data.csv`: Wearable activity logs 
 
 ## Research Context
 This framework was developed as part of a thesis on synthetic data generation for sports science applications. It addresses the challenge of limited data accessibility in sports performance research due to privacy concerns and the proprietary nature of athlete monitoring data.
