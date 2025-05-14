@@ -1,296 +1,302 @@
 import random
-import numpy as np
-import pandas as pd
 
-def calculate_baseline_injury_risk(athlete):
-    # ----- Baseline risk factors -----
-    
-    # Age-related risk (increases exponentially after 30)
-    age = athlete['age']
-    age_risk = max(0, ((age - 30) / 50) ** 1.5) if age > 30 else 0
-    
-    # Training experience reduces risk
-    experience_risk_reduction = min(0.5, athlete['training_experience'] / 20)
-    
-    # Genetic factors - some people are naturally more injury-prone
-    genetic_risk = (1.2 - athlete['genetic_factor']) * 0.5  # Invert genetic_factor (higher is better)
-    
-    # BMI as risk factor (both very low and very high increase risk)
-    height_m = athlete['height'] / 100  # convert cm to m
-    bmi = athlete['weight'] / (height_m * height_m)
-    bmi_risk = 0.1 * abs(bmi - 22) / 10  # Optimal BMI around 22
-    
-    # Baseline risk composite
-    baseline_risk = (
-        0.05 +  # Everyone has some minimum risk
-        age_risk * 0.2 +
-        genetic_risk * 0.15 +
-        bmi_risk * 0.05 
-    ) * (1 - experience_risk_reduction)  # Experience reduces all baseline risks
+# set seed for reproducibility
+random.seed(42)
 
-    return baseline_risk
-
-def check_injury_occurrence(athlete, baseline_risk, performance, fatigue, acwr_timeline, tss_history, hrv_history, sleep_hours, sleep_quality, resting_hr):
+def inject_realistic_injury_patterns(athlete, daily_data_list, injury_day_index, lookback_days=14):
     """
-    Calculate injury probability based on various athlete metrics and training load trends.
-
-    Returns:
-    --------
-    bool
-        True if an injury occurs, False otherwise
-    """
-
-    # --- Establish baseline injury risk ---
-    base_daily_risk = baseline_risk * 0.002
-
-    # --- Extract ACWR features ---
-    acwr_series = pd.Series(acwr_timeline)
-    acwr_last = acwr_series.iloc[-1]  # Most recent ACWR
-    acwr_ma7 = acwr_series.rolling(7).mean().iloc[-1]  # 7-day moving average
-    acwr_volatility = acwr_series.rolling(7).std().iloc[-1]  # ACWR variability
-
-    # --- Extract TSS features ---
-    tss_series = pd.Series(tss_history)
-    acute_load = tss_series.rolling(7).sum().iloc[-1]  # Last 7 days sum
-    chronic_load = tss_series.rolling(28).sum().iloc[-1]  # Last 28 days sum
-    tss_ratio = acute_load / (chronic_load + 1e-6)  # Acute:Chronic ratio
-
-    # --- Extract HRV features ---
-    hrv_series = pd.Series(hrv_history)
-    hrv_ma7 = hrv_series.rolling(7).mean().iloc[-1]  # 7-day HRV average
-    hrv_trend = hrv_series.iloc[-1] - hrv_series.iloc[0]  # Change in HRV over 28 days
-    hrv_volatility = hrv_series.rolling(7).std().iloc[-1]  # HRV variability
-
-    # --- Acute risk factors ---
-
-    # Fatigue-to-Performance ratio
-    fatigue_performance_ratio = fatigue / max(performance, 1)
-    fatigue_risk = max(0, (fatigue_performance_ratio - 1.3) * 0.1)
-
-    # HRV risk - Only significant when HRV is substantially depressed
-    hrv_baseline = athlete['hrv_baseline']
-    hrv_ratio = hrv_ma7 / max(hrv_baseline, 1)
-    hrv_risk = max(0, (0.7 - hrv_ratio) * 0.2) if hrv_ratio < 0.7 else 0
-
-    # Resting HR risk
-    rhr_baseline = athlete['resting_hr']
-    rhr_ratio = resting_hr / max(rhr_baseline, 40)
-    rhr_risk = max(0, (rhr_ratio - 1.2) * 0.15) if rhr_ratio > 1.2 else 0
-
-    # Sleep debt risk
-    sleep_norm = athlete['sleep_time_norm']
-    sleep_debt = max(0, sleep_norm - sleep_hours)
-    sleep_hours_risk = max(0, (sleep_debt - 2) * 0.02) if sleep_debt > 2 else 0
-
-    # Sleep quality risk
-    sleep_quality_risk = max(0, (0.5 - sleep_quality) * 0.08) if sleep_quality < 0.5 else 0
-
-    # Nutrition risk
-    nutrition_risk = max(0, (0.4 - athlete['nutrition_factor']) * 0.05) if athlete['nutrition_factor'] < 0.4 else 0
-
-    # Stress risk
-    stress_risk = max(0, (athlete['stress_factor'] - 0.7) * 0.05) if athlete['stress_factor'] > 0.7 else 0
-
-    # Lifestyle risk
-    lifestyle_risk = (
-        athlete['smoking_factor'] * 0.1 + 
-        athlete['drinking_factor'] * 0.05
-    )
-
-    # --- Training load risks ---
-
-    # TSS risk (high workload)
-    tss_threshold = 200 + (athlete['training_experience'] * 15)
-    tss_risk = max(0, (tss_ratio - 1.5) * 0.2) if tss_ratio > 1.5 else 0
-
-    # ACWR risk - considers trends and volatility
-    if acwr_last < 0.6:
-        acwr_risk = (0.6 - acwr_last) * 0.05
-    elif acwr_last > 1.8:
-        acwr_risk = (acwr_last - 1.8) * 0.1
-    else:
-        acwr_risk = 0
-
-    acwr_volatility_risk = min(0.1, acwr_volatility * 0.2)  # More variability increases risk
-
-    # HRV volatility risk (unstable HRV patterns suggest poor recovery)
-    hrv_volatility_risk = min(0.1, hrv_volatility * 0.15)
-
-    # --- Risk modifiers ---
-
-    # Recovery rate modifier
-    recovery_modifier = 1.0 - (athlete['recovery_rate'] * 0.3)
-
-    # Experience modifier
-    experience_modifier = 1.0 - (min(athlete['training_experience'], 10) * 0.03)
-
-    # Combined modifier (caps risk reduction at 50%)
-    risk_modifier = max(0.5, recovery_modifier * experience_modifier)
-
-    # --- Combine all risk factors ---
-
-    # Training load composite risk
-    training_load_risk = (
-        tss_risk * 0.1 +
-        acwr_risk * 0.15 +
-        acwr_volatility_risk * 0.05 +
-        hrv_volatility_risk * 0.05
-    )
-
-    # Acute risks composite
-    acute_risk_composite = (
-        fatigue_risk * 0.15 +
-        hrv_risk * 0.1 +
-        rhr_risk * 0.05 +
-        sleep_hours_risk * 0.05 +
-        sleep_quality_risk * 0.05 +
-        nutrition_risk * 0.03 +
-        stress_risk * 0.03 +
-        lifestyle_risk * 0.04 +
-        training_load_risk * 0.2
-    )
-
-    # High risk multiplier (non-linearity when many factors align)
-    high_risk_threshold = 0.3
-    high_risk_multiplier = 1.0 + max(0, (acute_risk_composite - high_risk_threshold) * 2.0)
-
-    # Final probability calculation
-    raw_injury_probability = (base_daily_risk + (acute_risk_composite * 0.01)) * high_risk_multiplier * risk_modifier
-    noise_factor = np.random.normal(1.0, 0.1)  # Small noise factor
-
-    # Cap injury probability at 5%
-    injury_probability = min(0.05, raw_injury_probability * noise_factor)
-
-    # Determine if injury occurs
-    injury_occurs = random.random() < injury_probability
-
-    return injury_occurs
-
-def check_injury_patterns(athlete_data, recent_days=7):
-    """
-    Calculate the probability of injury based on patterns in recent data.
-    This provides a more deterministic approach to injury prediction.
+    Inject realistic physiological patterns before injuries with appropriate noise and variability.
     
     Parameters:
     -----------
-    athlete_data : dict
-        Dictionary containing athlete information and daily data
-    recent_days : int
-        Number of recent days to analyze for patterns
+    athlete : dict
+        Athlete profile with baseline metrics
+    daily_data_list : list
+        List of daily data dictionaries
+    injury_day_index : int
+        Index of the day when injury occurs
+    lookback_days : int
+        Number of days before injury to modify data
+    """
+    # Ensure we don't go beyond the beginning of the data
+    start_idx = max(0, injury_day_index - lookback_days)
+    
+    # Get the relevant data slice leading to injury
+    pre_injury_period = daily_data_list[start_idx:injury_day_index+1]
+    period_length = len(pre_injury_period)
+    
+    # Calculate baseline values from athlete profile
+    baseline_hrv = athlete['hrv_baseline']
+    baseline_rhr = athlete['resting_hr']
+    
+    # Add some athlete-specific variability to pattern strength (some athletes show stronger patterns)
+    pattern_strength_modifier = random.uniform(0.7, 1.3)
+    
+    # Add some randomness to the pattern onset (not all patterns start at the same time)
+    pattern_start_point = random.randint(1, min(5, period_length//3))
+    effective_days = period_length - pattern_start_point
+    
+    # Decide which patterns this athlete will exhibit (not all athletes show all patterns)
+    show_hrv_pattern = random.random() < 0.85  # 85% show HRV decline
+    show_rhr_pattern = random.random() < 0.80  # 80% show RHR increase
+    show_sleep_pattern = random.random() < 0.70  # 70% show sleep quality decline
+    show_bb_pattern = random.random() < 0.75  # 75% show body battery decline
+
+    hrv_sensitivity = athlete['recovery_signature']['hrv_sensitivity']
+    rhr_sensitivity = athlete['recovery_signature']['rhr_sensitivity'] 
+    sleep_sensitivity = athlete['recovery_signature']['sleep_sensitivity']
+    stress_sensitivity = athlete['recovery_signature']['stress_sensitivity']
+    
+    # Sometimes injuries happen with minimal warning (acute injuries)
+    is_acute_injury = random.random() < 0.15  # 15% of injuries are acute with minimal warning
+    if is_acute_injury:
+        # For acute injuries, only modify 1-3 days before injury
+        pattern_start_point = period_length - random.randint(1, 3)
+    
+    # Create a recent history of the athlete's data
+    if len(daily_data_list) > 3:
+        # Get recent history for temporal effects
+        recent_history = daily_data_list[max(0, injury_day_index-3):injury_day_index]
+    else:
+        recent_history = None
+
+    # Create pattern alterations with realistic noise
+    for i, day_data in enumerate(pre_injury_period):
+        # Skip early days before pattern starts
+        if i < pattern_start_point:
+            continue
+            
+        # Calculate progression factor (0 to 1) - how close to injury day
+        progression = (i - pattern_start_point) / (period_length - pattern_start_point) if (period_length - pattern_start_point) > 0 else 0
+        
+        # Add day-to-day variability (good days even during overall decline)
+        daily_variability = random.normalvariate(0, 0.2)  # Higher variability
+
+        # Calculate cross-stress multipliers
+        cross_stress_mults = calculate_cross_stress_effects(day_data, recent_history)
+        
+        # 1. Modify HRV if this athlete shows HRV pattern
+        if show_hrv_pattern:
+            # Base decline factor - more subtle max decline (25%)
+            hrv_decline_factor = min(0.25, 0.05 + progression * 0.20) * pattern_strength_modifier * hrv_sensitivity * cross_stress_mults['hrv']
+            
+            # Add daily variability - some days HRV might improve slightly despite overall decline
+            daily_hrv_adjustment = daily_variability * baseline_hrv * 0.15
+            
+            # Calculate new HRV with realistic noise
+            new_hrv = baseline_hrv * (1 - hrv_decline_factor * (progression ** 1.2)) + daily_hrv_adjustment
+            
+            # Ensure within physiological limits (don't let it drop too low)
+            day_data['hrv'] = max(baseline_hrv * 0.65, min(baseline_hrv * 1.1, new_hrv))
+        
+        if show_hrv_pattern and random.random() < 0.3:  # 30% chance of non-linear pattern
+            # Sometimes HRV improves briefly before crashing (false recovery)
+            if 0.5 < progression < 0.8 and random.random() < 0.4:
+                # Temporary improvement in HRV (false recovery)
+                hrv_decline_factor = hrv_decline_factor * 0.3
+        
+        # 2. Modify resting heart rate if this athlete shows RHR pattern
+        if show_rhr_pattern:
+            # Base increase factor - more subtle (12% max)
+            rhr_increase_factor = min(0.12, 0.02 + progression * 0.10) * pattern_strength_modifier * rhr_sensitivity * cross_stress_mults['rhr']
+            
+            # Add daily variability
+            daily_rhr_adjustment = -daily_variability * baseline_rhr * 0.08  # Negative because lower is better for RHR
+            
+            # Calculate new RHR with realistic noise
+            new_rhr = baseline_rhr * (1 + rhr_increase_factor * (progression ** 1.1)) + daily_rhr_adjustment
+            
+            # Ensure within physiological limits
+            day_data['resting_hr'] = max(baseline_rhr * 0.92, min(baseline_rhr * 1.15, new_rhr))
+        
+        # 3. Modify sleep quality if this athlete shows sleep pattern
+        if show_sleep_pattern and progression > 0.3:  # Sleep issues often start later
+            # More subtle sleep reduction
+            sleep_reduction = min(0.2, (progression - 0.3) * 0.3) * pattern_strength_modifier * sleep_sensitivity * cross_stress_mults['sleep']
+            
+            # Add daily variability - some nights are better than others
+            daily_sleep_adjustment = daily_variability * 0.15  # Some nights are better/worse
+            
+            # Apply changes with noise
+            new_sleep_quality = day_data['sleep_quality'] * (1 - sleep_reduction) + daily_sleep_adjustment
+            
+            # Ensure within limits
+            day_data['sleep_quality'] = max(0.4, min(0.95, new_sleep_quality))
+            
+            # Also adjust sleep stages
+            deep_sleep_reduction = sleep_reduction * (1.0 + random.uniform(-0.3, 0.3))
+            rem_sleep_reduction = sleep_reduction * (0.8 + random.uniform(-0.3, 0.3))
+            
+            day_data['deep_sleep'] = day_data['deep_sleep'] * (1 - deep_sleep_reduction)
+            day_data['rem_sleep'] = day_data['rem_sleep'] * (1 - rem_sleep_reduction)
+            day_data['light_sleep'] = day_data['sleep_hours'] - day_data['deep_sleep'] - day_data['rem_sleep']
+        
+        # 4. Modify body battery metrics if this athlete shows that pattern
+        if show_bb_pattern and 'body_battery_morning' in day_data:
+            # More subtle battery reduction
+            bb_reduction = min(0.25, 0.05 + progression * 0.10) * pattern_strength_modifier * cross_stress_mults['body_battery']
+            
+            # Add daily variability
+            daily_bb_adjustment = daily_variability * 8  # Some days feel better than others
+            
+            # Apply to morning body battery
+            new_bb_morning = day_data['body_battery_morning'] * (1 - bb_reduction * (progression ** 1.0)) + daily_bb_adjustment
+            day_data['body_battery_morning'] = max(40, min(100, new_bb_morning))
+            
+            # Apply to evening body battery
+            if 'body_battery_evening' in day_data:
+                new_bb_evening = day_data['body_battery_evening'] * (1 - bb_reduction * (progression ** 1.1)) + daily_bb_adjustment * 0.5
+                day_data['body_battery_evening'] = max(15, min(60, new_bb_evening))
+        
+        # 5. Increase stress levels as injury approaches - most athletes show this
+        stress_increase = min(20, progression * 30 * pattern_strength_modifier) * stress_sensitivity * cross_stress_mults['stress']
+        stress_daily_variability = random.normalvariate(0, 8)  # High daily stress variability
+        
+        new_stress = day_data['stress'] + stress_increase + stress_daily_variability
+        day_data['stress'] = min(95, max(20, new_stress))  # Keep within range
+
+    return daily_data_list
+
+
+def create_false_alarm_patterns(athlete, daily_data_list, start_index, pattern_days=10):
+    """
+    Create false alarm patterns that look like injury warnings but don't result in injury.
+    This makes the data more realistic by including "close calls" that the model needs to distinguish.
+    
+    Parameters:
+    -----------
+    athlete : dict
+        Athlete profile with baseline metrics
+    daily_data_list : list
+        List of daily data dictionaries
+    start_index : int
+        Index to start inserting false alarm patterns
+    pattern_days : int
+        Duration of the false alarm pattern
+    """
+    # Ensure we have enough days to work with
+    if start_index + pattern_days >= len(daily_data_list):
+        return daily_data_list
+    
+    if random.random() < 0.3:  # 30% of false alarms are "strong" 
+        pattern_strength = random.uniform(0.8, 1.1)
+    else:
+        pattern_strength = random.uniform(0.4, 0.8)
+    
+    # Baseline values
+    baseline_hrv = athlete['hrv_baseline']
+    baseline_rhr = athlete['resting_hr']
+    hrv_sensitivity = athlete['recovery_signature']['hrv_sensitivity']
+    rhr_sensitivity = athlete['recovery_signature']['rhr_sensitivity'] 
+    sleep_sensitivity = athlete['recovery_signature']['sleep_sensitivity']
+    stress_sensitivity = athlete['recovery_signature']['stress_sensitivity']
+    
+    # Decide which patterns to show (usually fewer than real injury patterns)
+    show_hrv_pattern = random.random() < 0.7
+    show_rhr_pattern = random.random() < 0.6
+    show_sleep_pattern = random.random() < 0.5
+
+    # Create a recent history of the athlete's data
+    # Create a recent history of the athlete's data
+    if len(daily_data_list) > 3:
+        # Get recent history for temporal effects
+        recent_history = daily_data_list[max(0, start_index-3):start_index]
+    else:
+        recent_history = None
+    
+    # Create mild warning patterns that resolve without injury
+    for i in range(pattern_days):
+        day_index = start_index + i
+        day_data = daily_data_list[day_index]
+        
+        # Calculate progression factor: rises then falls (peak in the middle)
+        if i < pattern_days // 2:
+            # First half - metrics worsen
+            progression = i / (pattern_days // 2)
+        else:
+            # Second half - metrics improve (pattern resolves)
+            progression = 1.0 - ((i - pattern_days // 2) / (pattern_days - pattern_days // 2))
+        
+        # Add daily variability
+        daily_variability = random.normalvariate(0, 0.25)
+
+        # Calculate cross-stress multipliers
+        cross_stress_mults = calculate_cross_stress_effects(day_data, recent_history)
+        
+        # 1. HRV modification
+        if show_hrv_pattern:
+            hrv_change_factor = 0.15 * progression * pattern_strength * hrv_sensitivity * cross_stress_mults['hrv']
+            daily_hrv_adjustment = daily_variability * baseline_hrv * 0.1
+            
+            new_hrv = baseline_hrv * (1 - hrv_change_factor) + daily_hrv_adjustment
+            day_data['hrv'] = max(baseline_hrv * 0.75, min(baseline_hrv * 1.1, new_hrv))
+        
+        # 2. RHR modification
+        if show_rhr_pattern:
+            rhr_change_factor = 0.08 * progression * pattern_strength * rhr_sensitivity * cross_stress_mults['rhr']
+            daily_rhr_adjustment = -daily_variability * baseline_rhr * 0.05
+            
+            new_rhr = baseline_rhr * (1 + rhr_change_factor) + daily_rhr_adjustment
+            day_data['resting_hr'] = max(baseline_rhr * 0.95, min(baseline_rhr * 1.1, new_rhr))
+        
+        # 3. Sleep quality modification
+        if show_sleep_pattern and i > pattern_days // 3:  # Start sleep issues later
+            sleep_reduction = 0.1 * progression * pattern_strength * sleep_sensitivity * cross_stress_mults['sleep']
+            daily_sleep_adjustment = daily_variability * 0.12
+            
+            new_sleep_quality = day_data['sleep_quality'] * (1 - sleep_reduction) + daily_sleep_adjustment
+            day_data['sleep_quality'] = max(0.6, min(0.95, new_sleep_quality))
+            
+            # Mild sleep stage adjustments
+            deep_sleep_reduction = sleep_reduction * (1.0 + random.uniform(-0.2, 0.2))
+            day_data['deep_sleep'] = day_data['deep_sleep'] * (1 - deep_sleep_reduction)
+            day_data['light_sleep'] = day_data['sleep_hours'] - day_data['deep_sleep'] - day_data['rem_sleep']
+        
+        # 4. Mild stress increase
+        stress_increase = min(20, progression * 25 * pattern_strength) * stress_sensitivity * cross_stress_mults['stress']
+        stress_daily_variability = random.normalvariate(0, 6)
+        
+        new_stress = day_data['stress'] + stress_increase + stress_daily_variability
+        day_data['stress'] = min(85, max(20, new_stress))
+    
+    return daily_data_list
+
+def calculate_cross_stress_effects(metrics, history=None):
+    """
+    Calculate multiplicative effects between different stressors.
+    
+    Args:
+        metrics: Dictionary of current day's metrics
+        history: Optional list of previous days' metrics
     
     Returns:
-    --------
-    float
-        Probability of injury (0-1)
+        Dictionary of interaction multipliers for various metrics
     """
-    athlete = athlete_data['athlete']
-    daily_data = athlete_data['daily_data']
-    
-    # If we don't have enough data yet, return low probability
-    if len(daily_data) < recent_days:
-        return 0.01
-    
-    # Get the most recent days' data
-    recent_data = daily_data[-recent_days:]
-    
-    # Initialize risk factors
-    risk_factors = {
-        'hrv_decline': 0,
-        'rhr_increase': 0,
-        'sleep_quality_decline': 0,
-        'body_battery_decline': 0,
-        'high_acwr': 0,
-        'consecutive_high_load': 0,
-        'stress_increase': 0
+    multipliers = {
+        'hrv': 1.0,
+        'rhr': 1.0,
+        'sleep': 1.0,
+        'stress': 1.0,
+        'body_battery': 1.0
     }
     
-    # 1. Check for HRV decline trend
-    hrv_values = [day['hrv'] for day in recent_data]
-    hrv_baseline = athlete['hrv_baseline']
-    hrv_trend = np.polyfit(range(len(hrv_values)), hrv_values, 1)[0]  # Slope of linear fit
-    hrv_latest_ratio = hrv_values[-1] / hrv_baseline
+    # Sleep and stress interaction (poor sleep + high stress = worse effect)
+    if metrics['sleep_quality'] < 0.6 and metrics['stress'] > 70:
+        multipliers['hrv'] *= 1.4  # 40% stronger HRV impact
+        multipliers['rhr'] *= 1.3  # 30% stronger RHR impact
     
-    if hrv_trend < -0.5:  # Significant negative trend
-        risk_factors['hrv_decline'] = min(1.0, abs(hrv_trend) * 0.3)
-    if hrv_latest_ratio < 0.8:  # Latest HRV below 80% of baseline
-        risk_factors['hrv_decline'] += min(1.0, (1 - hrv_latest_ratio) * 2)
+    # High fatigue and poor sleep interaction
+    if 'fatigue' in metrics and metrics['fatigue'] > 75 and metrics['sleep_quality'] < 0.7:
+        multipliers['hrv'] *= 1.5
+        multipliers['body_battery'] *= 1.4
     
-    # 2. Check for RHR increase trend
-    rhr_values = [day['resting_hr'] for day in recent_data]
-    rhr_baseline = athlete['resting_hr']
-    rhr_trend = np.polyfit(range(len(rhr_values)), rhr_values, 1)[0]
-    rhr_latest_ratio = rhr_values[-1] / rhr_baseline
+    # Temporal sequence effects (if we have history)
+    if history and len(history) >= 3:
+        # High stress followed by high training load
+        if (history[-3]['stress'] > 70 and 
+            history[-2]['stress'] > 70 and 
+            history[-1]['actual_tss'] > history[-1]['planned_tss'] * 1.1):
+            multipliers['hrv'] *= 1.6
+            multipliers['sleep'] *= 1.3
     
-    if rhr_trend > 0.3:  # Significant positive trend
-        risk_factors['rhr_increase'] = min(1.0, rhr_trend * 0.5)
-    if rhr_latest_ratio > 1.08:  # Latest RHR more than 8% above baseline
-        risk_factors['rhr_increase'] += min(1.0, (rhr_latest_ratio - 1) * 5)
-    
-    # 3. Check for sleep quality decline
-    sleep_quality_values = [day['sleep_quality'] for day in recent_data]
-    sleep_quality_trend = np.polyfit(range(len(sleep_quality_values)), sleep_quality_values, 1)[0]
-    
-    if sleep_quality_trend < -0.03:  # Negative trend in sleep quality
-        risk_factors['sleep_quality_decline'] = min(1.0, abs(sleep_quality_trend) * 10)
-    
-    # 4. Check body battery trend (morning)
-    if 'body_battery_morning' in recent_data[0]:
-        bb_values = [day.get('body_battery_morning', 50) for day in recent_data]
-        bb_trend = np.polyfit(range(len(bb_values)), bb_values, 1)[0]
-        
-        if bb_trend < -1.5:  # Significant negative trend
-            risk_factors['body_battery_decline'] = min(1.0, abs(bb_trend) * 0.2)
-    
-    # 5. Check ACWR (if available)
-    if len(daily_data) > 28:
-        # Calculate ACWR
-        recent_tss = sum([day.get('actual_tss', 0) for day in daily_data[-7:]])
-        chronic_tss = sum([day.get('actual_tss', 0) for day in daily_data[-28:]]) / 4
-        acwr = recent_tss / chronic_tss if chronic_tss > 0 else 1.0
-        
-        if acwr > 1.3:
-            risk_factors['high_acwr'] = min(1.0, (acwr - 1.3) * 2)
-    
-    # 6. Check for consecutive high load days
-    max_daily_tss = calculate_max_daily_tss(athlete['weekly_training_hours'], athlete['training_experience'])
-    high_load_count = sum(1 for day in recent_data if day.get('actual_tss', 0) > max_daily_tss * 0.9)
-    
-    if high_load_count >= 3:
-        risk_factors['consecutive_high_load'] = min(1.0, high_load_count * 0.2)
-    
-    # 7. Check stress increase
-    stress_values = [day.get('stress', 50) for day in recent_data]
-    stress_trend = np.polyfit(range(len(stress_values)), stress_values, 1)[0]
-    
-    if stress_trend > 2:  # Positive trend in stress
-        risk_factors['stress_increase'] = min(1.0, stress_trend * 0.1)
-    
-    # Calculate overall risk score (weighted sum of risk factors)
-    weights = {
-        'hrv_decline': 0.25,
-        'rhr_increase': 0.20,
-        'sleep_quality_decline': 0.15,
-        'body_battery_decline': 0.10,
-        'high_acwr': 0.15,
-        'consecutive_high_load': 0.10,
-        'stress_increase': 0.05
-    }
-    
-    risk_score = sum(risk_factors[k] * weights[k] for k in risk_factors)
-    
-    # Apply non-linear transformation to make injury more likely when multiple factors align
-    if risk_score > 0.4:
-        risk_score = min(0.95, risk_score * 1.5)
-    
-    # Add some randomness for variable onset
-    risk_score = min(0.99, risk_score * (0.9 + np.random.random() * 0.2))
-    
-    return risk_score
-
-def calculate_max_daily_tss(weekly_hours, training_experience):
-    """Calculate maximum sustainable daily TSS based on athlete factors."""
-    # Base value scaled by training hours and experience
-    base_tss = 75 + (weekly_hours * 4)
-    experience_factor = 1 + (min(training_experience, 15) / 30)
-    
-    return base_tss * experience_factor
+    return multipliers

@@ -2,7 +2,8 @@ import datetime, random
 import numpy as np
 from logistics.training_plan import generate_annual_training_plan
 from training_response.fitness_fatigue_form import initialize_tss_history, initialize_hrv_history, calculate_training_metrics, update_history, calculate_max_daily_tss
-from sensor_data.daily_metrics_simulation import simulate_morning_sensor_data, simulate_evening_sensor_data, inject_realistic_injury_patterns, create_false_alarm_patterns
+from training_response.injury_simulation import inject_realistic_injury_patterns, create_false_alarm_patterns
+from sensor_data.daily_metrics_simulation import simulate_morning_sensor_data, simulate_evening_sensor_data
 from logistics.athlete_profiles import generate_athlete_cohort
 from sensor_data.simulate_activities import simulate_training_day_with_wearables
 import pandas as pd
