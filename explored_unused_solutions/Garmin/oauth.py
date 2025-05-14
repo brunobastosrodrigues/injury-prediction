@@ -2,13 +2,17 @@ import requests
 from requests_oauthlib import OAuth1
 from flask import Flask, request, redirect, session, url_for, render_template, jsonify
 import os
+from dotenv import load_dotenv
 from urllib.parse import parse_qs
 from access_data import DataCollector
 from threading import Thread
 
+load_dotenv()
+
 # Garmin API credentials
-CONSUMER_KEY = "6d993b8f-15f9-4fd0-bd8e-4208fe376f18"
-CONSUMER_SECRET = "yNKjmCecC6DW7mSS3P34NKrvq5MLEnvLr8j"
+# Make sure to set these in your environment or .env file
+CONSUMER_KEY = os.getenv("GARMIN_CONSUMER_KEY", "your_consumer_key")
+CONSUMER_SECRET = os.getenv("GARMIN_CONSUMER_SECRET", "your_consumer_secret")
 
 # Garmin OAuth endpoints
 REQUEST_TOKEN_URL = "https://connectapi.garmin.com/oauth-service/oauth/request_token"

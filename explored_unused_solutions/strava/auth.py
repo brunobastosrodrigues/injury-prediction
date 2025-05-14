@@ -1,8 +1,15 @@
 import requests
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import os
+from dotenv import load_dotenv
 
-CLIENT_ID = "144607"
-CLIENT_SECRET = "5103b9d299464cde9b0ec9ba1b289dcbe18efb48"
+# Load environment variables from .env file
+load_dotenv()
+
+CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID")
+CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET")
+if not CLIENT_ID or not CLIENT_SECRET:
+    raise ValueError("Please set STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET in your environment variables.")
 REDIRECT_URI = "http://localhost:8080/exchange_token"
 
 class StravaCallbackHandler(BaseHTTPRequestHandler):
