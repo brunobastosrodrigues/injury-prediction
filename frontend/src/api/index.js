@@ -56,7 +56,8 @@ export const analyticsApi = {
   listAthletes: (datasetId) =>
     api.get('/analytics/athletes', { params: { dataset_id: datasetId } }),
   getDatasetStats: (datasetId) =>
-    api.get('/analytics/stats', { params: { dataset_id: datasetId } })
+    api.get('/analytics/stats', { params: { dataset_id: datasetId } }),
+  listModels: () => api.get('/training/models')
 }
 
 export default api

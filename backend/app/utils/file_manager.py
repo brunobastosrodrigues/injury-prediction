@@ -102,14 +102,27 @@ class FileManager:
     @classmethod
     def read_df(cls, path: str, **kwargs) -> pd.DataFrame:
         """Read a DataFrame from a file (CSV or Parquet)."""
-        if path.endswith('.parquet') or os.path.exists(path + '.parquet'):
-            full_path = path if path.endswith('.parquet') else path + '.parquet'
-            return pd.read_parquet(full_path, **kwargs)
-        elif path.endswith('.csv') or os.path.exists(path + '.csv'):
-            full_path = path if path.endswith('.csv') else path + '.csv'
-            return pd.read_csv(full_path, **kwargs)
-        else:
-            raise FileNotFoundError(f"Could not find data file at {path}")
+        if path.endswith('.parquet'):
+            return pd.read_parquet(path, **kwargs)
+        elif path.endswith('.csv'):
+             return pd.read_csv(path, **kwargs)
+        elif os.path.exists(path):
+            # Try to infer format or assume parquet if no extension
+            try:
+                return pd.read_parquet(path, **kwargs)
+            except:
+                try:
+                    return pd.read_csv(path, **kwargs)
+                except:
+                     pass
+
+        # Try appending extensions
+        if os.path.exists(path + '.parquet'):
+            return pd.read_parquet(path + '.parquet', **kwargs)
+        elif os.path.exists(path + '.csv'):
+            return pd.read_csv(path + '.csv', **kwargs)
+
+        raise FileNotFoundError(f"Could not find data file at {path}")
 
     @classmethod
     def get_dataset_summary(cls, dataset_id: str) -> Optional[Dict[str, Any]]:
