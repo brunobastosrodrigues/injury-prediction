@@ -93,7 +93,21 @@ def _extract_planned_activities(day_plan):
     return planned_activities
 
 def _calculate_base_completion_probability(fatigue, sleep_quality):
-    """Calculate base probability of completing workouts."""
+    """
+    Calculate base probability of completing workouts.
+    
+    The probability is calculated using a logistic function for fatigue and a linear adjustment for sleep quality:
+    
+    .. math::
+        P(complete) = \frac{1}{1 + e^{(F - 75) / 10}} + \frac{S \times 100 - 50}{200}
+        
+    Where:
+    - F is the fatigue level (0-100)
+    - S is the sleep quality score (0-1)
+    
+    This models the non-linear increase in workout skipping probability as fatigue accumulates beyond a threshold (75),
+    modulated by recovery status via sleep.
+    """
     # Logistic function for fatigue impact
     base_prob = 1 / (1 + math.exp((fatigue - 75) / 10))
     # Adjust for sleep quality
