@@ -3,6 +3,7 @@ import Plot from 'react-plotly.js'
 import { usePipeline } from '../../context/PipelineContext'
 import { analyticsApi } from '../../api'
 import Card from '../common/Card'
+import CounterfactualDashboard from '../counterfactuals/CounterfactualDashboard'
 
 const METRICS = ['hrv', 'resting_hr', 'sleep_hours', 'sleep_quality', 'stress', 'body_battery_morning', 'actual_tss']
 
@@ -19,6 +20,24 @@ function AnalyticsPage() {
   const [preInjury, setPreInjury] = useState(null)
   const [acwrZones, setAcwrZones] = useState(null)
   const [datasetStats, setDatasetStats] = useState(null)
+
+  // Counterfactual state
+  const [models, setModels] = useState([]);
+  const [selectedModel, setSelectedModel] = useState('');
+  const [selectedSplit, setSelectedSplit] = useState('');
+
+  useEffect(() => {
+    // Load available models for counterfactuals
+    const loadModels = async () => {
+      try {
+        const response = await analyticsApi.listModels(); // Assuming this API exists or I should add it to analyticsApi
+        setModels(response.data.models || []);
+      } catch (err) {
+        console.error('Failed to load models:', err);
+      }
+    };
+    loadModels();
+  }, []);
 
   useEffect(() => {
     refreshDatasets()
@@ -82,7 +101,8 @@ function AnalyticsPage() {
     { id: 'correlations', label: 'Correlations' },
     { id: 'preInjury', label: 'Pre-Injury Window' },
     { id: 'acwr', label: 'ACWR Zones' },
-    { id: 'stats', label: 'Statistics' }
+    { id: 'stats', label: 'Statistics' },
+    { id: 'counterfactuals', label: 'Injury Prevention (AI)' }
   ]
 
   return (
@@ -345,6 +365,37 @@ function AnalyticsPage() {
                     </div>
                   </div>
                 </Card>
+              )}
+
+              {/* Counterfactuals */}
+              {activeTab === 'counterfactuals' && (
+                <div className="space-y-4">
+                  <Card>
+                    <div className="flex items-center space-x-4">
+                      <label className="text-sm font-medium text-gray-700">Select Model:</label>
+                      <select
+                        value={selectedModel}
+                        onChange={(e) => {
+                          const m = models.find(m => m.model_id === e.target.value);
+                          setSelectedModel(e.target.value);
+                          if (m) setSelectedSplit(m.split_id);
+                        }}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select a trained model...</option>
+                        {models.map(m => (
+                          <option key={m.model_id} value={m.model_id}>
+                            {m.model_name} ({new Date(m.created_at).toLocaleDateString()})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </Card>
+
+                  {selectedModel && selectedSplit && (
+                    <CounterfactualDashboard modelId={selectedModel} splitId={selectedSplit} />
+                  )}
+                </div>
               )}
             </>
           )}
