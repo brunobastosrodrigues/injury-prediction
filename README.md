@@ -14,49 +14,6 @@ While this application focuses specifically on triathlon, the framework is adapt
 
 Given sufficient time this repository also offers strategies for real data collection using the Garmin Connect and Strava API's.
 
-## Repository Structure
-
-```text
-injury-prediction/
-├── backend/                    # Flask REST API
-│   ├── app/
-│   │   ├── __init__.py        # Flask app factory
-│   │   ├── config.py          # Configuration
-│   │   ├── api/routes/        # API endpoints
-│   │   │   ├── data_generation.py
-│   │   │   ├── preprocessing.py
-│   │   │   ├── training.py
-│   │   │   └── analytics.py
-│   │   ├── services/          # Business logic
-│   │   │   ├── data_generation_service.py
-│   │   │   ├── preprocessing_service.py
-│   │   │   ├── training_service.py
-│   │   │   └── analytics_service.py
-│   │   └── utils/             # Helpers
-│   └── run.py                 # Entry point
-│
-├── frontend/                   # React SPA
-│   ├── src/
-│   │   ├── App.jsx
-│   │   ├── api/index.js       # API client
-│   │   ├── context/           # State management
-│   │   ├── components/
-│   │   │   ├── common/        # Layout, Sidebar, Cards
-│   │   │   ├── dashboard/     # Pipeline overview
-│   │   │   ├── dataGeneration/
-│   │   │   ├── preprocessing/
-│   │   │   ├── training/
-│   │   │   ├── results/       # Model evaluation + Plotly
-│   │   │   └── analytics/     # Data exploration + Plotly
-│   │   └── hooks/
-│   └── package.json
-│
-└── data/                       # Generated data storage
-    ├── raw/
-    ├── processed/
-    └── models/
-```
-
 ## How to Run
 
 ### Docker
@@ -111,11 +68,17 @@ python synthetic_data_generation/main.py
 
 ## Key Features
 
+
+
 - **Physiologically Plausible Athlete Profiles:** Generates diverse athlete characteristics based on realistic physiological parameters (in this implementatin targeted to competitive age-group triathletes)
 - **Periodized Training Plans:** Creates structured training prescriptions with appropriate intensity distribution specifically targeted to athlete profiles
 - **Wearable Sensor Data Simulation:** Models heart rate, sleep, HRV, and other metrics commonly collected by wearable devices
 - **Training Response Modeling:** Simulates fitness, fatigue, and form based on established sports science models
 - **Injury Risk Simulation:** Incorporates scheduled injuries and generates realistic injury patterns preceding them
+- 
+<img width="1254" height="690" alt="injury-prediction-athlete-profile" src="https://github.com/user-attachments/assets/4c0a263a-6a64-4aa6-849d-1a5b6a799018" />  
+<img width="1254" height="690" alt="injury-prediction-athlete-profile2" src="https://github.com/user-attachments/assets/d93eeadf-8125-4940-b931-63586344c344" />
+
 
 ## Usage
 
