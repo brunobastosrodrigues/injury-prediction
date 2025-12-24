@@ -395,7 +395,7 @@ function AnalyticsPage() {
               {/* What-If Analysis */}
               {activeTab === 'whatIf' && (
                 <div className="space-y-6">
-                  <Card>
+                  <Card title="Individual Athlete Analysis">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
@@ -405,10 +405,19 @@ function AnalyticsPage() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="">Select a model...</option>
-                          {models.map(m => (
-                            <option key={m.id} value={m.id}>{m.id}</option>
+                          {models
+                            .filter(m => m.dataset_id === selectedDataset)
+                            .map(m => (
+                              <option key={m.id} value={m.id}>{m.id} ({m.model_name})</option>
+                            ))}
+                          {models.filter(m => m.dataset_id === selectedDataset).length === 0 && models.map(m => (
+                             <option key={m.id} value={m.id}>{m.id} (Dataset Mismatch: {m.dataset_id})</option>
                           ))}
                         </select>
+                        {models.filter(m => m.dataset_id === selectedDataset).length === 0 && models.length > 0 && (
+                          <p className="text-xs text-orange-600 mt-1">⚠️ No models found for this dataset. Showing all models.</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">Models are specific to datasets.</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Athlete</label>
@@ -440,6 +449,34 @@ function AnalyticsPage() {
                     </div>
                   </Card>
 
+                  {/* Athlete Stats */}
+                  {selectedAthlete && athleteTimeline && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+                        <p className="text-sm text-gray-500">Total Injuries</p>
+                        <p className="text-2xl font-bold text-red-600">{athleteTimeline.injury_days?.length || 0}</p>
+                      </div>
+                      <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+                        <p className="text-sm text-gray-500">Avg. Stress</p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          {(athleteTimeline.metrics?.stress?.reduce((a,b) => a+b, 0) / athleteTimeline.metrics?.stress?.length || 0).toFixed(1)}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+                        <p className="text-sm text-gray-500">Avg. Sleep</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {(athleteTimeline.metrics?.sleep_hours?.reduce((a,b) => a+b, 0) / athleteTimeline.metrics?.sleep_hours?.length || 0).toFixed(1)}h
+                        </p>
+                      </div>
+                      <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+                        <p className="text-sm text-gray-500">Avg. TSS</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                          {(athleteTimeline.metrics?.actual_tss?.reduce((a,b) => a+b, 0) / athleteTimeline.metrics?.actual_tss?.length || 0).toFixed(1)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {selectedModel && selectedAthlete && selectedDate ? (
                     <InterventionSimulator
                       modelId={selectedModel}
@@ -448,7 +485,8 @@ function AnalyticsPage() {
                       currentMetrics={{
                         sleep_hours: athleteTimeline?.metrics?.sleep_hours?.[athleteTimeline.dates.indexOf(selectedDate)] || 7.5,
                         duration_minutes: athleteTimeline?.metrics?.duration_minutes?.[athleteTimeline.dates.indexOf(selectedDate)] || 60,
-                        intensity_factor: athleteTimeline?.metrics?.intensity_factor?.[athleteTimeline.dates.indexOf(selectedDate)] || 1.0
+                        intensity_factor: athleteTimeline?.metrics?.intensity_factor?.[athleteTimeline.dates.indexOf(selectedDate)] || 1.0,
+                        stress: athleteTimeline?.metrics?.stress?.[athleteTimeline.dates.indexOf(selectedDate)] || 50
                       }}
                     />
                   ) : (

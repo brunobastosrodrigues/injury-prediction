@@ -60,12 +60,9 @@ class AnalyticsService:
             return None
 
         # 3. Apply Overrides
-        # We apply overrides to the daily data BEFORE processing
-        # Note: If overrides affect activity data (e.g. intensity), we might need complex logic.
-        # For simplicity, we assume overrides map to columns in daily_data or merged data.
-        
         target_date = pd.to_datetime(date)
-        mask = pd.to_datetime(athlete_daily['date']) == target_date
+        athlete_daily['date'] = pd.to_datetime(athlete_daily['date'])
+        mask = athlete_daily['date'] == target_date
         
         if not mask.any():
             return None
@@ -75,12 +72,8 @@ class AnalyticsService:
         
         # Handle derived metrics (Training Load)
         if 'duration_minutes' in overrides or 'intensity_factor' in overrides:
-            # Defaults if not provided in overrides
             duration = float(overrides.get('duration_minutes', 60))
             intensity = float(overrides.get('intensity_factor', 1.0))
-            
-            # TSS Formula: (sec x NP x IF) / (FTP x 3600) x 100
-            # Simplified: (duration_hours) * intensity^2 * 100
             new_tss = (duration / 60) * (intensity ** 2) * 100
             overrides['actual_tss'] = new_tss
 
@@ -89,70 +82,43 @@ class AnalyticsService:
             if key in athlete_daily_mod.columns:
                 athlete_daily_mod.loc[mask, key] = value
 
-        # 4. Run Preprocessing Pipeline for both Original and Modified
-        # We need to process both to ensure apples-to-apples comparison on the exact same pipeline state
-        
-        # Helper to process dataframe to features
+        # 4. Run Preprocessing Pipeline
         def process_to_features(d_df, a_df, act_df):
             merged = PreprocessingService._merge_data(a_df, d_df, act_df)
-            # We don't need injury labels for prediction, just features
-            # But _engineer_features expects some structure. 
-            # Note: _engineer_features handles feature creation.
-            
-            # Create dummy columns if needed by engineering?
-            # _engineer_features checks if columns exist.
-            
-            # _create_prediction_targets is NOT needed for inference/simulation
-            
-            # Engineer features
             X = PreprocessingService._engineer_features(merged)
-            
-            # Encode
             X_encoded = PreprocessingService._encode_categorical(X)
-            
             return X_encoded, merged
 
-        # Process Original
-        X_orig, merged_orig = process_to_features(athlete_daily, athlete_profile, athlete_activity)
-        
-        # Process Modified
-        X_mod, merged_mod = process_to_features(athlete_daily_mod, athlete_profile, athlete_activity)
+        try:
+            X_orig, merged_orig = process_to_features(athlete_daily, athlete_profile, athlete_activity)
+            X_mod, merged_mod = process_to_features(athlete_daily_mod, athlete_profile, athlete_activity)
+        except Exception:
+            return None
 
-        # 5. Extract Feature Vector for the Target Date
-        # We need to ensure we select the row corresponding to target_date
-        # The merge operation might preserve order or date column.
-        
-        # Find row index for target date
-        # merged has 'date' column
+        # 5. Extract Feature Vector
         row_idx_orig = merged_orig[merged_orig['date'] == target_date].index
         row_idx_mod = merged_mod[merged_mod['date'] == target_date].index
 
         if len(row_idx_orig) == 0 or len(row_idx_mod) == 0:
             return None
 
-        # Align columns with model features
-        # Missing columns filled with 0 (or handle appropriately)
-        # Extra columns dropped
-        
         def align_features(X, idx):
             row = X.loc[idx].copy()
-            # Ensure all model features exist
+            if isinstance(row, pd.DataFrame):
+                row = row.iloc[0]
             for col in feature_names:
-                if col not in row.columns:
+                if col not in row.index:
                     row[col] = 0
-            # Select only model features
-            return row[feature_names]
+            return row[feature_names].to_frame().T
 
         vector_orig = align_features(X_orig, row_idx_orig)
         vector_mod = align_features(X_mod, row_idx_mod)
 
         # 6. Predict
-        # predict_proba returns [prob_class_0, prob_class_1]
         try:
             prob_orig = model.predict_proba(vector_orig)[0][1]
             prob_mod = model.predict_proba(vector_mod)[0][1]
         except Exception:
-            # Fallback if predict_proba not available or error
             return None
 
         return {

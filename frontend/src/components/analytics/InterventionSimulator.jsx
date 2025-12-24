@@ -6,11 +6,14 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
   const [overrides, setOverrides] = useState({
     sleep_hours: currentMetrics?.sleep_hours || 7.5,
     duration_minutes: currentMetrics?.duration_minutes || 60,
-    intensity_factor: currentMetrics?.intensity_factor || 1.0
+    intensity_factor: currentMetrics?.intensity_factor || 1.0,
+    stress: currentMetrics?.stress || 50
   })
 
   const [results, setResult] = useState(null)
+  const [recommendations, setRecommendations] = useState([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   // Reset overrides when currentMetrics change (e.g. new date selected)
   useEffect(() => {
@@ -18,10 +21,13 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
       setOverrides({
         sleep_hours: currentMetrics.sleep_hours || 7.5,
         duration_minutes: currentMetrics.duration_minutes || 60,
-        intensity_factor: currentMetrics.intensity_factor || 1.0
+        intensity_factor: currentMetrics.intensity_factor || 1.0,
+        stress: currentMetrics.stress || 50
       })
       // Clear previous results to avoid confusion
       setResult(null)
+      setRecommendations([])
+      setError(null)
     }
   }, [currentMetrics])
 
@@ -29,6 +35,7 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
     if (!modelId || !athleteId || !date) return
 
     setLoading(true)
+    setError(null)
     try {
       const response = await analyticsApi.simulateIntervention({
         model_id: modelId,
@@ -37,12 +44,31 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
         overrides: currentOverrides
       })
       setResult(response.data)
-    } catch (error) {
-      console.error('Simulation failed:', error)
+
+      // Generate automated recommendations if risk is high or results present
+      if (response.data.new_risk > 0.05) {
+        const scenarios = [
+          { label: 'Add 2h Sleep', overrides: { ...currentOverrides, sleep_hours: (currentMetrics.sleep_hours || 7.5) + 2 } },
+          { label: 'Reduce Intensity by 20%', overrides: { ...currentOverrides, intensity_factor: (currentMetrics.intensity_factor || 1.0) * 0.8 } },
+          { label: 'Full Rest Day', overrides: { ...currentOverrides, duration_minutes: 0, intensity_factor: 0 } },
+          { label: 'Reduce Stress', overrides: { ...currentOverrides, stress: 20 } }
+        ]
+
+        const recPromises = scenarios.map(s => 
+          analyticsApi.simulateIntervention({
+            model_id: modelId, athlete_id: athleteId, date: date, overrides: s.overrides
+          }).then(r => ({ label: s.label, reduction: r.data.risk_reduction }))
+        )
+        const recResults = await Promise.all(recPromises)
+        setRecommendations(recResults.filter(r => r.reduction > 0.001).sort((a,b) => b.reduction - a.reduction))
+      }
+    } catch (err) {
+      console.error('Simulation failed:', err)
+      setError(err.response?.data?.error || 'Simulation failed to connect to backend.')
     } finally {
       setLoading(false)
     }
-  }, [modelId, athleteId, date])
+  }, [modelId, athleteId, date, currentMetrics])
 
   // Debounced simulation
   useEffect(() => {
@@ -61,7 +87,7 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
     const reduction = results.risk_reduction * 100
     if (reduction > 5) {
       return "This intervention significantly reduces injury risk. Focus on these adjustments today."
-    } else if (reduction > 0) {
+    } else if (reduction > 0.1) {
       return "This shows a slight improvement. Consider combining with other recovery strategies."
     } else if (reduction < -5) {
       return "Warning: This change increases injury risk substantially."
@@ -76,18 +102,24 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
           Simulate how changes to today's parameters affect the predicted injury risk for <strong>{athleteId}</strong> on <strong>{date}</strong>.
         </p>
 
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Controls */}
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sleep Hours: {overrides.sleep_hours}h
+                Sleep Hours: {overrides.sleep_hours.toFixed(1)}h
               </label>
               <input
                 type="range"
                 min="4"
                 max="12"
-                step="0.5"
+                step="0.1"
                 value={overrides.sleep_hours}
                 onChange={e => handleSliderChange('sleep_hours', e.target.value)}
                 className="w-full"
@@ -111,7 +143,7 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Intensity Factor: {overrides.intensity_factor}x
+                Intensity Factor: {overrides.intensity_factor.toFixed(2)}x
               </label>
               <input
                 type="range"
@@ -123,12 +155,30 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
                 className="w-full"
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Stress Level: {overrides.stress.toFixed(0)}
+              </label>
+              <input
+                type="range"
+                min="10"
+                max="100"
+                step="1"
+                value={overrides.stress}
+                onChange={e => handleSliderChange('stress', e.target.value)}
+                className="w-full"
+              />
+            </div>
           </div>
 
           {/* Results */}
-          <div className="flex flex-col justify-center border-l pl-8 border-gray-100">
+          <div className="flex flex-col justify-start border-l pl-8 border-gray-100 min-h-[300px]">
             {loading && !results ? (
-              <div className="text-center py-4">Calculating...</div>
+              <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mb-2"></div>
+                <p>Calculating risk...</p>
+              </div>
             ) : results ? (
               <div className="space-y-6">
                 <div className="flex justify-between items-end">
@@ -141,25 +191,50 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
                   <div className="text-3xl font-light text-gray-300 pb-1">→</div>
                   <div className="text-center">
                     <p className="text-xs text-gray-500 uppercase font-bold mb-1">Simulated Risk</p>
-                    <div className={`text-3xl font-bold ${results.new_risk < results.original_risk ? 'text-green-600' : 'text-orange-600'}`}>
+                    <div className={`text-3xl font-bold ${results.new_risk < results.original_risk ? 'text-green-600' : (results.new_risk > results.original_risk ? 'text-red-600' : 'text-gray-600')}`}>
                       {(results.new_risk * 100).toFixed(1)}%
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gray-100 h-4 rounded-full overflow-hidden flex">
-                   <div 
-                    className="bg-green-500 h-full transition-all duration-500" 
-                    style={{ width: `${Math.max(0, results.risk_reduction * 100)}%` }}
-                   ></div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span>Risk Reduction</span>
+                    <span>{(results.risk_reduction * 100).toFixed(2)}%</span>
+                  </div>
+                  <div className="bg-gray-100 h-4 rounded-full overflow-hidden flex">
+                    <div 
+                      className={`h-full transition-all duration-500 ${results.risk_reduction > 0 ? 'bg-green-500' : 'bg-red-500'}`}
+                      style={{ width: `${Math.max(0.1, Math.abs(results.risk_reduction * 100))}%` }}
+                    ></div>
+                  </div>
                 </div>
                 
                 <p className="text-sm font-medium italic text-gray-700">
                   {getTip()}
                 </p>
+
+                {recommendations.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <h4 className="text-xs font-bold uppercase text-gray-500 mb-2">Suggested Actions</h4>
+                    <div className="space-y-2">
+                      {recommendations.map((rec, i) => (
+                        <div key={i} className="flex justify-between items-center text-sm p-2 bg-green-50 text-green-800 rounded">
+                          <span>{rec.label}</span>
+                          <span className="font-bold">-{ (rec.reduction * 100).toFixed(1) }% Risk</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="text-gray-400 italic text-center">Adjust sliders to see impact</div>
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 italic text-center">
+                <svg className="w-12 h-12 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Adjust sliders to see impact
+              </div>
             )}
           </div>
         </div>
