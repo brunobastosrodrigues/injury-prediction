@@ -73,13 +73,21 @@ class AnalyticsService:
         # Create a modified copy
         athlete_daily_mod = athlete_daily.copy()
         
+        # Handle derived metrics (Training Load)
+        if 'duration_minutes' in overrides or 'intensity_factor' in overrides:
+            # Defaults if not provided in overrides
+            duration = float(overrides.get('duration_minutes', 60))
+            intensity = float(overrides.get('intensity_factor', 1.0))
+            
+            # TSS Formula: (sec x NP x IF) / (FTP x 3600) x 100
+            # Simplified: (duration_hours) * intensity^2 * 100
+            new_tss = (duration / 60) * (intensity ** 2) * 100
+            overrides['actual_tss'] = new_tss
+
         # Apply overrides to the modified copy
         for key, value in overrides.items():
             if key in athlete_daily_mod.columns:
                 athlete_daily_mod.loc[mask, key] = value
-            # Handle derived fields heuristics if simple overrides are not enough?
-            # For now, relying on feature engineering to pick up changes in base columns.
-            # e.g. changing 'sleep_hours' will update features derived from it in the next step.
 
         # 4. Run Preprocessing Pipeline for both Original and Modified
         # We need to process both to ensure apples-to-apples comparison on the exact same pipeline state
@@ -307,20 +315,21 @@ class AnalyticsService:
             athletes_df = FileManager.read_df(os.path.join(dataset_path, 'athletes'))
             profile_row = athletes_df[athletes_df['athlete_id'] == athlete_id]
             if len(profile_row) > 0:
-                profile = profile_row.iloc[0].to_dict()
+                # Convert numpy types to python types for serialization
+                profile = json.loads(profile_row.iloc[0].to_json())
         except FileNotFoundError:
             pass
 
         return {
             'athlete_id': athlete_id,
             'profile': profile,
-            'dates': athlete_data['date'].tolist(),
+            'dates': athlete_data['date'].dt.strftime('%Y-%m-%d').tolist(),
             'metrics': {
                 col: athlete_data[col].tolist()
                 for col in athlete_data.columns
                 if col not in ['athlete_id', 'date']
             },
-            'injury_days': athlete_data[athlete_data['injury'] == 1]['date'].tolist()
+            'injury_days': athlete_data[athlete_data['injury'] == 1]['date'].dt.strftime('%Y-%m-%d').tolist()
         }
 
     @classmethod

@@ -446,9 +446,9 @@ function AnalyticsPage() {
                       athleteId={selectedAthlete}
                       date={selectedDate}
                       currentMetrics={{
-                        sleep_hours: athleteTimeline?.metrics?.sleep_hours[athleteTimeline.dates.indexOf(selectedDate)],
-                        duration_minutes: athleteTimeline?.metrics?.duration_minutes[athleteTimeline.dates.indexOf(selectedDate)],
-                        intensity_factor: athleteTimeline?.metrics?.intensity_factor[athleteTimeline.dates.indexOf(selectedDate)]
+                        sleep_hours: athleteTimeline?.metrics?.sleep_hours?.[athleteTimeline.dates.indexOf(selectedDate)] || 7.5,
+                        duration_minutes: athleteTimeline?.metrics?.duration_minutes?.[athleteTimeline.dates.indexOf(selectedDate)] || 60,
+                        intensity_factor: athleteTimeline?.metrics?.intensity_factor?.[athleteTimeline.dates.indexOf(selectedDate)] || 1.0
                       }}
                     />
                   ) : (
