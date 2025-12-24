@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify
 from ...services.preprocessing_service import PreprocessingService
+from ..schemas import PreprocessingSchema
+from pydantic import ValidationError
 
 bp = Blueprint('preprocessing', __name__)
 
@@ -7,32 +9,24 @@ bp = Blueprint('preprocessing', __name__)
 @bp.route('/run', methods=['POST'])
 def run_preprocessing():
     """Start preprocessing pipeline."""
-    data = request.get_json() or {}
-
-    dataset_id = data.get('dataset_id')
-    if not dataset_id:
-        return jsonify({'error': 'dataset_id is required'}), 400
-
-    split_strategy = data.get('split_strategy', 'athlete_based')
-    if split_strategy not in ['athlete_based', 'time_based']:
-        return jsonify({'error': 'split_strategy must be athlete_based or time_based'}), 400
-
-    split_ratio = data.get('split_ratio', 0.2)
-    prediction_window = data.get('prediction_window', 7)
-    random_seed = data.get('random_seed', 42)
+    try:
+        data = request.get_json() or {}
+        schema = PreprocessingSchema(**data)
+    except ValidationError as e:
+        return jsonify({'error': 'Validation Error', 'details': e.errors()}), 400
 
     job_id = PreprocessingService.preprocess_async(
-        dataset_id=dataset_id,
-        split_strategy=split_strategy,
-        split_ratio=split_ratio,
-        prediction_window=prediction_window,
-        random_seed=random_seed
+        dataset_id=schema.dataset_id,
+        split_strategy=schema.split_strategy,
+        split_ratio=schema.split_ratio,
+        prediction_window=schema.prediction_window,
+        random_seed=schema.random_seed
     )
 
     return jsonify({
         'job_id': job_id,
         'status': 'started',
-        'message': f'Started preprocessing dataset {dataset_id}'
+        'message': f'Started preprocessing dataset {schema.dataset_id}'
     }), 202
 
 

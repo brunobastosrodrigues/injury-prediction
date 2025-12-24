@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify
 from ...services.training_service import TrainingService
+from ..schemas import TrainingSchema
+from pydantic import ValidationError
 
 bp = Blueprint('training', __name__)
 
@@ -7,30 +9,22 @@ bp = Blueprint('training', __name__)
 @bp.route('/train', methods=['POST'])
 def train_models():
     """Start model training."""
-    data = request.get_json() or {}
-
-    split_id = data.get('split_id')
-    if not split_id:
-        return jsonify({'error': 'split_id is required'}), 400
-
-    model_types = data.get('models', ['random_forest'])
-    valid_types = ['lasso', 'random_forest', 'xgboost']
-    for mt in model_types:
-        if mt not in valid_types:
-            return jsonify({'error': f'Invalid model type: {mt}. Valid types: {valid_types}'}), 400
-
-    hyperparameters = data.get('hyperparameters')
+    try:
+        data = request.get_json() or {}
+        schema = TrainingSchema(**data)
+    except ValidationError as e:
+        return jsonify({'error': 'Validation Error', 'details': e.errors()}), 400
 
     job_id = TrainingService.train_async(
-        split_id=split_id,
-        model_types=model_types,
-        hyperparameters=hyperparameters
+        split_id=schema.split_id,
+        model_types=schema.models,
+        hyperparameters=schema.hyperparameters
     )
 
     return jsonify({
         'job_id': job_id,
         'status': 'started',
-        'message': f'Started training {len(model_types)} model(s)'
+        'message': f'Started training {len(schema.models)} model(s)'
     }), 202
 
 
@@ -120,7 +114,7 @@ def compare_models():
 @bp.route('/model-types', methods=['GET'])
 def get_model_types():
     """Get available model types and their default parameters."""
-    return jsonify({'model_types': TrainingService.MODEL_TYPES})
+    return jsonify({'model_types': TrainingService.get_model_types()})
 
 
 @bp.route('/jobs', methods=['GET'])

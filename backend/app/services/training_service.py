@@ -1,14 +1,11 @@
 import os
 import json
 import uuid
-import threading
-import pickle
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 import pandas as pd
 import numpy as np
 
-from flask import current_app
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
@@ -19,48 +16,29 @@ import joblib
 
 from ..utils.progress_tracker import ProgressTracker
 from ..utils.file_manager import FileManager
+from ..celery_app import celery_app
 
 
 class TrainingService:
     """Service for training ML models."""
 
-    MODEL_TYPES = {
-        'lasso': {
-            'name': 'LASSO Logistic Regression',
-            'default_params': {
-                'penalty': 'l1',
-                'solver': 'saga',
-                'max_iter': 1000,
-                'class_weight': 'balanced',
-                'random_state': 42
-            }
-        },
-        'random_forest': {
-            'name': 'Random Forest',
-            'default_params': {
-                'n_estimators': 200,
-                'max_depth': 8,
-                'min_samples_leaf': 7,
-                'class_weight': 'balanced',
-                'random_state': 42,
-                'n_jobs': -1
-            }
-        },
-        'xgboost': {
-            'name': 'XGBoost',
-            'default_params': {
-                'n_estimators': 400,
-                'max_depth': 2,
-                'learning_rate': 0.03,
-                'subsample': 0.8,
-                'colsample_bytree': 0.7,
-                'reg_alpha': 1.0,
-                'reg_lambda': 2.0,
-                'random_state': 42,
-                'n_jobs': -1
-            }
-        }
-    }
+    _model_types = None
+
+    @classmethod
+    def get_model_types(cls):
+        """Load and return model types and hyperparameters from config."""
+        if cls._model_types is None:
+            from flask import current_app
+            import yaml
+            # Use current_app.root_path which is /app/app
+            config_path = os.path.join(current_app.root_path, 'config', 'hyperparameters.yaml')
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    cls._model_types = yaml.safe_load(f)
+            else:
+                # Fallback to empty if file is missing
+                cls._model_types = {}
+        return cls._model_types
 
     @classmethod
     def train_async(
@@ -72,84 +50,13 @@ class TrainingService:
         """Start async training and return job_id."""
         job_id = ProgressTracker.create_job('training')
 
-        thread = threading.Thread(
-            target=cls._run_training,
-            args=(job_id, split_id, model_types, hyperparameters),
-            daemon=True
+        # Start training using Celery send_task to avoid circular imports
+        celery_app.send_task(
+            'train_models',
+            args=[job_id, split_id, model_types, hyperparameters]
         )
-        thread.start()
 
         return job_id
-
-    @classmethod
-    def _run_training(
-        cls,
-        job_id: str,
-        split_id: str,
-        model_types: List[str],
-        hyperparameters: Optional[Dict[str, Dict]]
-    ):
-        """Run the actual training."""
-        try:
-            from app import create_app
-            app = create_app()
-
-            with app.app_context():
-                total_steps = len(model_types) * 2  # training + evaluation per model
-                ProgressTracker.start_job(job_id, total_steps=total_steps)
-
-                # Load data
-                ProgressTracker.update_progress(job_id, 5, 'Loading data...')
-                processed_dir = current_app.config['PROCESSED_DATA_DIR']
-                split_dir = os.path.join(processed_dir, split_id)
-
-                X_train = pd.read_csv(os.path.join(split_dir, 'X_train.csv'))
-                X_test = pd.read_csv(os.path.join(split_dir, 'X_test.csv'))
-                y_train = pd.read_csv(os.path.join(split_dir, 'y_train.csv')).values.ravel()
-                y_test = pd.read_csv(os.path.join(split_dir, 'y_test.csv')).values.ravel()
-
-                trained_models = []
-
-                for i, model_type in enumerate(model_types):
-                    step = (i + 1) / len(model_types) * 80 + 10
-                    ProgressTracker.update_progress(
-                        job_id, int(step),
-                        f'Training {cls.MODEL_TYPES.get(model_type, {}).get("name", model_type)}...'
-                    )
-
-                    # Get hyperparameters
-                    params = cls.MODEL_TYPES.get(model_type, {}).get('default_params', {}).copy()
-                    if hyperparameters and model_type in hyperparameters:
-                        params.update(hyperparameters[model_type])
-
-                    # Train model
-                    model = cls._create_model(model_type, params)
-                    model.fit(X_train, y_train)
-
-                    # Evaluate
-                    y_pred = model.predict(X_test)
-                    y_pred_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, 'predict_proba') else y_pred
-
-                    metrics = cls._calculate_metrics(y_test, y_pred, y_pred_proba)
-
-                    # Get feature importance
-                    feature_importance = cls._get_feature_importance(model, X_train.columns, model_type)
-
-                    # Save model
-                    model_id = f"model_{model_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{str(uuid.uuid4())[:4]}"
-                    cls._save_model(model_id, model, model_type, params, metrics, feature_importance, split_id, X_test.columns.tolist())
-
-                    trained_models.append({
-                        'model_id': model_id,
-                        'model_type': model_type,
-                        'metrics': metrics
-                    })
-
-                ProgressTracker.complete_job(job_id, result={'models': trained_models})
-
-        except Exception as e:
-            import traceback
-            ProgressTracker.fail_job(job_id, f"{str(e)}\n{traceback.format_exc()}")
 
     @classmethod
     def _create_model(cls, model_type: str, params: Dict):
@@ -203,23 +110,36 @@ class TrainingService:
     @classmethod
     def _save_model(cls, model_id, model, model_type, params, metrics, feature_importance, split_id, feature_names):
         """Save trained model and metadata."""
+        from flask import current_app
         models_dir = current_app.config['MODELS_DIR']
         os.makedirs(models_dir, exist_ok=True)
+
+        # Get split/dataset metadata for the registry
+        from .preprocessing_service import PreprocessingService
+        split_metadata = PreprocessingService.get_split(split_id)
+        dataset_id = split_metadata.get('dataset_id') if split_metadata else 'unknown'
 
         # Save model
         model_path = os.path.join(models_dir, f'{model_id}.joblib')
         joblib.dump(model, model_path)
 
-        # Save metadata
+        # Save metadata (Model Registry Entry)
         metadata = {
+            'model_id': model_id,
             'model_type': model_type,
-            'model_name': cls.MODEL_TYPES.get(model_type, {}).get('name', model_type),
+            'model_name': cls.get_model_types().get(model_type, {}).get('name', model_type),
             'hyperparameters': params,
             'metrics': metrics,
             'feature_importance': feature_importance,
             'split_id': split_id,
+            'dataset_id': dataset_id,
             'feature_names': feature_names,
-            'created_at': datetime.utcnow().isoformat()
+            'created_at': datetime.utcnow().isoformat(),
+            'split_details': {
+                'strategy': split_metadata.get('split_strategy'),
+                'ratio': split_metadata.get('split_ratio'),
+                'train_samples': split_metadata.get('train_samples')
+            } if split_metadata else {}
         }
 
         metadata_path = os.path.join(models_dir, f'{model_id}.json')
@@ -239,6 +159,7 @@ class TrainingService:
     @classmethod
     def get_model(cls, model_id: str) -> Optional[Dict[str, Any]]:
         """Get model details."""
+        from flask import current_app
         models_dir = current_app.config['MODELS_DIR']
         metadata_path = os.path.join(models_dir, f'{model_id}.json')
 
@@ -250,6 +171,7 @@ class TrainingService:
     @classmethod
     def get_roc_curve(cls, model_id: str, split_id: str) -> Optional[Dict[str, Any]]:
         """Get ROC curve data for a model."""
+        from flask import current_app
         models_dir = current_app.config['MODELS_DIR']
         processed_dir = current_app.config['PROCESSED_DATA_DIR']
 
@@ -261,8 +183,8 @@ class TrainingService:
 
         # Load test data
         split_dir = os.path.join(processed_dir, split_id)
-        X_test = pd.read_csv(os.path.join(split_dir, 'X_test.csv'))
-        y_test = pd.read_csv(os.path.join(split_dir, 'y_test.csv')).values.ravel()
+        X_test = FileManager.read_df(os.path.join(split_dir, 'X_test'))
+        y_test = FileManager.read_df(os.path.join(split_dir, 'y_test')).values.ravel()
 
         y_pred_proba = model.predict_proba(X_test)[:, 1]
         fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
@@ -277,6 +199,7 @@ class TrainingService:
     @classmethod
     def get_pr_curve(cls, model_id: str, split_id: str) -> Optional[Dict[str, Any]]:
         """Get Precision-Recall curve data for a model."""
+        from flask import current_app
         models_dir = current_app.config['MODELS_DIR']
         processed_dir = current_app.config['PROCESSED_DATA_DIR']
 
@@ -288,8 +211,8 @@ class TrainingService:
 
         # Load test data
         split_dir = os.path.join(processed_dir, split_id)
-        X_test = pd.read_csv(os.path.join(split_dir, 'X_test.csv'))
-        y_test = pd.read_csv(os.path.join(split_dir, 'y_test.csv')).values.ravel()
+        X_test = FileManager.read_df(os.path.join(split_dir, 'X_test'))
+        y_test = FileManager.read_df(os.path.join(split_dir, 'y_test')).values.ravel()
 
         y_pred_proba = model.predict_proba(X_test)[:, 1]
         precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
@@ -304,6 +227,7 @@ class TrainingService:
     @classmethod
     def compare_models(cls, model_ids: List[str]) -> Dict[str, Any]:
         """Compare multiple models."""
+        from flask import current_app
         models_dir = current_app.config['MODELS_DIR']
         comparison = []
 
@@ -316,6 +240,8 @@ class TrainingService:
                         'model_id': model_id,
                         'model_type': metadata.get('model_type'),
                         'model_name': metadata.get('model_name'),
+                        'dataset_id': metadata.get('dataset_id'),
+                        'split_id': metadata.get('split_id'),
                         'metrics': metadata.get('metrics'),
                         'created_at': metadata.get('created_at')
                     })

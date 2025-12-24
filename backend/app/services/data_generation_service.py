@@ -11,17 +11,11 @@ import random
 from flask import current_app
 from ..utils.progress_tracker import ProgressTracker
 from ..utils.file_manager import FileManager
+from ..celery_app import celery_app
 
 
 class DataGenerationService:
     """Service for generating synthetic athlete data."""
-
-    @staticmethod
-    def _setup_imports():
-        """Set up imports from synthetic_data_generation module."""
-        project_root = current_app.config.get('SYNTHETIC_DATA_MODULE')
-        if project_root and project_root not in sys.path:
-            sys.path.insert(0, project_root)
 
     @classmethod
     def generate_dataset_async(
@@ -34,86 +28,16 @@ class DataGenerationService:
         """Start async data generation and return job_id."""
         job_id = ProgressTracker.create_job('data_generation')
 
-        # Start generation in background thread
-        thread = threading.Thread(
-            target=cls._run_generation,
-            args=(job_id, n_athletes, simulation_year, random_seed, injury_config),
-            daemon=True
+        # Start generation using Celery send_task to avoid circular imports
+        celery_app.send_task(
+            'generate_dataset',
+            args=[job_id, n_athletes, simulation_year, random_seed, injury_config]
         )
-        thread.start()
 
         return job_id
 
-    @classmethod
-    def _run_generation(
-        cls,
-        job_id: str,
-        n_athletes: int,
-        simulation_year: int,
-        random_seed: int,
-        injury_config: Optional[Dict[str, Any]]
-    ):
-        """Run the actual data generation (in background thread)."""
-        try:
-            # Import here to avoid circular imports and ensure path is set
-            from app import create_app
-            app = create_app()
-
-            with app.app_context():
-                cls._setup_imports()
-
-                # Set random seeds
-                np.random.seed(random_seed)
-                random.seed(random_seed)
-
-                ProgressTracker.start_job(job_id, total_steps=n_athletes)
-                ProgressTracker.update_progress(job_id, 0, 'Initializing...')
-
-                # Import the simulation functions
-                from simulate_year import simulate_full_year
-                from logistics.athlete_profiles import generate_athlete_cohort
-
-                # Generate athlete cohort
-                ProgressTracker.update_progress(job_id, 1, 'Generating athlete profiles...')
-                athletes = generate_athlete_cohort(n_athletes)
-
-                # Simulate each athlete's year
-                simulated_data = []
-                for i, athlete in enumerate(athletes):
-                    if not ProgressTracker.is_running(job_id):
-                        ProgressTracker.cancel_job(job_id)
-                        return
-
-                    progress = int((i + 1) / n_athletes * 95)  # Reserve 5% for saving
-                    ProgressTracker.update_progress(
-                        job_id,
-                        progress,
-                        f'Simulating athlete {i + 1}/{n_athletes}...',
-                        current_athlete=i + 1,
-                        total_athletes=n_athletes
-                    )
-
-                    athlete_data = simulate_full_year(athlete, year=simulation_year)
-                    simulated_data.append(athlete_data)
-
-                # Save the data
-                ProgressTracker.update_progress(job_id, 96, 'Saving data...')
-                dataset_id = cls._save_dataset(
-                    simulated_data,
-                    n_athletes,
-                    simulation_year,
-                    random_seed,
-                    injury_config
-                )
-
-                ProgressTracker.complete_job(job_id, result={'dataset_id': dataset_id})
-
-        except Exception as e:
-            ProgressTracker.fail_job(job_id, str(e))
-
-    @classmethod
+    @staticmethod
     def _save_dataset(
-        cls,
         simulated_data: list,
         n_athletes: int,
         simulation_year: int,
@@ -213,14 +137,14 @@ class DataGenerationService:
                         'avg_pace_min_100m': workout_data.get('avg_pace_min_100m')
                     })
 
-        # Save CSVs
+        # Save Parquet files
         df_athletes = pd.DataFrame(athlete_profiles)
         df_daily_data = pd.DataFrame(daily_data_records)
         df_activity_data = pd.DataFrame(activity_data_records)
 
-        df_athletes.to_csv(os.path.join(folder_path, 'athletes.csv'), index=False)
-        df_daily_data.to_csv(os.path.join(folder_path, 'daily_data.csv'), index=False)
-        df_activity_data.to_csv(os.path.join(folder_path, 'activity_data.csv'), index=False)
+        FileManager.save_df(df_athletes, os.path.join(folder_path, 'athletes.parquet'))
+        FileManager.save_df(df_daily_data, os.path.join(folder_path, 'daily_data.parquet'))
+        FileManager.save_df(df_activity_data, os.path.join(folder_path, 'activity_data.parquet'))
 
         # Save metadata
         metadata = {
@@ -271,14 +195,15 @@ class DataGenerationService:
         """Get a sample of data from a dataset."""
         from flask import current_app
         folder_path = os.path.join(current_app.config['RAW_DATA_DIR'], dataset_id)
-        file_path = os.path.join(folder_path, f'{table}.csv')
-
-        if not os.path.exists(file_path):
+        
+        try:
+            df = FileManager.read_df(os.path.join(folder_path, table))
+            df_sample = df.head(n_rows)
+            return {
+                'columns': list(df_sample.columns),
+                'data': df_sample.to_dict(orient='records'),
+                'total_rows': len(df)
+            }
+        except FileNotFoundError:
             return None
 
-        df = pd.read_csv(file_path, nrows=n_rows)
-        return {
-            'columns': list(df.columns),
-            'data': df.to_dict(orient='records'),
-            'total_rows': sum(1 for _ in open(file_path)) - 1  # Subtract header
-        }

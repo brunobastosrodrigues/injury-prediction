@@ -6,6 +6,8 @@ import numpy as np
 
 from flask import current_app
 
+from ..utils.file_manager import FileManager
+
 
 class AnalyticsService:
     """Service for analytics and visualization data."""
@@ -14,12 +16,12 @@ class AnalyticsService:
     def get_distribution(cls, dataset_id: str, feature: str, bins: int = 50) -> Optional[Dict[str, Any]]:
         """Get histogram data for a feature distribution."""
         raw_dir = current_app.config['RAW_DATA_DIR']
-        daily_path = os.path.join(raw_dir, dataset_id, 'daily_data.csv')
+        dataset_path = os.path.join(raw_dir, dataset_id)
 
-        if not os.path.exists(daily_path):
+        try:
+            df = FileManager.read_df(os.path.join(dataset_path, 'daily_data'))
+        except FileNotFoundError:
             return None
-
-        df = pd.read_csv(daily_path)
 
         if feature not in df.columns:
             return None
@@ -42,12 +44,12 @@ class AnalyticsService:
     def get_correlations(cls, dataset_id: str, features: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
         """Get correlation matrix for specified features."""
         raw_dir = current_app.config['RAW_DATA_DIR']
-        daily_path = os.path.join(raw_dir, dataset_id, 'daily_data.csv')
+        dataset_path = os.path.join(raw_dir, dataset_id)
 
-        if not os.path.exists(daily_path):
+        try:
+            df = FileManager.read_df(os.path.join(dataset_path, 'daily_data'))
+        except FileNotFoundError:
             return None
-
-        df = pd.read_csv(daily_path)
 
         # Default features for correlation
         if features is None:
@@ -71,12 +73,13 @@ class AnalyticsService:
     def get_pre_injury_window(cls, dataset_id: str, lookback_days: int = 14) -> Optional[Dict[str, Any]]:
         """Analyze metrics in the window before injuries."""
         raw_dir = current_app.config['RAW_DATA_DIR']
-        daily_path = os.path.join(raw_dir, dataset_id, 'daily_data.csv')
+        dataset_path = os.path.join(raw_dir, dataset_id)
 
-        if not os.path.exists(daily_path):
+        try:
+            df = FileManager.read_df(os.path.join(dataset_path, 'daily_data'))
+        except FileNotFoundError:
             return None
 
-        df = pd.read_csv(daily_path)
         df['date'] = pd.to_datetime(df['date'])
         df = df.sort_values(['athlete_id', 'date'])
 
@@ -143,13 +146,13 @@ class AnalyticsService:
     def get_athlete_timeline(cls, dataset_id: str, athlete_id: str) -> Optional[Dict[str, Any]]:
         """Get time series data for a specific athlete."""
         raw_dir = current_app.config['RAW_DATA_DIR']
-        daily_path = os.path.join(raw_dir, dataset_id, 'daily_data.csv')
-        athletes_path = os.path.join(raw_dir, dataset_id, 'athletes.csv')
+        dataset_path = os.path.join(raw_dir, dataset_id)
 
-        if not os.path.exists(daily_path):
+        try:
+            daily_df = FileManager.read_df(os.path.join(dataset_path, 'daily_data'))
+        except FileNotFoundError:
             return None
 
-        daily_df = pd.read_csv(daily_path)
         athlete_data = daily_df[daily_df['athlete_id'] == athlete_id].copy()
 
         if len(athlete_data) == 0:
@@ -159,11 +162,13 @@ class AnalyticsService:
 
         # Get athlete profile
         profile = None
-        if os.path.exists(athletes_path):
-            athletes_df = pd.read_csv(athletes_path)
+        try:
+            athletes_df = FileManager.read_df(os.path.join(dataset_path, 'athletes'))
             profile_row = athletes_df[athletes_df['athlete_id'] == athlete_id]
             if len(profile_row) > 0:
                 profile = profile_row.iloc[0].to_dict()
+        except FileNotFoundError:
+            pass
 
         return {
             'athlete_id': athlete_id,
@@ -181,12 +186,13 @@ class AnalyticsService:
     def get_acwr_zones(cls, dataset_id: str) -> Optional[Dict[str, Any]]:
         """Analyze ACWR zone distribution and injury rates."""
         raw_dir = current_app.config['RAW_DATA_DIR']
-        daily_path = os.path.join(raw_dir, dataset_id, 'daily_data.csv')
+        dataset_path = os.path.join(raw_dir, dataset_id)
 
-        if not os.path.exists(daily_path):
+        try:
+            df = FileManager.read_df(os.path.join(dataset_path, 'daily_data'))
+        except FileNotFoundError:
             return None
 
-        df = pd.read_csv(daily_path)
         df = df.sort_values(['athlete_id', 'date'])
 
         # Calculate ACWR
@@ -251,25 +257,24 @@ class AnalyticsService:
     def list_athletes(cls, dataset_id: str) -> Optional[List[str]]:
         """List all athlete IDs in a dataset."""
         raw_dir = current_app.config['RAW_DATA_DIR']
-        athletes_path = os.path.join(raw_dir, dataset_id, 'athletes.csv')
+        dataset_path = os.path.join(raw_dir, dataset_id)
 
-        if not os.path.exists(athletes_path):
+        try:
+            df = FileManager.read_df(os.path.join(dataset_path, 'athletes'))
+            return df['athlete_id'].tolist()
+        except FileNotFoundError:
             return None
-
-        df = pd.read_csv(athletes_path)
-        return df['athlete_id'].tolist()
 
     @classmethod
     def get_dataset_stats(cls, dataset_id: str) -> Optional[Dict[str, Any]]:
         """Get overall statistics for a dataset."""
         raw_dir = current_app.config['RAW_DATA_DIR']
-        daily_path = os.path.join(raw_dir, dataset_id, 'daily_data.csv')
-        athletes_path = os.path.join(raw_dir, dataset_id, 'athletes.csv')
+        dataset_path = os.path.join(raw_dir, dataset_id)
 
-        if not os.path.exists(daily_path):
+        try:
+            daily_df = FileManager.read_df(os.path.join(dataset_path, 'daily_data'))
+        except FileNotFoundError:
             return None
-
-        daily_df = pd.read_csv(daily_path)
 
         stats = {
             'n_athletes': daily_df['athlete_id'].nunique(),
@@ -285,12 +290,14 @@ class AnalyticsService:
                 stats[f'{col}_mean'] = float(daily_df[col].mean())
                 stats[f'{col}_std'] = float(daily_df[col].std())
 
-        if os.path.exists(athletes_path):
-            athletes_df = pd.read_csv(athletes_path)
+        try:
+            athletes_df = FileManager.read_df(os.path.join(dataset_path, 'athletes'))
             if 'gender' in athletes_df.columns:
                 stats['gender_distribution'] = athletes_df['gender'].value_counts().to_dict()
             if 'age' in athletes_df.columns:
                 stats['age_mean'] = float(athletes_df['age'].mean())
                 stats['age_std'] = float(athletes_df['age'].std())
+        except FileNotFoundError:
+            pass
 
         return stats

@@ -22,6 +22,11 @@ class Config:
     DEFAULT_SIMULATION_YEAR = 2024
     DEFAULT_RANDOM_SEED = 42
 
+    # Redis and Celery
+    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+    CELERY_BROKER_URL = REDIS_URL
+    CELERY_RESULT_BACKEND = REDIS_URL
+
 
 class DevelopmentConfig(Config):
     """Development configuration."""

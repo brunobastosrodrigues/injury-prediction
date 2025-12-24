@@ -1,22 +1,15 @@
 import os
-import sys
 import uuid
 import json
-import threading
-import pickle
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 import pandas as pd
 import numpy as np
-import ast
-
-from flask import current_app
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
-from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import GroupShuffleSplit
 
 from ..utils.progress_tracker import ProgressTracker
 from ..utils.file_manager import FileManager
+from ..celery_app import celery_app
 
 
 class PreprocessingService:
@@ -34,78 +27,13 @@ class PreprocessingService:
         """Start async preprocessing and return job_id."""
         job_id = ProgressTracker.create_job('preprocessing')
 
-        thread = threading.Thread(
-            target=cls._run_preprocessing,
-            args=(job_id, dataset_id, split_strategy, split_ratio, prediction_window, random_seed),
-            daemon=True
+        # Start preprocessing using Celery send_task
+        celery_app.send_task(
+            'preprocess_dataset',
+            args=[job_id, dataset_id, split_strategy, split_ratio, prediction_window, random_seed]
         )
-        thread.start()
 
         return job_id
-
-    @classmethod
-    def _run_preprocessing(
-        cls,
-        job_id: str,
-        dataset_id: str,
-        split_strategy: str,
-        split_ratio: float,
-        prediction_window: int,
-        random_seed: int
-    ):
-        """Run the actual preprocessing (in background thread)."""
-        try:
-            from app import create_app
-            app = create_app()
-
-            with app.app_context():
-                ProgressTracker.start_job(job_id, total_steps=6)
-
-                # Step 1: Load data
-                ProgressTracker.update_progress(job_id, 10, 'Loading data...')
-                raw_dir = current_app.config['RAW_DATA_DIR']
-                dataset_path = os.path.join(raw_dir, dataset_id)
-
-                athletes_df = pd.read_csv(os.path.join(dataset_path, 'athletes.csv'))
-                daily_df = pd.read_csv(os.path.join(dataset_path, 'daily_data.csv'))
-                activity_df = pd.read_csv(os.path.join(dataset_path, 'activity_data.csv'))
-
-                # Step 2: Merge data
-                ProgressTracker.update_progress(job_id, 20, 'Merging data...')
-                merged = cls._merge_data(athletes_df, daily_df, activity_df)
-
-                # Step 3: Engineer injury labels
-                ProgressTracker.update_progress(job_id, 35, 'Engineering injury labels...')
-                labeled_df = cls._engineer_injury_labels(merged, prediction_window)
-                targets_df = cls._create_prediction_targets(labeled_df, prediction_window)
-
-                # Step 4: Feature engineering
-                ProgressTracker.update_progress(job_id, 50, 'Engineering features...')
-                X = targets_df.drop(['injury', 'injury_onset', 'recovery_day', 'pre_injury',
-                                     'injury_state', 'will_get_injured', 'time_to_injury'], axis=1, errors='ignore')
-                y = targets_df['will_get_injured']
-
-                X_engineered = cls._engineer_features(X)
-
-                # Step 5: Encode categorical
-                ProgressTracker.update_progress(job_id, 70, 'Encoding features...')
-                X_encoded = cls._encode_categorical(X_engineered)
-
-                # Step 6: Split data
-                ProgressTracker.update_progress(job_id, 85, 'Splitting data...')
-                split_id = f"split_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{str(uuid.uuid4())[:6]}"
-
-                cls._save_split(
-                    split_id, X_encoded, y, merged,
-                    split_strategy, split_ratio, random_seed,
-                    dataset_id, prediction_window
-                )
-
-                ProgressTracker.complete_job(job_id, result={'split_id': split_id})
-
-        except Exception as e:
-            import traceback
-            ProgressTracker.fail_job(job_id, f"{str(e)}\n{traceback.format_exc()}")
 
     @classmethod
     def _merge_data(cls, athletes_df, daily_df, activity_df):
@@ -319,10 +247,10 @@ class PreprocessingService:
             y_test = y.iloc[test_idx]
 
         # Save splits
-        X_train.to_csv(os.path.join(split_dir, 'X_train.csv'), index=False)
-        X_test.to_csv(os.path.join(split_dir, 'X_test.csv'), index=False)
-        y_train.to_csv(os.path.join(split_dir, 'y_train.csv'), index=False)
-        y_test.to_csv(os.path.join(split_dir, 'y_test.csv'), index=False)
+        FileManager.save_df(X_train, os.path.join(split_dir, 'X_train.parquet'))
+        FileManager.save_df(X_test, os.path.join(split_dir, 'X_test.parquet'))
+        FileManager.save_df(y_train.to_frame(), os.path.join(split_dir, 'y_train.parquet'))
+        FileManager.save_df(y_test.to_frame(), os.path.join(split_dir, 'y_test.parquet'))
 
         # Save metadata
         metadata = {
@@ -358,6 +286,7 @@ class PreprocessingService:
     @classmethod
     def get_split(cls, split_id: str) -> Optional[Dict[str, Any]]:
         """Get split details."""
+        from flask import current_app
         processed_dir = current_app.config['PROCESSED_DATA_DIR']
         metadata_path = os.path.join(processed_dir, split_id, 'metadata.json')
 
@@ -365,3 +294,4 @@ class PreprocessingService:
             with open(metadata_path, 'r') as f:
                 return json.load(f)
         return None
+

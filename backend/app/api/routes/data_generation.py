@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify
 from ...services.data_generation_service import DataGenerationService
+from ..schemas import DataGenerationSchema
+from pydantic import ValidationError
 
 bp = Blueprint('data_generation', __name__)
 
@@ -7,32 +9,24 @@ bp = Blueprint('data_generation', __name__)
 @bp.route('/generate', methods=['POST'])
 def generate_dataset():
     """Start generating a new synthetic dataset."""
-    data = request.get_json() or {}
-
-    n_athletes = data.get('n_athletes', 100)
-    simulation_year = data.get('simulation_year', 2024)
-    random_seed = data.get('random_seed', 42)
-    injury_config = data.get('injury_config')
-
-    # Validate parameters
-    if not isinstance(n_athletes, int) or n_athletes < 1 or n_athletes > 5000:
-        return jsonify({'error': 'n_athletes must be between 1 and 5000'}), 400
-
-    if not isinstance(simulation_year, int) or simulation_year < 2000 or simulation_year > 2030:
-        return jsonify({'error': 'simulation_year must be between 2000 and 2030'}), 400
+    try:
+        data = request.get_json() or {}
+        schema = DataGenerationSchema(**data)
+    except ValidationError as e:
+        return jsonify({'error': 'Validation Error', 'details': e.errors()}), 400
 
     # Start async generation
     job_id = DataGenerationService.generate_dataset_async(
-        n_athletes=n_athletes,
-        simulation_year=simulation_year,
-        random_seed=random_seed,
-        injury_config=injury_config
+        n_athletes=schema.n_athletes,
+        simulation_year=schema.simulation_year,
+        random_seed=schema.random_seed,
+        injury_config=schema.injury_config
     )
 
     return jsonify({
         'job_id': job_id,
         'status': 'started',
-        'message': f'Started generating dataset with {n_athletes} athletes'
+        'message': f'Started generating dataset with {schema.n_athletes} athletes'
     }), 202
 
 

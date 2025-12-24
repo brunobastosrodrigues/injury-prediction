@@ -5,8 +5,8 @@ def main():
     print("Generating simulation dataset...")
     simulated_data = generate_simulation_dataset(n_athletes=1000)
     
-    # 2. Save simulated data to CSV
-    print("Saving simulated data to CSV...")
+    # 2. Save simulated data
+    print("Saving simulated data...")
     save_simulation_data(simulated_data, output_folder="simulated_data")
 
 if __name__ == "__main__":

@@ -6,6 +6,8 @@ from training_response.injury_simulation import inject_realistic_injury_patterns
 from sensor_data.daily_metrics_simulation import simulate_morning_sensor_data, simulate_evening_sensor_data
 from logistics.athlete_profiles import generate_athlete_cohort
 from sensor_data.simulate_activities import simulate_training_day_with_wearables
+from sensor_data.sensor_noise import SensorNoiseModel
+from physiological.menstrual_cycle import MenstrualCycleModel
 import pandas as pd
 from datetime import timedelta
 
@@ -19,7 +21,10 @@ def simulate_full_year(athlete, year=2024):
     
     # Generate annual plan
     annual_plan, race_dates = generate_annual_training_plan(athlete, start_date)
-    annual_plan.to_csv('athlete_annual_training_plan.csv', index=False)
+    try:
+        annual_plan.to_parquet('athlete_annual_training_plan.parquet', index=False)
+    except:
+        annual_plan.to_csv('athlete_annual_training_plan.csv', index=False)
     max_daily_tss = calculate_max_daily_tss(athlete['weekly_training_hours'], athlete['training_experience'])
 
     # Initialize injury tracking
@@ -50,14 +55,41 @@ def simulate_full_year(athlete, year=2024):
     pending_injury_date = None
     days_to_next_false_alarm = random.randint(30, 60)  # Schedule first false alarm
 
+    sensor_profile = athlete.get('sensor_profile', 'garmin')
+
+    # Menstrual cycle state
+    cycle_config = athlete.get('menstrual_cycle_config')
+    day_in_cycle = random.randint(1, cycle_config['cycle_length']) if cycle_config else None
+
     for index, day in annual_plan.iterrows():
+        # Get physiological modulations (e.g. Menstrual Cycle)
+        modulations = None
+        if cycle_config:
+            phase = MenstrualCycleModel.get_phase(day_in_cycle, cycle_config['cycle_length'], cycle_config['luteal_phase_length'])
+            modulations = MenstrualCycleModel.calculate_modulations(phase, day_in_cycle)
+            # Increment day in cycle
+            day_in_cycle = (day_in_cycle % cycle_config['cycle_length']) + 1
+
         # Step 1: Simulate morning sensor data
-        day_data = simulate_morning_sensor_data(athlete, day['date'], prev_day, recovery_days_remaining, max_daily_tss, tss_history, acwr)
+        day_data = simulate_morning_sensor_data(athlete, day['date'], prev_day, recovery_days_remaining, max_daily_tss, tss_history, acwr, modulations)
+        
+        # Apply daily noise (RHR, HRV, sleep)
+        day_data = SensorNoiseModel.apply_daily_noise(day_data)
+        
         sleep_quality = day_data['sleep_quality']
         hrv = day_data['hrv']
 
         # Step 2: Execute training plan (potentially with deviations)
         wearable_activity_data = simulate_training_day_with_wearables(athlete, day, day_data, fatigue)
+        
+        # Apply device-specific activity noise
+        if wearable_activity_data:
+            for sport in wearable_activity_data:
+                if sensor_profile == 'garmin':
+                    wearable_activity_data[sport] = SensorNoiseModel.apply_garmin_profile(wearable_activity_data[sport])
+                else:
+                    wearable_activity_data[sport] = SensorNoiseModel.apply_optical_profile(wearable_activity_data[sport])
+        
         activity_data.append(wearable_activity_data)
         tss_today = day_data['actual_tss']
         
@@ -86,12 +118,26 @@ def simulate_full_year(athlete, year=2024):
                 recovery_days_remaining = np.random.randint(3, 10)
                 pending_injury_date = None
             else:
+                # Calculate injury risk factors
+                base_injury_prob = 0.003
+                pattern_injury_prob = 0.0135
+                
+                # Apply modulations (Menstrual)
+                if modulations and 'injury_risk_modifier' in modulations:
+                    base_injury_prob *= modulations['injury_risk_modifier']
+                    pattern_injury_prob *= modulations['injury_risk_modifier']
+                
+                # Apply modulations (Circadian)
+                if 'circadian_injury_modifier' in day_data:
+                    base_injury_prob *= day_data['circadian_injury_modifier']
+                    pattern_injury_prob *= day_data['circadian_injury_modifier']
+
                 # Add some truly random injuries (unexplained, no patterns)
-                if random.random() < 0.003:  # ~1 random injuries per year
+                if random.random() < base_injury_prob:  # ~1 random injuries per year
                     day_data['injury'] = 1
                     recovery_days_remaining = np.random.randint(3, 7)  # Shorter recovery for sudden injuries
                 # Plan future injuries with patterns
-                elif len(daily_data) > 30 and random.random() < 0.0135:  # ~4.5-5 pattern-based injuries per year
+                elif len(daily_data) > 30 and random.random() < pattern_injury_prob:  # ~4.5-5 pattern-based injuries per year
                     # Variable warning period (longer is more realistic)
                     injury_warning_days = random.randint(7, 14)
                     injury_date = day['date'] + timedelta(days=injury_warning_days)
@@ -185,7 +231,9 @@ def save_simulation_data(simulated_data, output_folder="simulated_data"):
             'nutrition_factor': athlete['nutrition_factor'],
             'stress_factor': athlete['stress_factor'],
             'smoking_factor': athlete['smoking_factor'],
-            'drinking_factor': athlete['drinking_factor']
+            'drinking_factor': athlete['drinking_factor'],
+            'sensor_profile': athlete['sensor_profile'],
+            'chronotype': athlete['chronotype']
         })
 
         # Save daily data
@@ -246,9 +294,15 @@ def save_simulation_data(simulated_data, output_folder="simulated_data"):
     df_daily_data = pd.DataFrame(daily_data_records)
     df_activity_data = pd.DataFrame(activity_data_records)
 
-    # Save DataFrames to CSV files
-    df_athletes.to_csv(f"{output_folder}/athletes.csv", index=False)
-    df_daily_data.to_csv(f"{output_folder}/daily_data.csv", index=False)
-    df_activity_data.to_csv(f"{output_folder}/activity_data.csv", index=False)
+    # Save DataFrames (prefer Parquet)
+    try:
+        df_athletes.to_parquet(f"{output_folder}/athletes.parquet", index=False)
+        df_daily_data.to_parquet(f"{output_folder}/daily_data.parquet", index=False)
+        df_activity_data.to_parquet(f"{output_folder}/activity_data.parquet", index=False)
+    except Exception as e:
+        print(f"Warning: Could not save as Parquet ({e}). Falling back to CSV.")
+        df_athletes.to_csv(f"{output_folder}/athletes.csv", index=False)
+        df_daily_data.to_csv(f"{output_folder}/daily_data.csv", index=False)
+        df_activity_data.to_csv(f"{output_folder}/activity_data.csv", index=False)
 
     print("Simulation data saved successfully!")

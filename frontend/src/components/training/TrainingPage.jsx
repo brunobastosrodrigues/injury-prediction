@@ -226,10 +226,10 @@ function TrainingPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Model</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dataset</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ROC AUC</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Precision</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">F1</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
                 </tr>
               </thead>
@@ -237,15 +237,15 @@ function TrainingPage() {
                 {models.map(model => (
                   <tr key={model.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-mono text-sm">{model.id}</td>
+                    <td className="px-4 py-3 text-sm truncate max-w-[150px]" title={model.dataset_id}>
+                      {model.dataset_id || 'N/A'}
+                    </td>
                     <td className="px-4 py-3 text-sm">{model.model_name || model.model_type}</td>
                     <td className="px-4 py-3 text-sm font-medium">
                       {model.metrics?.roc_auc?.toFixed(4) || 'N/A'}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {model.metrics?.average_precision?.toFixed(4) || 'N/A'}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {model.metrics?.f1?.toFixed(4) || 'N/A'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {model.created_at ? new Date(model.created_at).toLocaleDateString() : 'N/A'}

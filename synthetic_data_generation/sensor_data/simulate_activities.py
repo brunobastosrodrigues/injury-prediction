@@ -27,13 +27,39 @@ def simulate_workout_execution(athlete, day_plan, daily_data, fatigue):
     # Calculate base completion probability
     base_completion_prob = _calculate_base_completion_probability(fatigue, daily_data['sleep_quality'])
     
+    # Chronotype impact
+    chronotype = athlete.get('chronotype', 'intermediate')
+    
     # Process each planned activity
     actual_activities = {}
+    circadian_injury_modifier = 1.0
+
     for sport, details in planned_activities.items():
-        actual_activities[sport] = _process_planned_activity(
+        # Assign a random training hour (simulating life schedule)
+        # Larks more likely early, Owls more likely late
+        if chronotype == 'lark':
+            training_hour = random.choices(range(5, 22), weights=[10, 15, 20, 15, 10, 5, 4, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1], k=1)[0]
+        elif chronotype == 'owl':
+            training_hour = random.choices(range(5, 22), weights=[1, 1, 2, 2, 3, 3, 4, 5, 8, 10, 15, 20, 15, 10, 5, 2, 1], k=1)[0]
+        else:
+            training_hour = random.randint(6, 20)
+
+        # Performance penalty for misalignment
+        performance_penalty = 1.0
+        if chronotype == 'lark' and training_hour >= 19:
+            performance_penalty = 0.92 # 8% drop in late evening
+            circadian_injury_modifier *= 1.15
+        elif chronotype == 'owl' and training_hour <= 8:
+            performance_penalty = 0.88 # 12% drop in early morning
+            circadian_injury_modifier *= 1.25
+
+        activity = _process_planned_activity(
             sport, details, daily_data['date'], hrv_status, 
-            fatigue, base_completion_prob, daily_data['sleep_quality']
+            fatigue, base_completion_prob, daily_data['sleep_quality'],
+            performance_penalty
         )
+        activity['training_hour'] = training_hour
+        actual_activities[sport] = activity
     
     # Add unplanned workouts
     actual_activities = _add_unplanned_workouts(actual_activities, daily_data['date'], fatigue)
@@ -41,6 +67,7 @@ def simulate_workout_execution(athlete, day_plan, daily_data, fatigue):
     # Update daily data with total TSS
     daily_data['planned_tss'] = day_plan['total_tss']
     daily_data['actual_tss'] = sum(activity['actual_tss'] for activity in actual_activities.values())
+    daily_data['circadian_injury_modifier'] = circadian_injury_modifier
     
     return actual_activities
 
@@ -73,7 +100,7 @@ def _calculate_base_completion_probability(fatigue, sleep_quality):
     base_prob += (sleep_quality * 100 - 50) / 200
     return base_prob
 
-def _process_planned_activity(sport, details, date, hrv_status, fatigue, base_completion_prob, sleep_quality):
+def _process_planned_activity(sport, details, date, hrv_status, fatigue, base_completion_prob, sleep_quality, performance_penalty=1.0):
     """Process a planned activity to determine if and how it's completed."""
     # Calculate completion probability
     completion_prob = _adjust_completion_probability(
@@ -94,6 +121,9 @@ def _process_planned_activity(sport, details, date, hrv_status, fatigue, base_co
         duration_factor, intensity_factor = _calculate_adjustment_factors(
             fatigue, hrv_status
         )
+        
+        # Apply performance penalty (misalignment with chronotype)
+        intensity_factor *= performance_penalty
         
         # Calculate actual workout values
         planned_intensity = math.sqrt(details["tss"] / 100 * 60 / details["duration"])

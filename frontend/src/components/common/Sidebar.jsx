@@ -4,6 +4,7 @@ import { usePipeline } from '../../context/PipelineContext'
 const navItems = [
   { path: '/', label: 'Dashboard', icon: '📊' },
   { path: '/data-generation', label: 'Data Generation', icon: '🔄' },
+  { path: '/ingestion', label: 'Data Ingestion', icon: '📤' },
   { path: '/preprocessing', label: 'Preprocessing', icon: '⚙️' },
   { path: '/training', label: 'Training', icon: '🤖' },
   { path: '/results', label: 'Results', icon: '📈' },

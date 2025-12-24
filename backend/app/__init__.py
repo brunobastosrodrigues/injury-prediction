@@ -20,10 +20,12 @@ def create_app(config_name=None):
         from .api.routes.preprocessing import bp as preprocessing_bp
         from .api.routes.training import bp as training_bp
         from .api.routes.analytics import bp as analytics_bp
+        from .api.routes.data_ingestion import bp as data_ingestion_bp
 
         app.register_blueprint(data_generation_bp, url_prefix='/api/data')
         app.register_blueprint(preprocessing_bp, url_prefix='/api/preprocessing')
         app.register_blueprint(training_bp, url_prefix='/api/training')
         app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
+        app.register_blueprint(data_ingestion_bp, url_prefix='/api/ingestion')
 
     return app

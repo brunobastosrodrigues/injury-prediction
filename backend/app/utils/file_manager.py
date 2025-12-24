@@ -89,35 +89,66 @@ class FileManager:
         return False
 
     @classmethod
+    def save_df(cls, df: pd.DataFrame, path: str, index: bool = False):
+        """Save a DataFrame to a file (prefer Parquet)."""
+        if path.endswith('.csv'):
+            df.to_csv(path, index=index)
+        else:
+            # Ensure path ends with .parquet if not specified
+            if not path.endswith('.parquet'):
+                path += '.parquet'
+            df.to_parquet(path, index=index)
+
+    @classmethod
+    def read_df(cls, path: str, **kwargs) -> pd.DataFrame:
+        """Read a DataFrame from a file (CSV or Parquet)."""
+        if path.endswith('.parquet') or os.path.exists(path + '.parquet'):
+            full_path = path if path.endswith('.parquet') else path + '.parquet'
+            return pd.read_parquet(full_path, **kwargs)
+        elif path.endswith('.csv') or os.path.exists(path + '.csv'):
+            full_path = path if path.endswith('.csv') else path + '.csv'
+            return pd.read_csv(full_path, **kwargs)
+        else:
+            raise FileNotFoundError(f"Could not find data file at {path}")
+
+    @classmethod
     def get_dataset_summary(cls, dataset_id: str) -> Optional[Dict[str, Any]]:
         """Get summary statistics for a dataset."""
         folder_path = os.path.join(cls.get_raw_dir(), dataset_id)
 
         summary = {'id': dataset_id}
 
+        # Helper to find file (csv or parquet)
+        def find_file(base_name):
+            for ext in ['.parquet', '.csv']:
+                path = os.path.join(folder_path, base_name + ext)
+                if os.path.exists(path):
+                    return path
+            return None
+
         # Load athletes data
-        athletes_path = os.path.join(folder_path, 'athletes.csv')
-        if os.path.exists(athletes_path):
-            df = pd.read_csv(athletes_path)
+        athletes_path = find_file('athletes')
+        if athletes_path:
+            df = cls.read_df(athletes_path)
             summary['n_athletes'] = len(df)
             summary['athlete_columns'] = list(df.columns)
 
         # Load daily data
-        daily_path = os.path.join(folder_path, 'daily_data.csv')
-        if os.path.exists(daily_path):
-            df = pd.read_csv(daily_path)
+        daily_path = find_file('daily_data')
+        if daily_path:
+            df = cls.read_df(daily_path)
             summary['n_daily_records'] = len(df)
             summary['daily_columns'] = list(df.columns)
             summary['injury_rate'] = float(df['injury'].mean()) if 'injury' in df.columns else None
             summary['date_range'] = {
-                'start': df['date'].min() if 'date' in df.columns else None,
-                'end': df['date'].max() if 'date' in df.columns else None
+                'start': str(df['date'].min()) if 'date' in df.columns else None,
+                'end': str(df['date'].max()) if 'date' in df.columns else None
             }
 
         # Load activity data
-        activity_path = os.path.join(folder_path, 'activity_data.csv')
-        if os.path.exists(activity_path):
-            df = pd.read_csv(activity_path)
+        activity_path = find_file('activity_data')
+        if activity_path:
+            df = cls.read_df(activity_path)
             summary['n_activities'] = len(df)
             summary['activity_columns'] = list(df.columns)
             if 'sport' in df.columns:

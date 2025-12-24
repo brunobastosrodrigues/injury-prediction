@@ -17,7 +17,7 @@ class AthleteMetricsSimulator:
         }
     
     def simulate_morning_data(self, athlete, date, prev_day, recovery_days_remaining, max_daily_tss, 
-                              tss_history=None, acwr=None):
+                              tss_history=None, acwr=None, physiological_modulations=None):
         """
         Simulate morning wearable recovery data based on previous training loads
         
@@ -29,6 +29,7 @@ class AthleteMetricsSimulator:
         - max_daily_tss: Maximum sustainable daily training stress for this athlete
         - tss_history: List of TSS values for the past 28 days (optional)
         - acwr: Acute:Chronic Workload Ratio (optional)
+        - physiological_modulations: Dictionary of additive/multiplicative modifiers (e.g. from Menstrual Cycle)
         """
         # Initialize daily metrics
         daily_data = self._initialize_daily_data(athlete, date)
@@ -37,6 +38,10 @@ class AthleteMetricsSimulator:
         recovery_params = self._calculate_recovery_parameters(
             athlete, prev_day, recovery_days_remaining, max_daily_tss, tss_history, acwr
         )
+
+        # Apply readiness modulation if provided
+        if physiological_modulations and 'readiness_factor' in physiological_modulations:
+            recovery_params['recovery_score'] *= physiological_modulations['readiness_factor']
         
         # Simulate sleep metrics
         sleep_metrics = self._simulate_sleep_metrics(
@@ -51,6 +56,13 @@ class AthleteMetricsSimulator:
         morning_metrics = self._calculate_morning_metrics(
             athlete, prev_day, sleep_metrics, recovery_params, max_daily_tss
         )
+
+        # Apply physiological modulations (e.g., Menstrual Cycle effects)
+        if physiological_modulations:
+            if 'rhr_modifier' in physiological_modulations:
+                morning_metrics['resting_hr'] += physiological_modulations['rhr_modifier']
+            if 'hrv_multiplier' in physiological_modulations:
+                morning_metrics['hrv'] *= physiological_modulations['hrv_multiplier']
         
         # Update daily data with all calculated metrics
         daily_data.update({**sleep_metrics, **morning_metrics})
@@ -598,10 +610,10 @@ class AthleteMetricsSimulator:
         return round(min(max(daily_data['body_battery_morning'] - total_drain, 5), daily_data['body_battery_morning'] - 40), 1)
 
 # Backward compatibility
-def simulate_morning_sensor_data(athlete, date, prev_day, recovery_days_remaining, max_daily_tss, tss_history=None, acwr=None):
+def simulate_morning_sensor_data(athlete, date, prev_day, recovery_days_remaining, max_daily_tss, tss_history=None, acwr=None, physiological_modulations=None):
     """Wrapper function to maintain backward compatibility."""
     simulator = AthleteMetricsSimulator()
-    return simulator.simulate_morning_data(athlete, date, prev_day, recovery_days_remaining, max_daily_tss, tss_history, acwr)
+    return simulator.simulate_morning_data(athlete, date, prev_day, recovery_days_remaining, max_daily_tss, tss_history, acwr, physiological_modulations)
 
 def simulate_evening_sensor_data(athlete, fatigue, daily_data, current_hour=22):
     """Wrapper function to maintain backward compatibility."""

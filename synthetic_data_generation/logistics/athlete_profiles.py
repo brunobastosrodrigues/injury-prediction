@@ -81,6 +81,30 @@ def generate_athlete_profile(athlete_id = None):
 
     recovery_profile, recovery_signature = add_recovery_characteristics()
 
+    sensor_profile = random.choices(["garmin", "optical"], weights=[0.7, 0.3], k=1)[0]
+
+    # Chronotype assignment
+    # Larks (20%): Peak performance early in the day
+    # Owls (20%): Peak performance later in the day
+    # Intermediate (60%): Flexible
+    chronotype = random.choices(
+        ["lark", "owl", "intermediate"],
+        weights=[0.2, 0.2, 0.6],
+        k=1
+    )[0]
+
+    # Menstrual cycle configuration
+    menstrual_cycle_config = None
+    if gender == 'female':
+        menstrual_cycle_config = {
+            'cycle_length': int(np.random.normal(28, 2)),  # Avg 28, std 2
+            'regularity': np.random.beta(5, 1),            # High regularity (0-1)
+            'luteal_phase_length': int(np.random.normal(14, 1))
+        }
+        # Bounds
+        menstrual_cycle_config['cycle_length'] = max(21, min(35, menstrual_cycle_config['cycle_length']))
+        menstrual_cycle_config['luteal_phase_length'] = max(10, min(16, menstrual_cycle_config['luteal_phase_length']))
+
     return {
         'id': athlete_id,
         'gender': gender,
@@ -111,7 +135,9 @@ def generate_athlete_profile(athlete_id = None):
         'drinking_factor': lifestyle_factors['drinking'],
         'specialization': athlete_type,
         'recovery_profile': recovery_profile,
-        'recovery_signature': recovery_signature
+        'recovery_signature': recovery_signature,
+        'sensor_profile': sensor_profile,
+        'menstrual_cycle_config': menstrual_cycle_config
     }
 
 def get_training_experience(age):
