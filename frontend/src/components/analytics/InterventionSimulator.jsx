@@ -12,6 +12,19 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
   const [results, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
 
+  // Reset overrides when currentMetrics change (e.g. new date selected)
+  useEffect(() => {
+    if (currentMetrics) {
+      setOverrides({
+        sleep_hours: currentMetrics.sleep_hours || 7.5,
+        duration_minutes: currentMetrics.duration_minutes || 60,
+        intensity_factor: currentMetrics.intensity_factor || 1.0
+      })
+      // Clear previous results to avoid confusion
+      setResult(null)
+    }
+  }, [currentMetrics])
+
   const runSimulation = useCallback(async (currentOverrides) => {
     if (!modelId || !athleteId || !date) return
 
