@@ -4,6 +4,12 @@ from ...services.analytics_service import AnalyticsService
 bp = Blueprint('analytics', __name__)
 
 
+@bp.route('/', methods=['GET'])
+def health_check():
+    """Health check endpoint."""
+    return jsonify({'status': 'ok'})
+
+
 @bp.route('/distributions', methods=['GET'])
 def get_distribution():
     """Get distribution data for a feature."""

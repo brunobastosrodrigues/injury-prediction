@@ -1,11 +1,6 @@
-import axios from 'axios'
+import axios from 'axios';
 
-const api = axios.create({
-  baseURL: '/api',
-  headers: {
-    'Content-Type': 'application/json'
-  }
-})
+const api = axios.create({ baseURL: '/api' });
 
 // Data Generation API
 export const dataApi = {

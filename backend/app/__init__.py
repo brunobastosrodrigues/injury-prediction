@@ -13,18 +13,17 @@ def create_app(config_name=None):
     app.config.from_object(config[config_name])
 
     # Enable CORS for React frontend
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
-    # Register blueprints
-    from .api.routes import data_generation, preprocessing, training, analytics
-    app.register_blueprint(data_generation.bp, url_prefix='/api/data')
-    app.register_blueprint(preprocessing.bp, url_prefix='/api/preprocessing')
-    app.register_blueprint(training.bp, url_prefix='/api/training')
-    app.register_blueprint(analytics.bp, url_prefix='/api/analytics')
+    with app.app_context():
+        from .api.routes.data_generation import data_generation_bp
+        from .api.routes.preprocessing import preprocessing_bp
+        from .api.routes.training import training_bp
+        from .api.routes.analytics import analytics_bp
 
-    # Health check endpoint
-    @app.route('/api/health')
-    def health_check():
-        return {'status': 'healthy'}
+        app.register_blueprint(data_generation_bp, url_prefix='/api')
+        app.register_blueprint(preprocessing_bp, url_prefix='/api')
+        app.register_blueprint(training_bp, url_prefix='/api')
+        app.register_blueprint(analytics_bp, url_prefix='/api')
 
     return app
