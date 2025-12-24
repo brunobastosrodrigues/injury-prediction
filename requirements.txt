@@ -16,6 +16,7 @@ docopt==0.6.2
 dotenv==0.9.9
 executing==2.2.0
 Flask==3.1.0
+flask-cors==4.0.0
 Flask-SQLAlchemy==3.1.1
 fonttools==4.56.0
 idna==3.10

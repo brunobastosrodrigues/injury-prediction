@@ -1,0 +1,67 @@
+import axios from 'axios'
+
+const api = axios.create({
+  baseURL: '/api',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
+
+// Data Generation API
+export const dataApi = {
+  generate: (config) => api.post('/data/generate', config),
+  getStatus: (jobId) => api.get(`/data/generate/${jobId}/status`),
+  cancelGeneration: (jobId) => api.post(`/data/generate/${jobId}/cancel`),
+  listDatasets: () => api.get('/data/datasets'),
+  getDataset: (datasetId) => api.get(`/data/datasets/${datasetId}`),
+  deleteDataset: (datasetId) => api.delete(`/data/datasets/${datasetId}`),
+  getDatasetSample: (datasetId, table, nRows) =>
+    api.get(`/data/datasets/${datasetId}/sample`, { params: { table, n_rows: nRows } }),
+  listJobs: () => api.get('/data/jobs')
+}
+
+// Preprocessing API
+export const preprocessingApi = {
+  run: (config) => api.post('/preprocessing/run', config),
+  getStatus: (jobId) => api.get(`/preprocessing/${jobId}/status`),
+  listSplits: () => api.get('/preprocessing/splits'),
+  getSplit: (splitId) => api.get(`/preprocessing/splits/${splitId}`),
+  listJobs: () => api.get('/preprocessing/jobs')
+}
+
+// Training API
+export const trainingApi = {
+  train: (config) => api.post('/training/train', config),
+  getStatus: (jobId) => api.get(`/training/${jobId}/status`),
+  listModels: () => api.get('/training/models'),
+  getModel: (modelId) => api.get(`/training/models/${modelId}`),
+  getRocCurve: (modelId, splitId) =>
+    api.get(`/training/models/${modelId}/roc-curve`, { params: { split_id: splitId } }),
+  getPrCurve: (modelId, splitId) =>
+    api.get(`/training/models/${modelId}/pr-curve`, { params: { split_id: splitId } }),
+  compareModels: (modelIds) => api.post('/training/compare', { model_ids: modelIds }),
+  getModelTypes: () => api.get('/training/model-types'),
+  listJobs: () => api.get('/training/jobs')
+}
+
+// Analytics API
+export const analyticsApi = {
+  getDistribution: (datasetId, feature, bins = 50) =>
+    api.get('/analytics/distributions', { params: { dataset_id: datasetId, feature, bins } }),
+  getCorrelations: (datasetId, features) =>
+    api.get('/analytics/correlations', { params: { dataset_id: datasetId, features } }),
+  getPreInjuryWindow: (datasetId, lookbackDays = 14) =>
+    api.get('/analytics/pre-injury-window', { params: { dataset_id: datasetId, lookback_days: lookbackDays } }),
+  getAthleteTimeline: (datasetId, athleteId) =>
+    api.get('/analytics/athlete-timeline', { params: { dataset_id: datasetId, athlete_id: athleteId } }),
+  getAcwrZones: (datasetId) =>
+    api.get('/analytics/acwr-zones', { params: { dataset_id: datasetId } }),
+  getFeatureImportance: (modelId) =>
+    api.get('/analytics/feature-importance', { params: { model_id: modelId } }),
+  listAthletes: (datasetId) =>
+    api.get('/analytics/athletes', { params: { dataset_id: datasetId } }),
+  getDatasetStats: (datasetId) =>
+    api.get('/analytics/stats', { params: { dataset_id: datasetId } })
+}
+
+export default api
