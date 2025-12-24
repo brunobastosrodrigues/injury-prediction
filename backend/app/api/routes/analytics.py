@@ -141,3 +141,28 @@ def get_dataset_stats():
         return jsonify({'error': 'Dataset not found'}), 404
 
     return jsonify(stats)
+
+
+@bp.route('/simulate', methods=['POST'])
+def simulate_intervention():
+    """Simulate what-if intervention."""
+    data = request.get_json() or {}
+    model_id = data.get('model_id')
+    athlete_id = data.get('athlete_id')
+    date = data.get('date')
+    overrides = data.get('overrides', {})
+
+    if not all([model_id, athlete_id, date]):
+        return jsonify({'error': 'model_id, athlete_id, and date are required'}), 400
+
+    result = AnalyticsService.simulate_intervention(
+        model_id=model_id,
+        athlete_id=athlete_id,
+        date=date,
+        overrides=overrides
+    )
+
+    if not result:
+        return jsonify({'error': 'Simulation failed. Check if model, athlete, and date exist.'}), 404
+
+    return jsonify(result)

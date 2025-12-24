@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import Plot from 'react-plotly.js'
 import { usePipeline } from '../../context/PipelineContext'
-import { analyticsApi } from '../../api'
+import { analyticsApi, trainingApi } from '../../api'
 import Card from '../common/Card'
+import InterventionSimulator from './InterventionSimulator'
 
 const METRICS = ['hrv', 'resting_hr', 'sleep_hours', 'sleep_quality', 'stress', 'body_battery_morning', 'actual_tss']
 
@@ -20,6 +21,14 @@ function AnalyticsPage() {
   const [acwrZones, setAcwrZones] = useState(null)
   const [datasetStats, setDatasetStats] = useState(null)
 
+  // What-If Analysis states
+  const [models, setModels] = useState([])
+  const [selectedModel, setSelectedModel] = useState('')
+  const [athletes, setAthletes] = useState([])
+  const [selectedAthlete, setSelectedAthlete] = useState('')
+  const [athleteTimeline, setAthleteTimeline] = useState(null)
+  const [selectedDate, setSelectedDate] = useState('')
+
   useEffect(() => {
     refreshDatasets()
   }, [refreshDatasets])
@@ -33,8 +42,43 @@ function AnalyticsPage() {
   useEffect(() => {
     if (selectedDataset) {
       loadAnalytics()
+      if (activeTab === 'whatIf') {
+        fetchAthletes(selectedDataset)
+        fetchModels()
+      }
     }
   }, [selectedDataset, activeTab])
+
+  const fetchAthletes = async (datasetId) => {
+    try {
+      const res = await analyticsApi.listAthletes(datasetId)
+      setAthletes(res.data.athletes)
+    } catch (error) {
+      console.error('Failed to fetch athletes:', error)
+    }
+  }
+
+  const fetchModels = async () => {
+    try {
+      const res = await trainingApi.listModels()
+      setModels(res.data.models)
+    } catch (error) {
+      console.error('Failed to fetch models:', error)
+    }
+  }
+
+  const handleAthleteChange = async (athleteId) => {
+    setSelectedAthlete(athleteId)
+    setSelectedDate('')
+    if (athleteId) {
+      try {
+        const res = await analyticsApi.getAthleteTimeline(selectedDataset, athleteId)
+        setAthleteTimeline(res.data)
+      } catch (error) {
+        console.error('Failed to fetch athlete timeline:', error)
+      }
+    }
+  }
 
   const loadAnalytics = async () => {
     setLoading(true)
@@ -82,7 +126,8 @@ function AnalyticsPage() {
     { id: 'correlations', label: 'Correlations' },
     { id: 'preInjury', label: 'Pre-Injury Window' },
     { id: 'acwr', label: 'ACWR Zones' },
-    { id: 'stats', label: 'Statistics' }
+    { id: 'stats', label: 'Statistics' },
+    { id: 'whatIf', label: 'What-If Analysis' }
   ]
 
   return (
@@ -135,7 +180,7 @@ function AnalyticsPage() {
             </nav>
           </div>
 
-          {loading ? (
+          {loading && activeTab !== 'whatIf' ? (
             <Card>
               <div className="flex justify-center py-12">
                 <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
@@ -345,6 +390,73 @@ function AnalyticsPage() {
                     </div>
                   </div>
                 </Card>
+              )}
+
+              {/* What-If Analysis */}
+              {activeTab === 'whatIf' && (
+                <div className="space-y-6">
+                  <Card>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                        <select
+                          value={selectedModel}
+                          onChange={e => setSelectedModel(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select a model...</option>
+                          {models.map(m => (
+                            <option key={m.id} value={m.id}>{m.id}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Athlete</label>
+                        <select
+                          value={selectedAthlete}
+                          onChange={e => handleAthleteChange(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select an athlete...</option>
+                          {athletes.map(a => (
+                            <option key={a} value={a}>{a}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <select
+                          value={selectedDate}
+                          onChange={e => setSelectedDate(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                          disabled={!athleteTimeline}
+                        >
+                          <option value="">Select a date...</option>
+                          {athleteTimeline?.dates.map(d => (
+                            <option key={d} value={d}>{new Date(d).toLocaleDateString()}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {selectedModel && selectedAthlete && selectedDate ? (
+                    <InterventionSimulator
+                      modelId={selectedModel}
+                      athleteId={selectedAthlete}
+                      date={selectedDate}
+                      currentMetrics={{
+                        sleep_hours: athleteTimeline?.metrics?.sleep_hours[athleteTimeline.dates.indexOf(selectedDate)],
+                        duration_minutes: athleteTimeline?.metrics?.duration_minutes[athleteTimeline.dates.indexOf(selectedDate)],
+                        intensity_factor: athleteTimeline?.metrics?.intensity_factor[athleteTimeline.dates.indexOf(selectedDate)]
+                      }}
+                    />
+                  ) : (
+                    <div className="p-12 text-center border-2 border-dashed border-gray-200 rounded-xl text-gray-400">
+                      Select a Model, Athlete, and Date above to start counterfactual analysis.
+                    </div>
+                  )}
+                </div>
               )}
             </>
           )}

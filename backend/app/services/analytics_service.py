@@ -3,14 +3,155 @@ import json
 from typing import Dict, Any, Optional, List
 import pandas as pd
 import numpy as np
+import joblib
 
 from flask import current_app
 
 from ..utils.file_manager import FileManager
+from .preprocessing_service import PreprocessingService
 
 
 class AnalyticsService:
     """Service for analytics and visualization data."""
+
+    @classmethod
+    def simulate_intervention(
+        cls,
+        model_id: str,
+        athlete_id: str,
+        date: str,
+        overrides: Dict[str, Any]
+    ) -> Optional[Dict[str, float]]:
+        """
+        Simulate an intervention by modifying metrics and recalculating risk.
+        """
+        # 1. Load Model and Metadata
+        models_dir = current_app.config['MODELS_DIR']
+        model_path = os.path.join(models_dir, f'{model_id}.joblib')
+        metadata_path = os.path.join(models_dir, f'{model_id}.json')
+
+        if not os.path.exists(model_path) or not os.path.exists(metadata_path):
+            return None
+
+        model = joblib.load(model_path)
+        with open(metadata_path, 'r') as f:
+            metadata = json.load(f)
+
+        dataset_id = metadata.get('dataset_id')
+        feature_names = metadata.get('feature_names')
+
+        # 2. Load Raw Data
+        raw_dir = current_app.config['RAW_DATA_DIR']
+        dataset_path = os.path.join(raw_dir, dataset_id)
+
+        try:
+            daily_df = FileManager.read_df(os.path.join(dataset_path, 'daily_data'))
+            athletes_df = FileManager.read_df(os.path.join(dataset_path, 'athletes'))
+            activity_df = FileManager.read_df(os.path.join(dataset_path, 'activity_data'))
+        except FileNotFoundError:
+            return None
+
+        # Filter for specific athlete to speed up processing
+        athlete_daily = daily_df[daily_df['athlete_id'] == athlete_id].copy()
+        athlete_activity = activity_df[activity_df['athlete_id'] == athlete_id].copy()
+        athlete_profile = athletes_df[athletes_df['athlete_id'] == athlete_id].copy()
+
+        if len(athlete_daily) == 0:
+            return None
+
+        # 3. Apply Overrides
+        # We apply overrides to the daily data BEFORE processing
+        # Note: If overrides affect activity data (e.g. intensity), we might need complex logic.
+        # For simplicity, we assume overrides map to columns in daily_data or merged data.
+        
+        target_date = pd.to_datetime(date)
+        mask = pd.to_datetime(athlete_daily['date']) == target_date
+        
+        if not mask.any():
+            return None
+
+        # Create a modified copy
+        athlete_daily_mod = athlete_daily.copy()
+        
+        # Apply overrides to the modified copy
+        for key, value in overrides.items():
+            if key in athlete_daily_mod.columns:
+                athlete_daily_mod.loc[mask, key] = value
+            # Handle derived fields heuristics if simple overrides are not enough?
+            # For now, relying on feature engineering to pick up changes in base columns.
+            # e.g. changing 'sleep_hours' will update features derived from it in the next step.
+
+        # 4. Run Preprocessing Pipeline for both Original and Modified
+        # We need to process both to ensure apples-to-apples comparison on the exact same pipeline state
+        
+        # Helper to process dataframe to features
+        def process_to_features(d_df, a_df, act_df):
+            merged = PreprocessingService._merge_data(a_df, d_df, act_df)
+            # We don't need injury labels for prediction, just features
+            # But _engineer_features expects some structure. 
+            # Note: _engineer_features handles feature creation.
+            
+            # Create dummy columns if needed by engineering?
+            # _engineer_features checks if columns exist.
+            
+            # _create_prediction_targets is NOT needed for inference/simulation
+            
+            # Engineer features
+            X = PreprocessingService._engineer_features(merged)
+            
+            # Encode
+            X_encoded = PreprocessingService._encode_categorical(X)
+            
+            return X_encoded, merged
+
+        # Process Original
+        X_orig, merged_orig = process_to_features(athlete_daily, athlete_profile, athlete_activity)
+        
+        # Process Modified
+        X_mod, merged_mod = process_to_features(athlete_daily_mod, athlete_profile, athlete_activity)
+
+        # 5. Extract Feature Vector for the Target Date
+        # We need to ensure we select the row corresponding to target_date
+        # The merge operation might preserve order or date column.
+        
+        # Find row index for target date
+        # merged has 'date' column
+        row_idx_orig = merged_orig[merged_orig['date'] == target_date].index
+        row_idx_mod = merged_mod[merged_mod['date'] == target_date].index
+
+        if len(row_idx_orig) == 0 or len(row_idx_mod) == 0:
+            return None
+
+        # Align columns with model features
+        # Missing columns filled with 0 (or handle appropriately)
+        # Extra columns dropped
+        
+        def align_features(X, idx):
+            row = X.loc[idx].copy()
+            # Ensure all model features exist
+            for col in feature_names:
+                if col not in row.columns:
+                    row[col] = 0
+            # Select only model features
+            return row[feature_names]
+
+        vector_orig = align_features(X_orig, row_idx_orig)
+        vector_mod = align_features(X_mod, row_idx_mod)
+
+        # 6. Predict
+        # predict_proba returns [prob_class_0, prob_class_1]
+        try:
+            prob_orig = model.predict_proba(vector_orig)[0][1]
+            prob_mod = model.predict_proba(vector_mod)[0][1]
+        except Exception:
+            # Fallback if predict_proba not available or error
+            return None
+
+        return {
+            "original_risk": float(prob_orig),
+            "new_risk": float(prob_mod),
+            "risk_reduction": float(prob_orig - prob_mod)
+        }
 
     @classmethod
     def get_distribution(cls, dataset_id: str, feature: str, bins: int = 50) -> Optional[Dict[str, Any]]:
