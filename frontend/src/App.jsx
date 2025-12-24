@@ -7,6 +7,7 @@ import PreprocessingPage from './components/preprocessing/PreprocessingPage'
 import TrainingPage from './components/training/TrainingPage'
 import ResultsPage from './components/results/ResultsPage'
 import AnalyticsPage from './components/analytics/AnalyticsPage'
+import AthleteDashboardPage from './components/athleteDashboard/AthleteDashboardPage'
 
 function App() {
   return (
@@ -19,6 +20,8 @@ function App() {
         <Route path="/training" element={<TrainingPage />} />
         <Route path="/results" element={<ResultsPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/athletes" element={<AthleteDashboardPage />} />
+        <Route path="/athletes/:athleteId" element={<AthleteDashboardPage />} />
       </Routes>
     </Layout>
   )

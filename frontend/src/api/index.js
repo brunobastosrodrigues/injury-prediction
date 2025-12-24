@@ -58,7 +58,27 @@ export const analyticsApi = {
   getDatasetStats: (datasetId) =>
     api.get('/analytics/stats', { params: { dataset_id: datasetId } }),
   simulateIntervention: (data) =>
-    api.post('/analytics/simulate', data)
+    api.post('/analytics/simulate', data),
+
+  // Athlete Dashboard endpoints
+  getAthleteProfile: (datasetId, athleteId) =>
+    api.get('/analytics/athlete-profile', { params: { dataset_id: datasetId, athlete_id: athleteId } }),
+  getAthletePreInjuryPatterns: (datasetId, athleteId, lookbackDays = 14) =>
+    api.get('/analytics/athlete-pre-injury-patterns', {
+      params: { dataset_id: datasetId, athlete_id: athleteId, lookback_days: lookbackDays }
+    }),
+  getAthleteRiskTimeline: (datasetId, athleteId, modelId) =>
+    api.get('/analytics/athlete-risk-timeline', {
+      params: { dataset_id: datasetId, athlete_id: athleteId, model_id: modelId }
+    }),
+  getAthleteRiskFactors: (datasetId, athleteId, modelId, date = null) =>
+    api.get('/analytics/athlete-risk-factors', {
+      params: { dataset_id: datasetId, athlete_id: athleteId, model_id: modelId, date }
+    }),
+  getAthleteRecommendations: (datasetId, athleteId, modelId) =>
+    api.get('/analytics/athlete-recommendations', {
+      params: { dataset_id: datasetId, athlete_id: athleteId, model_id: modelId }
+    })
 }
 
 export default api

@@ -8,7 +8,8 @@ const navItems = [
   { path: '/preprocessing', label: 'Preprocessing', icon: '⚙️' },
   { path: '/training', label: 'Training', icon: '🤖' },
   { path: '/results', label: 'Results', icon: '📈' },
-  { path: '/analytics', label: 'Analytics', icon: '🔬' }
+  { path: '/analytics', label: 'Analytics', icon: '🔬' },
+  { path: '/athletes', label: 'Athlete Dashboard', icon: '🏃' }
 ]
 
 function Sidebar() {

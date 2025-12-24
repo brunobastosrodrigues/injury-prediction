@@ -166,3 +166,97 @@ def simulate_intervention():
         return jsonify({'error': 'Simulation failed. Check if model, athlete, and date exist.'}), 404
 
     return jsonify(result)
+
+
+# ============================================
+# ATHLETE DASHBOARD ENDPOINTS
+# ============================================
+
+@bp.route('/athlete-profile', methods=['GET'])
+def get_athlete_profile():
+    """Get detailed athlete profile with lifestyle context."""
+    dataset_id = request.args.get('dataset_id')
+    athlete_id = request.args.get('athlete_id')
+
+    if not dataset_id or not athlete_id:
+        return jsonify({'error': 'dataset_id and athlete_id are required'}), 400
+
+    data = AnalyticsService.get_athlete_profile_detailed(dataset_id, athlete_id)
+
+    if not data:
+        return jsonify({'error': 'Athlete not found'}), 404
+
+    return jsonify(data)
+
+
+@bp.route('/athlete-pre-injury-patterns', methods=['GET'])
+def get_athlete_pre_injury_patterns():
+    """Get athlete's personal pre-injury patterns."""
+    dataset_id = request.args.get('dataset_id')
+    athlete_id = request.args.get('athlete_id')
+    lookback_days = request.args.get('lookback_days', 14, type=int)
+
+    if not dataset_id or not athlete_id:
+        return jsonify({'error': 'dataset_id and athlete_id are required'}), 400
+
+    data = AnalyticsService.get_athlete_pre_injury_patterns(dataset_id, athlete_id, lookback_days)
+
+    if not data:
+        return jsonify({'error': 'Athlete not found'}), 404
+
+    return jsonify(data)
+
+
+@bp.route('/athlete-risk-timeline', methods=['GET'])
+def get_athlete_risk_timeline():
+    """Get continuous risk predictions over athlete's timeline."""
+    dataset_id = request.args.get('dataset_id')
+    athlete_id = request.args.get('athlete_id')
+    model_id = request.args.get('model_id')
+
+    if not all([dataset_id, athlete_id, model_id]):
+        return jsonify({'error': 'dataset_id, athlete_id, and model_id are required'}), 400
+
+    data = AnalyticsService.get_athlete_risk_timeline(dataset_id, athlete_id, model_id)
+
+    if not data:
+        return jsonify({'error': 'Could not generate risk timeline. Check if athlete and model exist.'}), 404
+
+    return jsonify(data)
+
+
+@bp.route('/athlete-risk-factors', methods=['GET'])
+def get_athlete_risk_factors():
+    """Get risk factor breakdown for athlete."""
+    dataset_id = request.args.get('dataset_id')
+    athlete_id = request.args.get('athlete_id')
+    model_id = request.args.get('model_id')
+    date = request.args.get('date')  # Optional
+
+    if not all([dataset_id, athlete_id, model_id]):
+        return jsonify({'error': 'dataset_id, athlete_id, and model_id are required'}), 400
+
+    data = AnalyticsService.get_athlete_risk_factors(dataset_id, athlete_id, model_id, date)
+
+    if not data:
+        return jsonify({'error': 'Could not calculate risk factors. Check if athlete and model exist.'}), 404
+
+    return jsonify(data)
+
+
+@bp.route('/athlete-recommendations', methods=['GET'])
+def get_athlete_recommendations():
+    """Get personalized recommendations for athlete."""
+    dataset_id = request.args.get('dataset_id')
+    athlete_id = request.args.get('athlete_id')
+    model_id = request.args.get('model_id')
+
+    if not all([dataset_id, athlete_id, model_id]):
+        return jsonify({'error': 'dataset_id, athlete_id, and model_id are required'}), 400
+
+    data = AnalyticsService.get_athlete_recommendations(dataset_id, athlete_id, model_id)
+
+    if not data:
+        return jsonify({'error': 'Could not generate recommendations. Check if athlete and model exist.'}), 404
+
+    return jsonify(data)
