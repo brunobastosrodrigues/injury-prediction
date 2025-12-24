@@ -19,6 +19,7 @@ function DataGenerationPage() {
   // Job state
   const [currentJobId, setCurrentJobId] = useState(null)
   const [jobStatus, setJobStatus] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Polling for job status
   const { data: statusData } = usePolling(
@@ -49,6 +50,7 @@ function DataGenerationPage() {
   }, [refreshDatasets])
 
   const handleGenerate = async () => {
+    setIsSubmitting(true)
     try {
       const response = await dataApi.generate(config)
       const jobId = response.data.job_id
@@ -57,6 +59,9 @@ function DataGenerationPage() {
       addJob(jobId, 'data_generation', `Generating ${config.n_athletes} athletes`)
     } catch (error) {
       console.error('Failed to start generation:', error)
+      alert('Failed to start generation. Please check the console for details.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -83,7 +88,7 @@ function DataGenerationPage() {
     }
   }
 
-  const isRunning = jobStatus?.status === 'running'
+  const isRunning = jobStatus?.status === 'running' || isSubmitting
 
   return (
     <div className="space-y-6">
@@ -147,7 +152,7 @@ function DataGenerationPage() {
                 disabled={isRunning}
                 className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
-                {isRunning ? 'Generating...' : 'Generate Dataset'}
+                {isSubmitting ? 'Starting...' : isRunning ? 'Generating...' : 'Generate Dataset'}
               </button>
               {isRunning && (
                 <button
