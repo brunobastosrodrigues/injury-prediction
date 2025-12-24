@@ -1,5 +1,11 @@
 # Preventing Injuries in Triathletes with Machine Learning using Wearable Sensor Data
 
+## Application Preview
+
+![Application Dashboard](https://via.placeholder.com/800x450?text=Application+Dashboard+Screenshot)
+
+> *The main dashboard providing an overview of the data pipeline status.*
+
 This repository contains a comprehensive framework for generating synthetic training, physiological, and injury data for endurance athletes. The simulation models athlete profiles, training plans, daily metrics, and physiological responses over extended time periods, enabling machine learning applications in sports science without requiring access to sensitive real-world athlete data.
 
 In addition to the simulation pipeline, the repository includes self-contained Jupyter notebooks demonstrating how to build and evaluate predictive models. A core task explored is injury prediction, specifically forecasting whether an athlete will experience an injury within the next 7 days based on wearable-derived metrics.
