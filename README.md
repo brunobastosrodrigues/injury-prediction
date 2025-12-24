@@ -11,31 +11,97 @@ Given sufficient time this repository also offers strategies for real data colle
 ## Repository Structure
 
 ```text
-├── explored_unused_solutions/    # Alternative approaches explored for real data access
-│   ├── garmin_api_interface/     # Web interface for Garmin API data collection
-│   └── strava_api_integration/   # Implementation for Strava API access
+injury-prediction/
+├── backend/                    # Flask REST API
+│   ├── app/
+│   │   ├── __init__.py        # Flask app factory
+│   │   ├── config.py          # Configuration
+│   │   ├── api/routes/        # API endpoints
+│   │   │   ├── data_generation.py
+│   │   │   ├── preprocessing.py
+│   │   │   ├── training.py
+│   │   │   └── analytics.py
+│   │   ├── services/          # Business logic
+│   │   │   ├── data_generation_service.py
+│   │   │   ├── preprocessing_service.py
+│   │   │   ├── training_service.py
+│   │   │   └── analytics_service.py
+│   │   └── utils/             # Helpers
+│   └── run.py                 # Entry point
 │
-├── notebooks/                    # Jupyter notebooks documenting analysis
-│   ├── 01_eda.ipynb              # Exploratory data analysis of synthetic datasets
-│   ├── 02_preprocessing_feature_engineering.ipynb  # Data preparation procedures
-│   └── 03_ML_analysis.ipynb      # Machine learning implementation and evaluation
+├── frontend/                   # React SPA
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── api/index.js       # API client
+│   │   ├── context/           # State management
+│   │   ├── components/
+│   │   │   ├── common/        # Layout, Sidebar, Cards
+│   │   │   ├── dashboard/     # Pipeline overview
+│   │   │   ├── dataGeneration/
+│   │   │   ├── preprocessing/
+│   │   │   ├── training/
+│   │   │   ├── results/       # Model evaluation + Plotly
+│   │   │   └── analytics/     # Data exploration + Plotly
+│   │   └── hooks/
+│   └── package.json
 │
-├── simulated_data/               # Output directory for generated datasets
-│
-└── synthetic_data_generation/    # Core simulation framework
-    ├── logistics/                # Utility functions and helper modules
-    │   ├── athlete_profiles.py   # generates realistic athlete profiles
-    │   └── training_plan.py      # Generates personalised training plans to athlete profiles
-    ├── sensor_data/              # Wearable sensor data simulation
-    │   ├── daily_metrics_simulation.py  # Simulates daily biometric readings
-    │   └── simulate_activities.py       # Generates training session data
-    ├── training_response/        # Physiological response modeling
-    │   ├── fitness_fatigue_form.py      # Implements fitness-fatigue model
-    │   └── injury_simulation.py         # Injects realistic injury patters
-    ├── main.py                   # Main orchestration script
-    ├── simulate_year.py          # Annual simulation controller
-    └── README.md                 # Module-specific documentation
+└── data/                       # Generated data storage
+    ├── raw/
+    ├── processed/
+    └── models/
 ```
+
+## How to Run
+
+### Docker
+
+To run the project using Docker, navigate to the root directory of the project in your terminal and run:
+
+```bash
+docker-compose up --build
+```
+
+This will build the Docker images for both the backend and frontend, and then start the services. The backend will be accessible on `http://localhost:5000` and the frontend on `http://localhost:5173`.
+
+If you also want to generate synthetic data before running the application, you can execute the following command in a separate terminal:
+
+```bash
+python synthetic_data_generation/main.py
+```
+
+### Local Development
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/redsleo02/Bachelorarbeit.git
+    cd injury-prediction
+    ```
+
+2.  **Install backend dependencies:**
+
+    ```bash
+    cd backend
+    pip install -r requirements.txt
+    ```
+
+3.  **Start the Flask backend:**
+
+    ```bash
+    python run.py
+    ```
+
+    Backend runs at: `http://localhost:5000`
+
+4.  **Install and start the React frontend:**
+
+    ```bash
+    cd ../frontend
+    npm install
+    npm run dev
+    ```
+
+    Frontend runs at: `http://localhost:5173`
 
 ## Key Features
 
@@ -45,26 +111,19 @@ Given sufficient time this repository also offers strategies for real data colle
 - **Training Response Modeling:** Simulates fitness, fatigue, and form based on established sports science models
 - **Injury Risk Simulation:** Incorporates scheduled injuries and generates realistic injury patterns preceding them
 
-## Installation
+## Usage
 
-1. Clone the repository: 
+### Generating Synthetic Data
+To run the full simulation pipeline and generate all datasets:
 
-```bash git clone https://github.com/redsleo02/Bachelorarbeit.git cd synthetic-athlete-data ``` 
+```bash
+python synthetic_data_generation/main.py
+```
 
-2. Create a virtual environment and install the dependencies: 
-
-```bash python -m venv venv source venv/bin/activate # On Windows: venv\Scripts\activate pip install -r requirements.txt ``` 
-
-## Usage 
-### Generating Synthetic Data 
-To run the full simulation pipeline and generate all datasets: 
-
-```bash python synthetic_data_generation/main.py ``` 
-
-This will generate multiple CSV files in the `simulated_data/` directory: 
-- `athletes.csv`: Synthetic athlete profiles 
-- `daily_data.csv`: Daily physiological readings 
-- `activity_data.csv`: Wearable activity logs 
+This will generate multiple CSV files in the `simulated_data/` directory:
+- `athletes.csv`: Synthetic athlete profiles
+- `daily_data.csv`: Daily physiological readings
+- `activity_data.csv`: Wearable activity logs
 
 ## Research Context
 This framework was developed as part of a thesis on synthetic data generation for sports science applications. It addresses the challenge of limited data accessibility in sports performance research due to privacy concerns and the proprietary nature of athlete monitoring data.
