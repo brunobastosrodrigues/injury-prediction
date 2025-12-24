@@ -2,7 +2,7 @@
 
 ## Application Preview
 
-![Application Dashboard](https://via.placeholder.com/800x450?text=Application+Dashboard+Screenshot)
+<img width="1268" height="566" alt="injury-prediction-landingpage" src="https://github.com/user-attachments/assets/54a830e8-8c13-4647-9a16-014f6970a156" />
 
 > *The main dashboard providing an overview of the data pipeline status.*
 
