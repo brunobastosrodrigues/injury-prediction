@@ -51,3 +51,4 @@ data/
 *.csv
 !synthetic_data_generation/*.csv
 !data/.gitkeep
+CLAUDE.md
