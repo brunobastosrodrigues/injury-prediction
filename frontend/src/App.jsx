@@ -9,6 +9,7 @@ import TrainingPage from './components/training/TrainingPage'
 import ResultsPage from './components/results/ResultsPage'
 import AnalyticsPage from './components/analytics/AnalyticsPage'
 import AthleteDashboardPage from './components/athleteDashboard/AthleteDashboardPage'
+import ModelInterpretability from './pages/ModelInterpretability'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
       <Route path="/training" element={<Layout><TrainingPage /></Layout>} />
       <Route path="/results" element={<Layout><ResultsPage /></Layout>} />
       <Route path="/analytics" element={<Layout><AnalyticsPage /></Layout>} />
+      <Route path="/interpretability" element={<Layout><ModelInterpretability /></Layout>} />
       <Route path="/athletes" element={<Layout><AthleteDashboardPage /></Layout>} />
       <Route path="/athletes/:athleteId" element={<Layout><AthleteDashboardPage /></Layout>} />
     </Routes>

@@ -40,11 +40,12 @@ python synthetic_data_generation/main.py
 Data Generation → Preprocessing/Feature Engineering → Model Training → Evaluation/Analytics
 
 ### Backend (`/backend`)
-- **Flask + Blueprints**: Routes in `app/api/routes/` (data_generation, preprocessing, training, analytics, data_ingestion)
+- **Flask + Blueprints**: Routes in `app/api/routes/` (data_generation, preprocessing, training, analytics, data_ingestion, explainability)
 - **Service Layer**: Business logic in `app/services/` - each pipeline stage has a dedicated service
 - **Async Tasks**: Celery handles long-running operations (generation, training); frontend polls status
 - **Validation**: Pydantic schemas in `app/api/schemas.py`
 - **ML Config**: `app/config/hyperparameters.yaml` (Lasso, Random Forest, XGBoost settings)
+- **Explainability**: `app/services/explainability.py` - SHAP and counterfactual explanations for Federated XAI
 
 ### Frontend (`/frontend`)
 - **React 18 + Vite**: SPA with React Router
@@ -92,6 +93,7 @@ Three models available for injury prediction (7-day window):
 - **Preprocessing** (`/preprocessing`) - Feature engineering pipeline
 - **Training** (`/training`) - Model training with hyperparameter config
 - **Results** (`/results`) - Model evaluation metrics, ROC/PR curves, feature importance
+- **Model Interpretability** (`/interpretability`) - XAI dashboard with SHAP waterfall, dependence plots, counterfactuals, and recommendations (Federated XAI)
 - **Analytics** (`/analytics`) - Dataset exploration with tabs: Distributions, Correlations, Pre-Injury, ACWR, Stats, What-If
 - **Athlete Dashboard** (`/athlete-dashboard`) - Individual athlete analysis with tabs: Overview, Timeline, Pre-Injury Patterns, Risk Analysis, What-If
 
