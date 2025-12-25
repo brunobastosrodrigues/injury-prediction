@@ -40,11 +40,11 @@ matplotlib==3.10.1
 matplotlib-inline==0.1.7
 nest-asyncio==1.6.0
 networkx==3.4.2
-numpy==2.2.2
+numpy>=1.26.0
 oauthlib==3.2.2
 optuna==4.2.1
 packaging==24.2
-pandas==2.2.3
+pandas==1.5.3
 parso==0.8.4
 pexpect==4.9.0
 pillow==11.1.0

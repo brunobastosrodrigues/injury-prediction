@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePipeline } from '../context/PipelineContext';
 import api from '../api';
-import Layout from '../components/common/Layout';
 import Card from '../components/common/Card';
 import {
   WaterfallPlot,
@@ -241,7 +240,7 @@ const ModelInterpretability = () => {
   ];
 
   return (
-    <Layout>
+    <div className="h-full">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -480,7 +479,7 @@ const ModelInterpretability = () => {
           </div>
         </Card>
       </div>
-    </Layout>
+    </div>
   );
 };
 
