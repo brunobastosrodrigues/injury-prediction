@@ -15,23 +15,23 @@ function LandingPage() {
   const pipelineSteps = [
     {
       number: '01',
-      title: 'Data Generation',
-      description: 'Generate realistic synthetic triathlete training data with physiological metrics, training loads, and injury patterns.',
+      title: 'Data Synthesis',
+      description: 'Biomechanically-informed simulation engine modeling year-long training periodization, physiological adaptation, and injury emergence in synthetic athlete cohorts.',
       icon: (
         <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
         </svg>
       ),
       metrics: [
-        { label: 'Athletes', value: '100+' },
-        { label: 'Days', value: '365' },
-        { label: 'Features', value: '50+' }
+        { label: 'n', value: '100' },
+        { label: 'Period', value: '365d' },
+        { label: 'Dims', value: '50+' }
       ]
     },
     {
       number: '02',
       title: 'Feature Engineering',
-      description: 'Transform raw data into predictive features: rolling averages, ACWR ratios, fatigue indices, and physiological markers.',
+      description: 'Temporal aggregation of training load biomarkers: rolling statistics, ACWR computation, CTL/ATL modeling, and fatigue index derivation.',
       icon: (
         <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
@@ -46,8 +46,8 @@ function LandingPage() {
     },
     {
       number: '03',
-      title: 'Model Training',
-      description: 'Train and compare multiple ML models: Lasso regression, Random Forest, and XGBoost for 7-day injury prediction.',
+      title: 'Model Development',
+      description: 'Supervised learning framework comparing L1-regularized regression, ensemble methods, and gradient boosting for prospective injury classification (7-day horizon).',
       icon: (
         <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
@@ -55,31 +55,31 @@ function LandingPage() {
       ),
       metrics: [
         { label: 'Lasso', value: 'L1' },
-        { label: 'RF', value: '200' },
-        { label: 'XGB', value: '400' }
+        { label: 'RF', value: 'n=200' },
+        { label: 'XGB', value: 'n=400' }
       ]
     },
     {
       number: '04',
-      title: 'Analytics & Insights',
-      description: 'Explore model performance, athlete risk profiles, and run counterfactual what-if analyses for intervention planning.',
+      title: 'Model Evaluation',
+      description: 'Performance assessment via discrimination metrics (ROC-AUC), calibration analysis, feature attribution, and counterfactual simulation for intervention validation.',
       icon: (
         <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
         </svg>
       ),
       metrics: [
-        { label: 'ROC-AUC', value: 'Eval' },
+        { label: 'ROC-AUC', value: 'Disc.' },
         { label: 'What-If', value: 'Sim' },
-        { label: 'Risk', value: 'Score' }
+        { label: 'SHAP', value: 'Attr.' }
       ]
     }
   ]
 
-  const features = [
+  const researchComponents = [
     {
-      title: 'Synthetic Data Generation',
-      description: 'Realistic triathlete training simulation with periodized plans, physiological adaptation, and injury occurrence patterns.',
+      title: 'Synthetic Cohort Generation',
+      description: 'Stochastic simulation framework incorporating periodization theory, training load dynamics, and injury risk mechanisms validated against empirical distributions.',
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
@@ -87,8 +87,8 @@ function LandingPage() {
       )
     },
     {
-      title: 'Multi-Model Comparison',
-      description: 'Train and evaluate Lasso, Random Forest, and XGBoost models side-by-side with comprehensive performance metrics.',
+      title: 'Comparative Model Analysis',
+      description: 'Benchmarking sparse linear (Lasso), bagged decision trees (Random Forest), and boosted ensembles (XGBoost) under standardized cross-validation protocols.',
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -96,8 +96,8 @@ function LandingPage() {
       )
     },
     {
-      title: 'Athlete-Centric Analytics',
-      description: 'Deep-dive into individual athlete profiles with risk timelines, pre-injury patterns, and personalized insights.',
+      title: 'Individual-Level Analysis',
+      description: 'Athlete-specific risk stratification, temporal pattern extraction, and longitudinal trajectory visualization for mechanistic hypothesis generation.',
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -105,8 +105,8 @@ function LandingPage() {
       )
     },
     {
-      title: 'What-If Simulations',
-      description: 'Counterfactual analysis to explore how training modifications could affect injury risk predictions.',
+      title: 'Counterfactual Simulation',
+      description: 'Intervention effect estimation through perturbation-based analysis, enabling exploration of training load modification scenarios on predicted injury risk.',
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -114,8 +114,8 @@ function LandingPage() {
       )
     },
     {
-      title: 'Training Load Metrics',
-      description: 'ACWR, CTL/ATL/TSB calculations with zone analysis for monitoring training stress and recovery balance.',
+      title: 'Load Monitoring Framework',
+      description: 'Implementation of established sports science metrics (ACWR, CTL/ATL/TSB) with rolling window aggregation and threshold-based zone classification.',
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -123,8 +123,8 @@ function LandingPage() {
       )
     },
     {
-      title: 'Interactive Visualizations',
-      description: 'ROC curves, feature importance plots, confusion matrices, and correlation heatmaps for comprehensive model interpretation.',
+      title: 'Model Interpretation Tools',
+      description: 'Discrimination curves (ROC/PR), calibration plots, feature importance rankings, and confusion matrices for comprehensive model diagnostics.',
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
@@ -154,8 +154,8 @@ function LandingPage() {
                 </svg>
               </div>
               <div className="hidden sm:block">
-                <span className="text-white font-bold text-lg">Injury Prediction</span>
-                <span className="text-slate-500 text-sm ml-2 hidden md:inline">ML Pipeline</span>
+                <span className="text-white font-bold text-lg">Injury Risk Prediction</span>
+                <span className="text-slate-500 text-sm ml-2 hidden md:inline">Research Platform</span>
               </div>
             </div>
 
@@ -165,13 +165,13 @@ function LandingPage() {
                 to="/pipeline"
                 className="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors"
               >
-                Pipeline Dashboard
+                ML Pipeline
               </Link>
               <Link
                 to="/pipeline"
                 className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-500 hover:to-purple-500 transition-all shadow-lg shadow-blue-500/25"
               >
-                Get Started
+                Explore Demo
               </Link>
             </div>
 
@@ -201,28 +201,28 @@ function LandingPage() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="block px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
                 >
-                  Pipeline Dashboard
+                  ML Pipeline
                 </Link>
                 <Link
                   to="/athletes"
                   onClick={() => setMobileMenuOpen(false)}
                   className="block px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
                 >
-                  Athlete Dashboard
+                  Cohort Analysis
                 </Link>
                 <Link
                   to="/data-generation"
                   onClick={() => setMobileMenuOpen(false)}
                   className="block px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
                 >
-                  Data Generation
+                  Data Synthesis
                 </Link>
                 <Link
                   to="/pipeline"
                   onClick={() => setMobileMenuOpen(false)}
                   className="block px-4 py-3 mt-2 text-center font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg"
                 >
-                  Get Started
+                  Explore Demo
                 </Link>
               </div>
             </div>
@@ -255,16 +255,16 @@ function LandingPage() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 leading-tight">
-              Predict Injuries
+              Prospective Injury Risk
               <span className="block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Before They Happen
+                Prediction in Triathletes
               </span>
             </h1>
 
             <p className="text-lg sm:text-xl text-slate-400 mb-8 sm:mb-10 max-w-2xl mx-auto leading-relaxed px-4">
-              An end-to-end machine learning pipeline for triathlon injury prediction.
-              Generate synthetic training data, engineer predictive features, train multiple models,
-              and explore athlete-specific risk analytics.
+              A computational framework for modeling injury emergence from training load dynamics in endurance athletes.
+              Integrating biomechanical simulation, feature engineering, and supervised machine learning
+              for 7-day prospective risk assessment.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-16 px-4">
@@ -272,7 +272,7 @@ function LandingPage() {
                 to="/pipeline"
                 className="w-full sm:w-auto group px-6 sm:px-8 py-3 sm:py-4 text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all shadow-xl shadow-blue-500/25 flex items-center justify-center"
               >
-                Explore the Pipeline
+                Explore ML Pipeline
                 <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
@@ -284,7 +284,7 @@ function LandingPage() {
                 <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                Athlete Dashboard
+                Cohort Analysis
               </Link>
             </div>
 
@@ -309,13 +309,13 @@ function LandingPage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10 sm:mb-16">
             <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-3">
-              The Pipeline
+              Methodology
             </h2>
             <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
-              From Data to Predictions
+              Computational Pipeline Architecture
             </h3>
             <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto">
-              A complete machine learning workflow for injury risk assessment
+              Four-stage workflow from synthetic cohort generation to predictive model validation
             </p>
           </div>
 
@@ -371,18 +371,18 @@ function LandingPage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10 sm:mb-16">
             <h2 className="text-sm font-semibold text-purple-400 uppercase tracking-wider mb-3">
-              Features
+              Technical Components
             </h2>
             <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
-              Everything You Need
+              Research Implementation
             </h3>
             <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto">
-              A comprehensive toolkit for sports injury prediction research and analysis
+              Modular framework for data synthesis, model training, and performance evaluation
             </p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {features.map((feature, index) => (
+            {researchComponents.map((feature, index) => (
               <div
                 key={index}
                 className="p-5 sm:p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition-all group"
@@ -405,25 +405,30 @@ function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
               <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-3">
-                About This Project
+                Research Overview
               </h2>
               <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-6">
-                Machine Learning for Triathlon Injury Prevention
+                Computational Modeling of Training-Related Injury Risk
               </h3>
               <div className="space-y-4 text-slate-400 text-sm sm:text-base">
                 <p className="leading-relaxed">
-                  This project is developed by the <strong className="text-white">Embedded Sensing Group</strong> at the
-                  <strong className="text-white"> University of St. Gallen</strong>. It demonstrates an end-to-end machine
-                  learning pipeline designed to predict injuries in triathletes within a 7-day window.
+                  Developed by the <strong className="text-white">Embedded Sensing Group</strong> at the
+                  <strong className="text-white"> University of St. Gallen</strong>, this research platform implements
+                  a supervised learning approach to prospective injury risk stratification in endurance athletes.
+                  The system targets a 7-day prediction horizon using longitudinal training load data.
                 </p>
                 <p className="leading-relaxed">
-                  Using realistic synthetic data generation, the system simulates a full year of training for multiple
-                  athletes with varying profiles, training philosophies, and physiological characteristics.
+                  The data synthesis component employs a stochastic simulation framework to generate realistic
+                  annual training trajectories for heterogeneous athlete populations. This approach addresses
+                  data scarcity challenges common in sports medicine research while enabling systematic evaluation
+                  of injury risk models under controlled experimental conditions.
                 </p>
                 <p className="leading-relaxed">
-                  The pipeline incorporates key sports science metrics including <strong className="text-white">Acute:Chronic Workload
-                  Ratio (ACWR)</strong>, <strong className="text-white">Training Stress Balance (TSB)</strong>, and periodized training
-                  patterns to engineer predictive features for injury risk modeling.
+                  Feature engineering incorporates established sports science constructs including the
+                  <strong className="text-white"> Acute:Chronic Workload Ratio (ACWR)</strong> for load spike detection,
+                  <strong className="text-white"> Training Stress Balance (TSB)</strong> for recovery assessment,
+                  and periodization-derived temporal patterns. These domain-informed features serve as inputs
+                  to multiple machine learning architectures for comparative performance evaluation.
                 </p>
               </div>
             </div>
@@ -431,21 +436,21 @@ function LandingPage() {
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-3xl blur-2xl" />
               <div className="relative p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800">
-                <h4 className="text-base sm:text-lg font-semibold text-white mb-6">Key Metrics Modeled</h4>
+                <h4 className="text-base sm:text-lg font-semibold text-white mb-6">Physiological Biomarkers</h4>
                 <div className="space-y-3 sm:space-y-4">
                   {[
-                    { name: 'ACWR (Acute:Chronic Workload Ratio)', desc: 'Training load spike detection' },
-                    { name: 'CTL (Chronic Training Load)', desc: 'Long-term fitness indicator' },
-                    { name: 'ATL (Acute Training Load)', desc: 'Short-term fatigue measure' },
-                    { name: 'TSB (Training Stress Balance)', desc: 'Form and readiness metric' },
-                    { name: 'HRV (Heart Rate Variability)', desc: 'Physiological stress marker' },
-                    { name: 'Sleep Quality Index', desc: 'Recovery effectiveness' }
+                    { name: 'ACWR (Acute:Chronic Workload Ratio)', desc: 'Load progression quantification' },
+                    { name: 'CTL (Chronic Training Load)', desc: 'Fitness accumulation proxy (42-day EWMA)' },
+                    { name: 'ATL (Acute Training Load)', desc: 'Fatigue accumulation proxy (7-day EWMA)' },
+                    { name: 'TSB (Training Stress Balance)', desc: 'CTL-ATL differential (form indicator)' },
+                    { name: 'HRV (Heart Rate Variability)', desc: 'Autonomic nervous system recovery marker' },
+                    { name: 'Sleep Quality Index', desc: 'Recovery adequacy composite score' }
                   ].map((metric, i) => (
                     <div key={i} className="flex items-start">
                       <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 mt-2 mr-3 flex-shrink-0" />
                       <div>
                         <span className="text-white font-medium text-sm sm:text-base">{metric.name}</span>
-                        <span className="text-slate-500 text-xs sm:text-sm ml-1 sm:ml-2 block sm:inline">- {metric.desc}</span>
+                        <span className="text-slate-500 text-xs sm:text-sm ml-1 sm:ml-2 block sm:inline">— {metric.desc}</span>
                       </div>
                     </div>
                   ))}
@@ -456,28 +461,29 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* Interactive Demo Section */}
       <section className="py-16 sm:py-24 relative">
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-slate-800">
             <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
-              Ready to Explore?
+              Interactive Research Platform
             </h3>
             <p className="text-base sm:text-lg text-slate-400 mb-6 sm:mb-8 max-w-xl mx-auto">
-              Start by generating synthetic athlete data, then follow the pipeline through to model training and analysis.
+              Explore the complete ML pipeline: from synthetic cohort generation through feature engineering
+              to model training and performance evaluation.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <Link
                 to="/data-generation"
                 className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all shadow-xl shadow-blue-500/25"
               >
-                Generate Data
+                Generate Synthetic Data
               </Link>
               <Link
                 to="/pipeline"
                 className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 text-base font-semibold text-slate-300 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700 hover:text-white transition-all"
               >
-                View Pipeline Status
+                View Pipeline
               </Link>
             </div>
           </div>
@@ -496,7 +502,7 @@ function LandingPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <span className="text-slate-400 text-sm">Injury Prediction ML Pipeline</span>
+                <span className="text-slate-400 text-sm">Injury Risk Prediction Research Platform</span>
               </div>
             </div>
 
