@@ -63,25 +63,25 @@ function OverviewTab({ athleteProfile, athleteTimeline, selectedModel, datasetId
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Athlete Profile Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Profile Info */}
         <Card title="Athlete Profile">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-2xl">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center text-xl sm:text-2xl flex-shrink-0">
                 {profile.gender === 'female' ? '🚴‍♀️' : '🚴'}
               </div>
-              <div>
-                <h3 className="font-bold text-lg">{athleteProfile?.athlete_id}</h3>
-                <p className="text-sm text-gray-500">
+              <div className="min-w-0">
+                <h3 className="font-bold text-base sm:text-lg truncate">{athleteProfile?.athlete_id}</h3>
+                <p className="text-xs sm:text-sm text-gray-500">
                   {profile.age} years old, {profile.gender}
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
               <div className="p-2 bg-gray-50 rounded">
                 <p className="text-gray-500">VO2max</p>
                 <p className="font-semibold">{profile.vo2max?.toFixed(1)} ml/kg/min</p>
@@ -100,11 +100,11 @@ function OverviewTab({ athleteProfile, athleteTimeline, selectedModel, datasetId
               </div>
               <div className="p-2 bg-gray-50 rounded">
                 <p className="text-gray-500">Training</p>
-                <p className="font-semibold">{profile.weekly_training_hours?.toFixed(1)} h/week</p>
+                <p className="font-semibold">{profile.weekly_training_hours?.toFixed(1)} h/wk</p>
               </div>
               <div className="p-2 bg-gray-50 rounded">
                 <p className="text-gray-500">Experience</p>
-                <p className="font-semibold">{profile.training_experience} years</p>
+                <p className="font-semibold">{profile.training_experience} yrs</p>
               </div>
             </div>
           </div>
@@ -112,18 +112,18 @@ function OverviewTab({ athleteProfile, athleteTimeline, selectedModel, datasetId
 
         {/* Lifestyle Profile */}
         <Card title={`Lifestyle: ${profile.lifestyle || 'Unknown'}`}>
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">{lifestyleInfo.description}</p>
+          <div className="space-y-3 sm:space-y-4">
+            <p className="text-xs sm:text-sm text-gray-600">{lifestyleInfo.description}</p>
 
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm font-medium text-amber-800">Risk Implications</p>
-              <p className="text-sm text-amber-700 mt-1">{lifestyleInfo.risk_implications}</p>
+            <div className="p-2 sm:p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-xs sm:text-sm font-medium text-amber-800">Risk Implications</p>
+              <p className="text-xs sm:text-sm text-amber-700 mt-1">{lifestyleInfo.risk_implications}</p>
             </div>
 
             {lifestyleInfo.strengths?.length > 0 && (
               <div>
-                <p className="text-sm font-medium text-green-700">Strengths</p>
-                <ul className="text-sm text-green-600 list-disc list-inside mt-1">
+                <p className="text-xs sm:text-sm font-medium text-green-700">Strengths</p>
+                <ul className="text-xs sm:text-sm text-green-600 list-disc list-inside mt-1">
                   {lifestyleInfo.strengths.map((s, i) => (
                     <li key={i}>{s}</li>
                   ))}
@@ -133,8 +133,8 @@ function OverviewTab({ athleteProfile, athleteTimeline, selectedModel, datasetId
 
             {lifestyleInfo.watch_areas?.length > 0 && (
               <div>
-                <p className="text-sm font-medium text-orange-700">Watch Areas</p>
-                <ul className="text-sm text-orange-600 list-disc list-inside mt-1">
+                <p className="text-xs sm:text-sm font-medium text-orange-700">Watch Areas</p>
+                <ul className="text-xs sm:text-sm text-orange-600 list-disc list-inside mt-1">
                   {lifestyleInfo.watch_areas.map((w, i) => (
                     <li key={i}>{w}</li>
                   ))}
@@ -148,21 +148,21 @@ function OverviewTab({ athleteProfile, athleteTimeline, selectedModel, datasetId
         <Card title="Current Risk Status">
           {selectedModel ? (
             loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin h-6 w-6 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+              <div className="flex justify-center py-6 sm:py-8">
+                <div className="animate-spin h-5 w-5 sm:h-6 sm:w-6 border-4 border-blue-500 border-t-transparent rounded-full"></div>
               </div>
             ) : riskData ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div className="text-center">
-                  <p className={`text-5xl font-bold ${getRiskColor(currentRisk)}`}>
+                  <p className={`text-4xl sm:text-5xl font-bold ${getRiskColor(currentRisk)}`}>
                     {(currentRisk * 100).toFixed(1)}%
                   </p>
-                  <p className={`text-lg font-medium ${getRiskColor(currentRisk)}`}>
+                  <p className={`text-base sm:text-lg font-medium ${getRiskColor(currentRisk)}`}>
                     {getRiskLabel(currentRisk)} Risk
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                   <div className="p-2 bg-gray-50 rounded text-center">
                     <p className="text-gray-500">Avg Risk</p>
                     <p className="font-semibold">{(riskData.avg_risk * 100).toFixed(1)}%</p>
@@ -178,16 +178,16 @@ function OverviewTab({ athleteProfile, athleteTimeline, selectedModel, datasetId
                 </div>
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4">No risk data available</p>
+              <p className="text-gray-500 text-center text-sm py-4">No risk data available</p>
             )
           ) : (
-            <p className="text-gray-400 text-center py-8">Select a model to view risk predictions</p>
+            <p className="text-gray-400 text-center text-sm py-6 sm:py-8">Select a model to view risk predictions</p>
           )}
         </Card>
       </div>
 
       {/* Lifestyle Radar & Summary Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Lifestyle Radar */}
         <Card title="Lifestyle Factor Profile">
           <Plot
@@ -214,53 +214,58 @@ function OverviewTab({ athleteProfile, athleteTimeline, selectedModel, datasetId
               polar: {
                 radialaxis: {
                   visible: true,
-                  range: [0, 1]
+                  range: [0, 1],
+                  tickfont: { size: 9 }
+                },
+                angularaxis: {
+                  tickfont: { size: 9 }
                 }
               },
               showlegend: true,
-              legend: { x: 0, y: -0.1, orientation: 'h' },
-              margin: { t: 30, r: 30, b: 50, l: 30 },
+              legend: { x: 0, y: -0.15, orientation: 'h', font: { size: 10 } },
+              margin: { t: 20, r: 20, b: 50, l: 20 },
               autosize: true
             }}
             useResizeHandler
-            style={{ width: '100%', height: '350px' }}
+            style={{ width: '100%', height: '280px' }}
+            config={{ displayModeBar: false }}
           />
         </Card>
 
         {/* Summary Statistics */}
         <Card title="Performance Summary">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-red-50 rounded-lg text-center">
-              <p className="text-3xl font-bold text-red-600">{summaryStats.total_injuries || 0}</p>
-              <p className="text-sm text-gray-500">Total Injuries</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+            <div className="p-2 sm:p-4 bg-red-50 rounded-lg text-center">
+              <p className="text-2xl sm:text-3xl font-bold text-red-600">{summaryStats.total_injuries || 0}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Total Injuries</p>
             </div>
-            <div className="p-4 bg-blue-50 rounded-lg text-center">
-              <p className="text-3xl font-bold text-blue-600">{summaryStats.avg_hrv?.toFixed(0) || '-'}</p>
-              <p className="text-sm text-gray-500">Avg HRV (ms)</p>
+            <div className="p-2 sm:p-4 bg-blue-50 rounded-lg text-center">
+              <p className="text-2xl sm:text-3xl font-bold text-blue-600">{summaryStats.avg_hrv?.toFixed(0) || '-'}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Avg HRV (ms)</p>
             </div>
-            <div className="p-4 bg-purple-50 rounded-lg text-center">
-              <p className="text-3xl font-bold text-purple-600">{summaryStats.avg_sleep_hours?.toFixed(1) || '-'}h</p>
-              <p className="text-sm text-gray-500">Avg Sleep</p>
+            <div className="p-2 sm:p-4 bg-purple-50 rounded-lg text-center">
+              <p className="text-2xl sm:text-3xl font-bold text-purple-600">{summaryStats.avg_sleep_hours?.toFixed(1) || '-'}h</p>
+              <p className="text-xs sm:text-sm text-gray-500">Avg Sleep</p>
             </div>
-            <div className="p-4 bg-orange-50 rounded-lg text-center">
-              <p className="text-3xl font-bold text-orange-600">{summaryStats.avg_stress?.toFixed(0) || '-'}</p>
-              <p className="text-sm text-gray-500">Avg Stress</p>
+            <div className="p-2 sm:p-4 bg-orange-50 rounded-lg text-center">
+              <p className="text-2xl sm:text-3xl font-bold text-orange-600">{summaryStats.avg_stress?.toFixed(0) || '-'}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Avg Stress</p>
             </div>
-            <div className="p-4 bg-green-50 rounded-lg text-center">
-              <p className="text-3xl font-bold text-green-600">{summaryStats.avg_tss?.toFixed(0) || '-'}</p>
-              <p className="text-sm text-gray-500">Avg TSS</p>
+            <div className="p-2 sm:p-4 bg-green-50 rounded-lg text-center">
+              <p className="text-2xl sm:text-3xl font-bold text-green-600">{summaryStats.avg_tss?.toFixed(0) || '-'}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Avg TSS</p>
             </div>
-            <div className="p-4 bg-teal-50 rounded-lg text-center">
-              <p className="text-3xl font-bold text-teal-600">{summaryStats.avg_body_battery_morning?.toFixed(0) || '-'}</p>
-              <p className="text-sm text-gray-500">Avg Body Battery</p>
+            <div className="p-2 sm:p-4 bg-teal-50 rounded-lg text-center">
+              <p className="text-2xl sm:text-3xl font-bold text-teal-600">{summaryStats.avg_body_battery_morning?.toFixed(0) || '-'}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Body Battery</p>
             </div>
           </div>
 
           {/* Injury Rate */}
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+          <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-gray-50 rounded-lg">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Injury Rate</span>
-              <span className="font-semibold">
+              <span className="text-xs sm:text-sm text-gray-600">Injury Rate</span>
+              <span className="font-semibold text-sm">
                 {((summaryStats.injury_rate || 0) * 100).toFixed(2)}%
               </span>
             </div>
@@ -277,22 +282,22 @@ function OverviewTab({ athleteProfile, athleteTimeline, selectedModel, datasetId
       {/* Menstrual Cycle Info (if applicable) */}
       {profile.gender === 'female' && profile.menstrual_cycle_config && (
         <Card title="Menstrual Cycle Information">
-          <div className="p-4 bg-pink-50 rounded-lg">
-            <div className="grid grid-cols-3 gap-4 text-sm">
+          <div className="p-3 sm:p-4 bg-pink-50 rounded-lg">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
               <div>
                 <p className="text-pink-600 font-medium">Cycle Length</p>
-                <p className="text-lg font-semibold">{profile.menstrual_cycle_config.cycle_length} days</p>
+                <p className="text-base sm:text-lg font-semibold">{profile.menstrual_cycle_config.cycle_length} days</p>
               </div>
               <div>
                 <p className="text-pink-600 font-medium">Luteal Phase</p>
-                <p className="text-lg font-semibold">{profile.menstrual_cycle_config.luteal_phase_length} days</p>
+                <p className="text-base sm:text-lg font-semibold">{profile.menstrual_cycle_config.luteal_phase_length} days</p>
               </div>
               <div>
                 <p className="text-pink-600 font-medium">Regularity</p>
-                <p className="text-lg font-semibold">{(profile.menstrual_cycle_config.regularity * 100).toFixed(0)}%</p>
+                <p className="text-base sm:text-lg font-semibold">{(profile.menstrual_cycle_config.regularity * 100).toFixed(0)}%</p>
               </div>
             </div>
-            <p className="text-sm text-pink-700 mt-3">
+            <p className="text-xs sm:text-sm text-pink-700 mt-2 sm:mt-3">
               Note: Injury risk is elevated by ~20% during ovulation phase. Consider lighter training during this period.
             </p>
           </div>

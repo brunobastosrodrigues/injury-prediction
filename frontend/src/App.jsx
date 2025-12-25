@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/common/Layout'
+import LandingPage from './components/landing/LandingPage'
 import Dashboard from './components/dashboard/Dashboard'
 import DataGenerationPage from './components/dataGeneration/DataGenerationPage'
 import IngestionPage from './components/dataGeneration/IngestionPage'
@@ -11,19 +12,21 @@ import AthleteDashboardPage from './components/athleteDashboard/AthleteDashboard
 
 function App() {
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/data-generation" element={<DataGenerationPage />} />
-        <Route path="/ingestion" element={<IngestionPage />} />
-        <Route path="/preprocessing" element={<PreprocessingPage />} />
-        <Route path="/training" element={<TrainingPage />} />
-        <Route path="/results" element={<ResultsPage />} />
-        <Route path="/analytics" element={<AnalyticsPage />} />
-        <Route path="/athletes" element={<AthleteDashboardPage />} />
-        <Route path="/athletes/:athleteId" element={<AthleteDashboardPage />} />
-      </Routes>
-    </Layout>
+    <Routes>
+      {/* Landing page - no sidebar/header */}
+      <Route path="/" element={<LandingPage />} />
+
+      {/* Pipeline pages - with sidebar/header */}
+      <Route path="/pipeline" element={<Layout><Dashboard /></Layout>} />
+      <Route path="/data-generation" element={<Layout><DataGenerationPage /></Layout>} />
+      <Route path="/ingestion" element={<Layout><IngestionPage /></Layout>} />
+      <Route path="/preprocessing" element={<Layout><PreprocessingPage /></Layout>} />
+      <Route path="/training" element={<Layout><TrainingPage /></Layout>} />
+      <Route path="/results" element={<Layout><ResultsPage /></Layout>} />
+      <Route path="/analytics" element={<Layout><AnalyticsPage /></Layout>} />
+      <Route path="/athletes" element={<Layout><AthleteDashboardPage /></Layout>} />
+      <Route path="/athletes/:athleteId" element={<Layout><AthleteDashboardPage /></Layout>} />
+    </Routes>
   )
 }
 

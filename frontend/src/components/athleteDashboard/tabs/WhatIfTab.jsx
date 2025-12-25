@@ -120,32 +120,32 @@ function WhatIfTab({ datasetId, athleteId, modelId, athleteTimeline, athleteProf
   } : {}
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Date Selection & Current Context */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card title="Select Date for Simulation">
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
               <select
                 value={selectedDate}
                 onChange={e => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               >
                 <option value="">Select a date...</option>
                 {athleteTimeline?.dates?.map(d => (
                   <option key={d} value={d}>
                     {new Date(d).toLocaleDateString()}
-                    {athleteTimeline.injury_days?.includes(d) ? ' (INJURY DAY)' : ''}
+                    {athleteTimeline.injury_days?.includes(d) ? ' (INJURY)' : ''}
                   </option>
                 ))}
               </select>
             </div>
 
             {currentDateIdx >= 0 && (
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm font-medium text-blue-800 mb-2">Current Metrics on {selectedDate}</p>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="p-2 sm:p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs sm:text-sm font-medium text-blue-800 mb-2">Current Metrics on {selectedDate}</p>
+                <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
                   <div className="flex justify-between">
                     <span className="text-blue-600">Sleep:</span>
                     <span className="font-medium">{currentMetrics.sleep_hours?.toFixed(1)}h</span>
@@ -164,12 +164,11 @@ function WhatIfTab({ datasetId, athleteId, modelId, athleteTimeline, athleteProf
                   </div>
                 </div>
 
-                {/* Comparison to baseline */}
                 {profile.hrv_baseline && currentMetrics.hrv && (
-                  <div className={`mt-2 text-sm ${
+                  <div className={`mt-2 text-xs sm:text-sm ${
                     currentMetrics.hrv < profile.hrv_baseline * 0.85 ? 'text-red-600' : 'text-green-600'
                   }`}>
-                    HRV is {((currentMetrics.hrv / profile.hrv_baseline - 1) * 100).toFixed(0)}%{' '}
+                    HRV {((currentMetrics.hrv / profile.hrv_baseline - 1) * 100).toFixed(0)}%{' '}
                     {currentMetrics.hrv >= profile.hrv_baseline ? 'above' : 'below'} baseline
                   </div>
                 )}
@@ -181,32 +180,32 @@ function WhatIfTab({ datasetId, athleteId, modelId, athleteTimeline, athleteProf
         {/* Simulation Result */}
         <Card title="Simulation Result">
           {simulating ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin h-6 w-6 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+            <div className="flex justify-center py-6 sm:py-8">
+              <div className="animate-spin h-5 w-5 sm:h-6 sm:w-6 border-4 border-blue-500 border-t-transparent rounded-full"></div>
             </div>
           ) : simulationResult ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-500">Original Risk</p>
-                  <p className="text-2xl font-bold text-gray-700">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
+                <div className="p-2 sm:p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Original</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-700">
                     {(simulationResult.original_risk * 100).toFixed(1)}%
                   </p>
                 </div>
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-gray-500">New Risk</p>
-                  <p className={`text-2xl font-bold ${
+                <div className="p-2 sm:p-3 bg-blue-50 rounded-lg">
+                  <p className="text-xs text-gray-500">New</p>
+                  <p className={`text-lg sm:text-2xl font-bold ${
                     simulationResult.new_risk < simulationResult.original_risk
                       ? 'text-green-600' : 'text-red-600'
                   }`}>
                     {(simulationResult.new_risk * 100).toFixed(1)}%
                   </p>
                 </div>
-                <div className={`p-3 rounded-lg ${
+                <div className={`p-2 sm:p-3 rounded-lg ${
                   simulationResult.risk_reduction > 0 ? 'bg-green-50' : 'bg-red-50'
                 }`}>
-                  <p className="text-sm text-gray-500">Change</p>
-                  <p className={`text-2xl font-bold ${
+                  <p className="text-xs text-gray-500">Change</p>
+                  <p className={`text-lg sm:text-2xl font-bold ${
                     simulationResult.risk_reduction > 0 ? 'text-green-600' : 'text-red-600'
                   }`}>
                     {simulationResult.risk_reduction > 0 ? '-' : '+'}
@@ -248,12 +247,12 @@ function WhatIfTab({ datasetId, athleteId, modelId, athleteTimeline, athleteProf
 
       {/* Intervention Sliders */}
       <Card title="Adjust Parameters">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           {/* Sleep Hours */}
           <div>
             <div className="flex justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">Sleep Hours</label>
-              <span className="text-sm font-bold text-blue-600">{overrides.sleep_hours.toFixed(1)}h</span>
+              <label className="text-xs sm:text-sm font-medium text-gray-700">Sleep Hours</label>
+              <span className="text-xs sm:text-sm font-bold text-blue-600">{overrides.sleep_hours.toFixed(1)}h</span>
             </div>
             <input
               type="range"
@@ -266,7 +265,6 @@ function WhatIfTab({ datasetId, athleteId, modelId, athleteTimeline, athleteProf
             />
             <div className="flex justify-between text-xs text-gray-400 mt-1">
               <span>4h</span>
-              <span className="text-green-600">Baseline: {profile.sleep_time_norm?.toFixed(1)}h</span>
               <span>12h</span>
             </div>
           </div>
@@ -274,8 +272,8 @@ function WhatIfTab({ datasetId, athleteId, modelId, athleteTimeline, athleteProf
           {/* Duration */}
           <div>
             <div className="flex justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">Training Duration</label>
-              <span className="text-sm font-bold text-blue-600">{overrides.duration_minutes} min</span>
+              <label className="text-xs sm:text-sm font-medium text-gray-700">Training Duration</label>
+              <span className="text-xs sm:text-sm font-bold text-blue-600">{overrides.duration_minutes} min</span>
             </div>
             <input
               type="range"
@@ -295,8 +293,8 @@ function WhatIfTab({ datasetId, athleteId, modelId, athleteTimeline, athleteProf
           {/* Intensity */}
           <div>
             <div className="flex justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">Intensity Factor</label>
-              <span className="text-sm font-bold text-blue-600">{overrides.intensity_factor.toFixed(2)}x</span>
+              <label className="text-xs sm:text-sm font-medium text-gray-700">Intensity Factor</label>
+              <span className="text-xs sm:text-sm font-bold text-blue-600">{overrides.intensity_factor.toFixed(2)}x</span>
             </div>
             <input
               type="range"
@@ -316,8 +314,8 @@ function WhatIfTab({ datasetId, athleteId, modelId, athleteTimeline, athleteProf
           {/* Stress */}
           <div>
             <div className="flex justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">Stress Level</label>
-              <span className="text-sm font-bold text-blue-600">{overrides.stress.toFixed(0)}</span>
+              <label className="text-xs sm:text-sm font-medium text-gray-700">Stress Level</label>
+              <span className="text-xs sm:text-sm font-bold text-blue-600">{overrides.stress.toFixed(0)}</span>
             </div>
             <input
               type="range"
@@ -336,12 +334,11 @@ function WhatIfTab({ datasetId, athleteId, modelId, athleteTimeline, athleteProf
         </div>
 
         {/* Estimated TSS */}
-        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600">
+        <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-gray-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-gray-600">
             Estimated TSS: <span className="font-bold">
               {((overrides.duration_minutes / 60) * Math.pow(overrides.intensity_factor, 2) * 100).toFixed(0)}
             </span>
-            {' '}(based on duration and intensity)
           </p>
         </div>
       </Card>

@@ -60,15 +60,15 @@ function IngestionPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Data Ingestion</h1>
-        <p className="text-gray-600 mt-1">Upload real-world athlete data to enrich your datasets</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Data Ingestion</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">Upload real-world athlete data to enrich your datasets</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card title="Upload Garmin Data">
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Target Dataset
@@ -76,7 +76,7 @@ function IngestionPage() {
               <select
                 value={selectedDataset}
                 onChange={e => setSelectedSplit(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
               >
                 <option value="">Select a dataset...</option>
                 {datasets.map(d => (
@@ -93,14 +93,14 @@ function IngestionPage() {
                 type="file"
                 accept=".csv"
                 onChange={handleFileChange}
-                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                className="w-full text-sm text-gray-500 file:mr-3 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-3 sm:file:px-4 file:rounded-full file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
             </div>
 
             <button
               onClick={handleUpload}
               disabled={!file || !selectedDataset || status === 'processing'}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 text-sm sm:text-base"
             >
               {status === 'processing' ? 'Processing...' : 'Upload & Ingest'}
             </button>
@@ -109,21 +109,21 @@ function IngestionPage() {
 
         <Card title="Ingestion Progress">
           {status ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex justify-between items-center">
-                <span className="font-medium">Status</span>
+                <span className="font-medium text-sm sm:text-base">Status</span>
                 <StatusBadge status={status === 'uploading' ? 'running' : status} />
               </div>
               <ProgressBar progress={progress} status={status === 'failed' ? 'failed' : 'running'} />
               {status === 'completed' && (
-                <p className="text-green-600">Data successfully merged into dataset!</p>
+                <p className="text-green-600 text-sm sm:text-base">Data successfully merged into dataset!</p>
               )}
               {status === 'failed' && (
-                <p className="text-red-600">Ingestion failed. Check backend logs.</p>
+                <p className="text-red-600 text-sm sm:text-base">Ingestion failed. Check backend logs.</p>
               )}
             </div>
           ) : (
-            <p className="text-gray-500">Upload a file to see progress.</p>
+            <p className="text-gray-500 text-sm sm:text-base">Upload a file to see progress.</p>
           )}
         </Card>
       </div>

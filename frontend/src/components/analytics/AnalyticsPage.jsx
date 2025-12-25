@@ -131,15 +131,15 @@ function AnalyticsPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-        <p className="text-gray-600 mt-1">Explore and visualize dataset patterns</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Analytics</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">Explore and visualize dataset patterns</p>
       </div>
 
       {/* Dataset Selection */}
       <Card>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
           <label className="text-sm font-medium text-gray-700">Dataset:</label>
           <select
             value={selectedDataset}
@@ -147,7 +147,7 @@ function AnalyticsPage() {
               setSelectedDataset(e.target.value)
               setCurrentDataset(e.target.value)
             }}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="flex-1 sm:flex-none px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
           >
             <option value="">Select a dataset...</option>
             {datasets.map(ds => (
@@ -162,13 +162,13 @@ function AnalyticsPage() {
       {selectedDataset && (
         <>
           {/* Tabs */}
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8">
+          <div className="border-b border-gray-200 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
+            <nav className="flex space-x-4 sm:space-x-8 min-w-max">
               {tabs.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -182,15 +182,15 @@ function AnalyticsPage() {
 
           {loading && activeTab !== 'whatIf' ? (
             <Card>
-              <div className="flex justify-center py-12">
-                <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+              <div className="flex justify-center py-8 sm:py-12">
+                <div className="animate-spin h-6 w-6 sm:h-8 sm:w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
               </div>
             </Card>
           ) : (
             <>
               {/* Distributions */}
               {activeTab === 'distributions' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                   {Object.entries(distributions).map(([metric, data]) => (
                     <Card key={metric} title={metric.replace('_', ' ').toUpperCase()}>
                       <Plot
@@ -203,9 +203,9 @@ function AnalyticsPage() {
                           }
                         ]}
                         layout={{
-                          xaxis: { title: metric },
-                          yaxis: { title: 'Count' },
-                          margin: { t: 20, r: 20, b: 50, l: 50 },
+                          xaxis: { title: metric, tickfont: { size: 10 } },
+                          yaxis: { title: 'Count', tickfont: { size: 10 } },
+                          margin: { t: 10, r: 10, b: 40, l: 40 },
                           autosize: true,
                           annotations: [
                             {
@@ -213,12 +213,14 @@ function AnalyticsPage() {
                               y: Math.max(...data.histogram) * 0.9,
                               text: `Mean: ${data.mean.toFixed(2)}`,
                               showarrow: true,
-                              arrowhead: 2
+                              arrowhead: 2,
+                              font: { size: 10 }
                             }
                           ]
                         }}
                         useResizeHandler
-                        style={{ width: '100%', height: '300px' }}
+                        style={{ width: '100%', height: '250px' }}
+                        config={{ displayModeBar: false }}
                       />
                     </Card>
                   ))}
@@ -228,40 +230,46 @@ function AnalyticsPage() {
               {/* Correlations */}
               {activeTab === 'correlations' && correlations && (
                 <Card title="Correlation Heatmap">
-                  <Plot
-                    data={[
-                      {
-                        z: correlations.correlation_matrix,
-                        x: correlations.feature_names,
-                        y: correlations.feature_names,
-                        type: 'heatmap',
-                        colorscale: 'RdBu',
-                        zmin: -1,
-                        zmax: 1,
-                        text: correlations.correlation_matrix.map(row =>
-                          row.map(val => val.toFixed(2))
-                        ),
-                        texttemplate: '%{text}',
-                        hovertemplate: '%{x} vs %{y}: %{z:.3f}<extra></extra>'
-                      }
-                    ]}
-                    layout={{
-                      margin: { t: 50, r: 50, b: 100, l: 100 },
-                      autosize: true
-                    }}
-                    useResizeHandler
-                    style={{ width: '100%', height: '600px' }}
-                  />
+                  <div className="-mx-2 sm:mx-0 overflow-x-auto">
+                    <Plot
+                      data={[
+                        {
+                          z: correlations.correlation_matrix,
+                          x: correlations.feature_names,
+                          y: correlations.feature_names,
+                          type: 'heatmap',
+                          colorscale: 'RdBu',
+                          zmin: -1,
+                          zmax: 1,
+                          text: correlations.correlation_matrix.map(row =>
+                            row.map(val => val.toFixed(2))
+                          ),
+                          texttemplate: '%{text}',
+                          textfont: { size: 8 },
+                          hovertemplate: '%{x} vs %{y}: %{z:.3f}<extra></extra>'
+                        }
+                      ]}
+                      layout={{
+                        margin: { t: 30, r: 30, b: 80, l: 80 },
+                        autosize: true,
+                        xaxis: { tickfont: { size: 9 }, tickangle: 45 },
+                        yaxis: { tickfont: { size: 9 } }
+                      }}
+                      useResizeHandler
+                      style={{ width: '100%', minWidth: '350px', height: '400px' }}
+                      config={{ displayModeBar: false }}
+                    />
+                  </div>
                 </Card>
               )}
 
               {/* Pre-Injury Window */}
               {activeTab === 'preInjury' && preInjury && (
                 <Card title={`Pre-Injury Window Analysis (${preInjury.n_injuries} injuries)`}>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                     {Object.entries(preInjury.metrics || {}).map(([metric, data]) => (
                       <div key={metric}>
-                        <h4 className="font-medium mb-2">{metric.replace('_', ' ').toUpperCase()}</h4>
+                        <h4 className="font-medium text-sm sm:text-base mb-2">{metric.replace('_', ' ').toUpperCase()}</h4>
                         <Plot
                           data={[
                             {
@@ -270,13 +278,14 @@ function AnalyticsPage() {
                               type: 'scatter',
                               mode: 'lines+markers',
                               name: metric,
-                              line: { color: '#3b82f6', width: 2 }
+                              line: { color: '#3b82f6', width: 2 },
+                              marker: { size: 4 }
                             }
                           ]}
                           layout={{
-                            xaxis: { title: 'Days Before Injury', zeroline: true },
-                            yaxis: { title: metric },
-                            margin: { t: 20, r: 20, b: 50, l: 60 },
+                            xaxis: { title: 'Days Before Injury', zeroline: true, tickfont: { size: 10 } },
+                            yaxis: { title: metric, tickfont: { size: 10 } },
+                            margin: { t: 10, r: 10, b: 40, l: 50 },
                             autosize: true,
                             shapes: [
                               {
@@ -289,7 +298,8 @@ function AnalyticsPage() {
                             ]
                           }}
                           useResizeHandler
-                          style={{ width: '100%', height: '250px' }}
+                          style={{ width: '100%', height: '220px' }}
+                          config={{ displayModeBar: false }}
                         />
                       </div>
                     ))}
@@ -299,7 +309,7 @@ function AnalyticsPage() {
 
               {/* ACWR Zones */}
               {activeTab === 'acwr' && acwrZones && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                   <Card title="ACWR Zone Distribution">
                     <Plot
                       data={[
@@ -309,15 +319,19 @@ function AnalyticsPage() {
                           type: 'pie',
                           marker: {
                             colors: ['#fbbf24', '#10b981', '#f97316', '#ef4444']
-                          }
+                          },
+                          textfont: { size: 11 }
                         }
                       ]}
                       layout={{
-                        margin: { t: 20, r: 20, b: 20, l: 20 },
-                        autosize: true
+                        margin: { t: 10, r: 10, b: 10, l: 10 },
+                        autosize: true,
+                        showlegend: true,
+                        legend: { font: { size: 10 }, orientation: 'h', y: -0.1 }
                       }}
                       useResizeHandler
-                      style={{ width: '100%', height: '350px' }}
+                      style={{ width: '100%', height: '280px' }}
+                      config={{ displayModeBar: false }}
                     />
                   </Card>
 
@@ -334,13 +348,14 @@ function AnalyticsPage() {
                         }
                       ]}
                       layout={{
-                        xaxis: { title: 'ACWR Zone' },
-                        yaxis: { title: 'Injury Rate (%)' },
-                        margin: { t: 20, r: 20, b: 80, l: 60 },
+                        xaxis: { title: 'ACWR Zone', tickfont: { size: 10 } },
+                        yaxis: { title: 'Injury Rate (%)', tickfont: { size: 10 } },
+                        margin: { t: 10, r: 10, b: 60, l: 50 },
                         autosize: true
                       }}
                       useResizeHandler
-                      style={{ width: '100%', height: '350px' }}
+                      style={{ width: '100%', height: '280px' }}
+                      config={{ displayModeBar: false }}
                     />
                   </Card>
                 </div>
@@ -349,40 +364,40 @@ function AnalyticsPage() {
               {/* Statistics */}
               {activeTab === 'stats' && datasetStats && (
                 <Card title="Dataset Statistics">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <p className="text-2xl font-bold text-blue-600">{datasetStats.n_athletes}</p>
-                      <p className="text-sm text-gray-500">Athletes</p>
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                    <div className="text-center p-3 sm:p-4 bg-blue-50 rounded-lg">
+                      <p className="text-xl sm:text-2xl font-bold text-blue-600">{datasetStats.n_athletes}</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Athletes</p>
                     </div>
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <p className="text-2xl font-bold text-green-600">
+                    <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg">
+                      <p className="text-xl sm:text-2xl font-bold text-green-600">
                         {datasetStats.n_days?.toLocaleString()}
                       </p>
-                      <p className="text-sm text-gray-500">Total Days</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Total Days</p>
                     </div>
-                    <div className="text-center p-4 bg-red-50 rounded-lg">
-                      <p className="text-2xl font-bold text-red-600">
+                    <div className="text-center p-3 sm:p-4 bg-red-50 rounded-lg">
+                      <p className="text-xl sm:text-2xl font-bold text-red-600">
                         {(datasetStats.injury_rate * 100).toFixed(2)}%
                       </p>
-                      <p className="text-sm text-gray-500">Injury Rate</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Injury Rate</p>
                     </div>
-                    <div className="text-center p-4 bg-purple-50 rounded-lg">
-                      <p className="text-2xl font-bold text-purple-600">
+                    <div className="text-center p-3 sm:p-4 bg-purple-50 rounded-lg">
+                      <p className="text-xl sm:text-2xl font-bold text-purple-600">
                         {datasetStats.total_injuries?.toLocaleString()}
                       </p>
-                      <p className="text-sm text-gray-500">Total Injuries</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Total Injuries</p>
                     </div>
                   </div>
 
-                  <div className="mt-6">
-                    <h4 className="font-medium mb-4">Metric Averages</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="mt-4 sm:mt-6">
+                    <h4 className="font-medium text-sm sm:text-base mb-3 sm:mb-4">Metric Averages</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
                       {METRICS.map(m => (
-                        <div key={m} className="p-3 bg-gray-50 rounded-lg">
-                          <p className="text-lg font-semibold">
+                        <div key={m} className="p-2 sm:p-3 bg-gray-50 rounded-lg">
+                          <p className="text-base sm:text-lg font-semibold">
                             {datasetStats[`${m}_mean`]?.toFixed(2) || 'N/A'}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 truncate">
                             {m.replace('_', ' ')} (±{datasetStats[`${m}_std`]?.toFixed(2) || 'N/A'})
                           </p>
                         </div>
@@ -394,15 +409,15 @@ function AnalyticsPage() {
 
               {/* What-If Analysis */}
               {activeTab === 'whatIf' && (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   <Card title="Individual Athlete Analysis">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 gap-3 sm:gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
                         <select
                           value={selectedModel}
                           onChange={e => setSelectedModel(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                         >
                           <option value="">Select a model...</option>
                           {models
@@ -415,62 +430,63 @@ function AnalyticsPage() {
                           ))}
                         </select>
                         {models.filter(m => m.dataset_id === selectedDataset).length === 0 && models.length > 0 && (
-                          <p className="text-xs text-orange-600 mt-1">⚠️ No models found for this dataset. Showing all models.</p>
+                          <p className="text-xs text-orange-600 mt-1">No models found for this dataset.</p>
                         )}
-                        <p className="text-xs text-gray-500 mt-1">Models are specific to datasets.</p>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Athlete</label>
-                        <select
-                          value={selectedAthlete}
-                          onChange={e => handleAthleteChange(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">Select an athlete...</option>
-                          {athletes.map(a => (
-                            <option key={a} value={a}>{a}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                        <select
-                          value={selectedDate}
-                          onChange={e => setSelectedDate(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                          disabled={!athleteTimeline}
-                        >
-                          <option value="">Select a date...</option>
-                          {athleteTimeline?.dates.map(d => (
-                            <option key={d} value={d}>{new Date(d).toLocaleDateString()}</option>
-                          ))}
-                        </select>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Athlete</label>
+                          <select
+                            value={selectedAthlete}
+                            onChange={e => handleAthleteChange(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                          >
+                            <option value="">Select an athlete...</option>
+                            {athletes.map(a => (
+                              <option key={a} value={a}>{a}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                          <select
+                            value={selectedDate}
+                            onChange={e => setSelectedDate(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                            disabled={!athleteTimeline}
+                          >
+                            <option value="">Select a date...</option>
+                            {athleteTimeline?.dates.map(d => (
+                              <option key={d} value={d}>{new Date(d).toLocaleDateString()}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     </div>
                   </Card>
 
                   {/* Athlete Stats */}
                   {selectedAthlete && athleteTimeline && (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
-                        <p className="text-sm text-gray-500">Total Injuries</p>
-                        <p className="text-2xl font-bold text-red-600">{athleteTimeline.injury_days?.length || 0}</p>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                      <div className="p-3 sm:p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+                        <p className="text-xs sm:text-sm text-gray-500">Total Injuries</p>
+                        <p className="text-xl sm:text-2xl font-bold text-red-600">{athleteTimeline.injury_days?.length || 0}</p>
                       </div>
-                      <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
-                        <p className="text-sm text-gray-500">Avg. Stress</p>
-                        <p className="text-2xl font-bold text-orange-600">
+                      <div className="p-3 sm:p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+                        <p className="text-xs sm:text-sm text-gray-500">Avg. Stress</p>
+                        <p className="text-xl sm:text-2xl font-bold text-orange-600">
                           {(athleteTimeline.metrics?.stress?.reduce((a,b) => a+b, 0) / athleteTimeline.metrics?.stress?.length || 0).toFixed(1)}
                         </p>
                       </div>
-                      <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
-                        <p className="text-sm text-gray-500">Avg. Sleep</p>
-                        <p className="text-2xl font-bold text-blue-600">
+                      <div className="p-3 sm:p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+                        <p className="text-xs sm:text-sm text-gray-500">Avg. Sleep</p>
+                        <p className="text-xl sm:text-2xl font-bold text-blue-600">
                           {(athleteTimeline.metrics?.sleep_hours?.reduce((a,b) => a+b, 0) / athleteTimeline.metrics?.sleep_hours?.length || 0).toFixed(1)}h
                         </p>
                       </div>
-                      <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
-                        <p className="text-sm text-gray-500">Avg. TSS</p>
-                        <p className="text-2xl font-bold text-purple-600">
+                      <div className="p-3 sm:p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+                        <p className="text-xs sm:text-sm text-gray-500">Avg. TSS</p>
+                        <p className="text-xl sm:text-2xl font-bold text-purple-600">
                           {(athleteTimeline.metrics?.actual_tss?.reduce((a,b) => a+b, 0) / athleteTimeline.metrics?.actual_tss?.length || 0).toFixed(1)}
                         </p>
                       </div>
@@ -490,7 +506,7 @@ function AnalyticsPage() {
                       }}
                     />
                   ) : (
-                    <div className="p-12 text-center border-2 border-dashed border-gray-200 rounded-xl text-gray-400">
+                    <div className="p-8 sm:p-12 text-center border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-sm sm:text-base">
                       Select a Model, Athlete, and Date above to start counterfactual analysis.
                     </div>
                   )}

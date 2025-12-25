@@ -97,22 +97,22 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
 
   return (
     <Card title="What-If Intervention Simulator">
-      <div className="space-y-6">
-        <p className="text-sm text-gray-600">
+      <div className="space-y-4 sm:space-y-6">
+        <p className="text-xs sm:text-sm text-gray-600">
           Simulate how changes to today's parameters affect the predicted injury risk for <strong>{athleteId}</strong> on <strong>{date}</strong>.
         </p>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div className="p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm">
             {error}
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           {/* Controls */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Sleep Hours: {overrides.sleep_hours.toFixed(1)}h
               </label>
               <input
@@ -122,12 +122,12 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
                 step="0.1"
                 value={overrides.sleep_hours}
                 onChange={e => handleSliderChange('sleep_hours', e.target.value)}
-                className="w-full"
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Training Duration: {overrides.duration_minutes}m
               </label>
               <input
@@ -137,12 +137,12 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
                 step="5"
                 value={overrides.duration_minutes}
                 onChange={e => handleSliderChange('duration_minutes', e.target.value)}
-                className="w-full"
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Intensity Factor: {overrides.intensity_factor.toFixed(2)}x
               </label>
               <input
@@ -152,12 +152,12 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
                 step="0.05"
                 value={overrides.intensity_factor}
                 onChange={e => handleSliderChange('intensity_factor', e.target.value)}
-                className="w-full"
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Stress Level: {overrides.stress.toFixed(0)}
               </label>
               <input
@@ -167,31 +167,31 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
                 step="1"
                 value={overrides.stress}
                 onChange={e => handleSliderChange('stress', e.target.value)}
-                className="w-full"
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
             </div>
           </div>
 
           {/* Results */}
-          <div className="flex flex-col justify-start border-l pl-8 border-gray-100 min-h-[300px]">
+          <div className="flex flex-col justify-start border-t lg:border-t-0 lg:border-l pt-6 lg:pt-0 lg:pl-8 border-gray-100 min-h-[250px] sm:min-h-[300px]">
             {loading && !results ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mb-2"></div>
-                <p>Calculating risk...</p>
+                <div className="animate-spin h-6 w-6 sm:h-8 sm:w-8 border-4 border-blue-500 border-t-transparent rounded-full mb-2"></div>
+                <p className="text-sm">Calculating risk...</p>
               </div>
             ) : results ? (
-              <div className="space-y-6">
-                <div className="flex justify-between items-end">
-                  <div className="text-center">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="flex justify-between items-end gap-2">
+                  <div className="text-center flex-1">
                     <p className="text-xs text-gray-500 uppercase font-bold mb-1">Current Risk</p>
-                    <div className="text-3xl font-bold text-red-600">
+                    <div className="text-2xl sm:text-3xl font-bold text-red-600">
                       {(results.original_risk * 100).toFixed(1)}%
                     </div>
                   </div>
-                  <div className="text-3xl font-light text-gray-300 pb-1">→</div>
-                  <div className="text-center">
+                  <div className="text-2xl sm:text-3xl font-light text-gray-300 pb-1">→</div>
+                  <div className="text-center flex-1">
                     <p className="text-xs text-gray-500 uppercase font-bold mb-1">Simulated Risk</p>
-                    <div className={`text-3xl font-bold ${results.new_risk < results.original_risk ? 'text-green-600' : (results.new_risk > results.original_risk ? 'text-red-600' : 'text-gray-600')}`}>
+                    <div className={`text-2xl sm:text-3xl font-bold ${results.new_risk < results.original_risk ? 'text-green-600' : (results.new_risk > results.original_risk ? 'text-red-600' : 'text-gray-600')}`}>
                       {(results.new_risk * 100).toFixed(1)}%
                     </div>
                   </div>
@@ -202,26 +202,26 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
                     <span>Risk Reduction</span>
                     <span>{(results.risk_reduction * 100).toFixed(2)}%</span>
                   </div>
-                  <div className="bg-gray-100 h-4 rounded-full overflow-hidden flex">
-                    <div 
+                  <div className="bg-gray-100 h-3 sm:h-4 rounded-full overflow-hidden flex">
+                    <div
                       className={`h-full transition-all duration-500 ${results.risk_reduction > 0 ? 'bg-green-500' : 'bg-red-500'}`}
                       style={{ width: `${Math.max(0.1, Math.abs(results.risk_reduction * 100))}%` }}
                     ></div>
                   </div>
                 </div>
-                
-                <p className="text-sm font-medium italic text-gray-700">
+
+                <p className="text-xs sm:text-sm font-medium italic text-gray-700">
                   {getTip()}
                 </p>
 
                 {recommendations.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100">
                     <h4 className="text-xs font-bold uppercase text-gray-500 mb-2">Suggested Actions</h4>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5 sm:space-y-2">
                       {recommendations.map((rec, i) => (
-                        <div key={i} className="flex justify-between items-center text-sm p-2 bg-green-50 text-green-800 rounded">
+                        <div key={i} className="flex justify-between items-center text-xs sm:text-sm p-2 bg-green-50 text-green-800 rounded">
                           <span>{rec.label}</span>
-                          <span className="font-bold">-{ (rec.reduction * 100).toFixed(1) }% Risk</span>
+                          <span className="font-bold whitespace-nowrap ml-2">-{ (rec.reduction * 100).toFixed(1) }%</span>
                         </div>
                       ))}
                     </div>
@@ -230,10 +230,10 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-gray-400 italic text-center">
-                <svg className="w-12 h-12 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-10 h-10 sm:w-12 sm:h-12 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                Adjust sliders to see impact
+                <span className="text-sm">Adjust sliders to see impact</span>
               </div>
             )}
           </div>

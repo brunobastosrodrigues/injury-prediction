@@ -10,18 +10,51 @@ const MODEL_CONFIGS = {
   lasso: {
     name: 'LASSO Logistic Regression',
     description: 'Linear model with L1 regularization for feature selection',
-    params: { max_iter: 1000 }
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h7" />
+      </svg>
+    ),
+    color: 'blue'
   },
   random_forest: {
     name: 'Random Forest',
     description: 'Ensemble of decision trees for robust predictions',
-    params: { n_estimators: 200, max_depth: 8 }
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+      </svg>
+    ),
+    color: 'green'
   },
   xgboost: {
     name: 'XGBoost',
     description: 'Gradient boosting for high performance',
-    params: { n_estimators: 400, max_depth: 2, learning_rate: 0.03 }
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+      </svg>
+    ),
+    color: 'amber'
   }
+}
+
+const getColorClasses = (color, selected) => {
+  const colors = {
+    blue: selected ? 'border-blue-500/50 bg-blue-500/10' : 'border-slate-700 hover:border-blue-500/30',
+    green: selected ? 'border-green-500/50 bg-green-500/10' : 'border-slate-700 hover:border-green-500/30',
+    amber: selected ? 'border-amber-500/50 bg-amber-500/10' : 'border-slate-700 hover:border-amber-500/30'
+  }
+  return colors[color] || colors.blue
+}
+
+const getIconColorClass = (color) => {
+  const colors = {
+    blue: 'text-blue-400',
+    green: 'text-green-400',
+    amber: 'text-amber-400'
+  }
+  return colors[color] || 'text-blue-400'
 }
 
 function TrainingPage() {
@@ -100,8 +133,8 @@ function TrainingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Model Training</h1>
-        <p className="text-gray-600 mt-1">Train ML models for injury prediction</p>
+        <h1 className="text-3xl font-bold text-white">Model Training</h1>
+        <p className="text-slate-400 mt-2">Train ML models for injury prediction</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -109,7 +142,7 @@ function TrainingPage() {
         <Card title="Configuration">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
                 Select Split
               </label>
               <select
@@ -119,7 +152,7 @@ function TrainingPage() {
                   setCurrentSplit(e.target.value)
                 }}
                 disabled={isRunning}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 disabled:bg-slate-800/50 disabled:text-slate-500 transition-all"
               >
                 <option value="">Select a split...</option>
                 {splits.map(split => (
@@ -131,29 +164,28 @@ function TrainingPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
                 Select Models
               </label>
               <div className="space-y-2">
                 {Object.entries(MODEL_CONFIGS).map(([key, config]) => (
                   <label
                     key={key}
-                    className={`flex items-start p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedModels.includes(key)
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    className={`flex items-start p-4 border rounded-xl cursor-pointer transition-all ${getColorClasses(config.color, selectedModels.includes(key))}`}
                   >
                     <input
                       type="checkbox"
                       checked={selectedModels.includes(key)}
                       onChange={() => handleModelToggle(key)}
                       disabled={isRunning}
-                      className="mt-1 mr-3"
+                      className="mt-1 mr-3 accent-blue-500"
                     />
+                    <div className={`mr-3 ${getIconColorClass(config.color)}`}>
+                      {config.icon}
+                    </div>
                     <div>
-                      <p className="font-medium">{config.name}</p>
-                      <p className="text-sm text-gray-500">{config.description}</p>
+                      <p className="font-medium text-white">{config.name}</p>
+                      <p className="text-sm text-slate-500">{config.description}</p>
                     </div>
                   </label>
                 ))}
@@ -163,7 +195,7 @@ function TrainingPage() {
             <button
               onClick={handleTrain}
               disabled={isRunning || !selectedSplit || selectedModels.length === 0}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-2.5 px-4 rounded-xl hover:from-green-500 hover:to-green-600 disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed transition-all font-medium shadow-lg shadow-green-500/25 disabled:shadow-none"
             >
               {isRunning ? 'Training...' : `Train ${selectedModels.length} Model(s)`}
             </button>
@@ -175,7 +207,7 @@ function TrainingPage() {
           {jobStatus ? (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="font-medium">Status</span>
+                <span className="font-medium text-slate-300">Status</span>
                 <StatusBadge status={jobStatus.status} />
               </div>
 
@@ -186,18 +218,18 @@ function TrainingPage() {
               />
 
               {jobStatus.current_step && (
-                <p className="text-sm text-gray-600">{jobStatus.current_step}</p>
+                <p className="text-sm text-slate-400">{jobStatus.current_step}</p>
               )}
 
               {jobStatus.status === 'completed' && jobStatus.result?.models && (
                 <div className="space-y-2">
-                  <p className="font-medium text-green-800">Training Complete!</p>
+                  <p className="font-medium text-green-400">Training Complete!</p>
                   {jobStatus.result.models.map(model => (
-                    <div key={model.model_id} className="p-2 bg-green-50 rounded">
-                      <p className="font-mono text-sm">{model.model_type}</p>
-                      <p className="text-sm text-gray-600">
-                        AUC: {model.metrics?.roc_auc?.toFixed(4)} |
-                        AP: {model.metrics?.average_precision?.toFixed(4)}
+                    <div key={model.model_id} className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl">
+                      <p className="font-mono text-sm text-green-400">{model.model_type}</p>
+                      <p className="text-sm text-slate-400 mt-1">
+                        AUC: <span className="text-white">{model.metrics?.roc_auc?.toFixed(4)}</span> |
+                        AP: <span className="text-white">{model.metrics?.average_precision?.toFixed(4)}</span>
                       </p>
                     </div>
                   ))}
@@ -205,13 +237,20 @@ function TrainingPage() {
               )}
 
               {jobStatus.status === 'failed' && jobStatus.error && (
-                <div className="p-3 bg-red-50 rounded-lg max-h-40 overflow-y-auto">
-                  <p className="text-red-800 text-sm whitespace-pre-wrap">{jobStatus.error}</p>
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl max-h-40 overflow-y-auto">
+                  <p className="text-red-400 text-sm whitespace-pre-wrap">{jobStatus.error}</p>
                 </div>
               )}
             </div>
           ) : (
-            <p className="text-gray-500">Configure and start training to see progress.</p>
+            <div className="text-center py-8">
+              <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+                </svg>
+              </div>
+              <p className="text-slate-500">Configure and start training to see progress</p>
+            </div>
           )}
         </Card>
       </div>
@@ -219,35 +258,47 @@ function TrainingPage() {
       {/* Models List */}
       <Card title="Trained Models">
         {models.length === 0 ? (
-          <p className="text-gray-500">No models trained yet.</p>
+          <div className="text-center py-8">
+            <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3" />
+              </svg>
+            </div>
+            <p className="text-slate-500">No models trained yet</p>
+            <p className="text-slate-600 text-sm mt-1">Select a split and train some models</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Model</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dataset</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ROC AUC</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Precision</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b border-slate-800">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Model</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Dataset</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Type</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">ROC AUC</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg Precision</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Created</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-slate-800">
                 {models.map(model => (
-                  <tr key={model.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono text-sm">{model.id}</td>
-                    <td className="px-4 py-3 text-sm truncate max-w-[150px]" title={model.dataset_id}>
+                  <tr key={model.id} className="hover:bg-slate-800/50 transition-colors">
+                    <td className="px-4 py-3 font-mono text-sm text-slate-300">{model.id}</td>
+                    <td className="px-4 py-3 text-sm text-slate-500 truncate max-w-[150px]" title={model.dataset_id}>
                       {model.dataset_id || 'N/A'}
                     </td>
-                    <td className="px-4 py-3 text-sm">{model.model_name || model.model_type}</td>
-                    <td className="px-4 py-3 text-sm font-medium">
+                    <td className="px-4 py-3 text-sm">
+                      <span className="px-2 py-1 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20 text-xs">
+                        {model.model_name || model.model_type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium text-white">
                       {model.metrics?.roc_auc?.toFixed(4) || 'N/A'}
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-3 text-sm text-slate-300">
                       {model.metrics?.average_precision?.toFixed(4) || 'N/A'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="px-4 py-3 text-sm text-slate-500">
                       {model.created_at ? new Date(model.created_at).toLocaleDateString() : 'N/A'}
                     </td>
                   </tr>

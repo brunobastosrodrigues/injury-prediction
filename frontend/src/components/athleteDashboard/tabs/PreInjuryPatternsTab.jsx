@@ -91,17 +91,17 @@ function PreInjuryPatternsTab({ datasetId, athleteId, athleteProfile }) {
   const availableMetrics = Object.keys(patterns.patterns)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Controls & Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <Card title="Analysis Settings">
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Lookback Days</label>
               <select
                 value={lookbackDays}
                 onChange={e => setLookbackDays(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               >
                 <option value={7}>7 days</option>
                 <option value={14}>14 days</option>
@@ -109,8 +109,8 @@ function PreInjuryPatternsTab({ datasetId, athleteId, athleteProfile }) {
                 <option value={28}>28 days</option>
               </select>
             </div>
-            <div className="p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-800">
+            <div className="p-2 sm:p-3 bg-blue-50 rounded-lg">
+              <p className="text-xs sm:text-sm text-blue-800">
                 Analyzing <strong>{patterns.n_injuries}</strong> injury events
               </p>
             </div>
@@ -118,29 +118,29 @@ function PreInjuryPatternsTab({ datasetId, athleteId, athleteProfile }) {
         </Card>
 
         <Card title="Pattern Summary" className="lg:col-span-2">
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {pattern_summary.message && (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-amber-800 font-medium">{pattern_summary.message}</p>
+              <div className="p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-xs sm:text-sm text-amber-800 font-medium">{pattern_summary.message}</p>
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-3 bg-red-50 rounded-lg">
-                <p className="text-sm text-gray-500">Primary Indicator</p>
-                <p className="text-lg font-bold text-red-600">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
+              <div className="text-center p-2 sm:p-3 bg-red-50 rounded-lg">
+                <p className="text-xs text-gray-500">Primary Indicator</p>
+                <p className="text-sm sm:text-lg font-bold text-red-600 truncate">
                   {METRIC_LABELS[pattern_summary.primary_indicator] || pattern_summary.primary_indicator || '-'}
                 </p>
               </div>
-              <div className="text-center p-3 bg-orange-50 rounded-lg">
-                <p className="text-sm text-gray-500">Warning Window</p>
-                <p className="text-lg font-bold text-orange-600">
+              <div className="text-center p-2 sm:p-3 bg-orange-50 rounded-lg">
+                <p className="text-xs text-gray-500">Warning</p>
+                <p className="text-sm sm:text-lg font-bold text-orange-600">
                   {pattern_summary.typical_warning_window || '-'} days
                 </p>
               </div>
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-gray-500">HRV Baseline</p>
-                <p className="text-lg font-bold text-blue-600">
+              <div className="text-center p-2 sm:p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs text-gray-500">HRV Base</p>
+                <p className="text-sm sm:text-lg font-bold text-blue-600">
                   {patterns.hrv_baseline?.toFixed(0) || '-'} ms
                 </p>
               </div>
@@ -164,20 +164,20 @@ function PreInjuryPatternsTab({ datasetId, athleteId, athleteProfile }) {
 
       {/* Pattern Charts */}
       <Card title="Pre-Injury Metric Trends">
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
           Average metric values in the {lookbackDays} days leading up to each injury. Day 0 = injury onset.
         </p>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {availableMetrics.map(metric => {
             const data = patterns.patterns[metric]
             const change = data.change_percentage
 
             return (
-              <div key={metric} className="border rounded-lg p-4">
+              <div key={metric} className="border rounded-lg p-3 sm:p-4">
                 <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-medium">{METRIC_LABELS[metric] || metric}</h4>
+                  <h4 className="font-medium text-sm sm:text-base">{METRIC_LABELS[metric] || metric}</h4>
                   {change !== null && (
-                    <span className={`text-sm font-medium px-2 py-1 rounded ${
+                    <span className={`text-xs sm:text-sm font-medium px-2 py-0.5 sm:py-1 rounded ${
                       Math.abs(change) > 5
                         ? change > 0
                           ? 'bg-red-100 text-red-700'
@@ -191,7 +191,6 @@ function PreInjuryPatternsTab({ datasetId, athleteId, athleteProfile }) {
 
                 <Plot
                   data={[
-                    // Individual injury traces (lighter)
                     ...data.values_by_injury.map((values, i) => ({
                       x: data.days,
                       y: values,
@@ -201,7 +200,6 @@ function PreInjuryPatternsTab({ datasetId, athleteId, athleteProfile }) {
                       line: { color: METRIC_COLORS[metric] || '#888', width: 1, opacity: 0.3 },
                       showlegend: false
                     })),
-                    // Average trace (bold)
                     {
                       x: data.days,
                       y: data.average,
@@ -209,9 +207,8 @@ function PreInjuryPatternsTab({ datasetId, athleteId, athleteProfile }) {
                       mode: 'lines+markers',
                       name: 'Average',
                       line: { color: METRIC_COLORS[metric] || '#888', width: 3 },
-                      marker: { size: 6 }
+                      marker: { size: 4 }
                     },
-                    // Baseline reference
                     {
                       x: [data.days[0], data.days[data.days.length - 1]],
                       y: [data.baseline_avg, data.baseline_avg],
@@ -222,40 +219,17 @@ function PreInjuryPatternsTab({ datasetId, athleteId, athleteProfile }) {
                     }
                   ]}
                   layout={{
-                    xaxis: {
-                      title: 'Days Before Injury',
-                      zeroline: true,
-                      zerolinecolor: '#ef4444',
-                      zerolinewidth: 2
-                    },
-                    yaxis: { title: metric },
-                    margin: { t: 10, r: 20, b: 50, l: 60 },
+                    xaxis: { title: 'Days Before Injury', zeroline: true, zerolinecolor: '#ef4444', zerolinewidth: 2, tickfont: { size: 9 } },
+                    yaxis: { title: metric, tickfont: { size: 9 } },
+                    margin: { t: 10, r: 10, b: 40, l: 45 },
                     autosize: true,
                     showlegend: false,
-                    shapes: [
-                      {
-                        type: 'line',
-                        x0: 0,
-                        x1: 0,
-                        y0: 0,
-                        y1: 1,
-                        yref: 'paper',
-                        line: { color: '#ef4444', width: 2 }
-                      }
-                    ],
-                    annotations: [
-                      {
-                        x: 0,
-                        y: 1,
-                        yref: 'paper',
-                        text: 'Injury',
-                        showarrow: false,
-                        font: { color: '#ef4444', size: 10 }
-                      }
-                    ]
+                    shapes: [{ type: 'line', x0: 0, x1: 0, y0: 0, y1: 1, yref: 'paper', line: { color: '#ef4444', width: 2 } }],
+                    annotations: [{ x: 0, y: 1, yref: 'paper', text: 'Injury', showarrow: false, font: { color: '#ef4444', size: 9 } }]
                   }}
                   useResizeHandler
-                  style={{ width: '100%', height: '200px' }}
+                  style={{ width: '100%', height: '180px' }}
+                  config={{ displayModeBar: false }}
                 />
               </div>
             )
@@ -265,41 +239,37 @@ function PreInjuryPatternsTab({ datasetId, athleteId, athleteProfile }) {
 
       {/* Interpretation Guide */}
       <Card title="Interpretation Guide">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <div>
-            <h4 className="font-medium text-gray-900 mb-2">What to Look For</h4>
-            <ul className="text-sm text-gray-600 space-y-2">
+            <h4 className="font-medium text-gray-900 text-sm sm:text-base mb-2">What to Look For</h4>
+            <ul className="text-xs sm:text-sm text-gray-600 space-y-1.5 sm:space-y-2">
               <li className="flex items-start">
                 <span className="text-red-500 mr-2">•</span>
-                <span><strong>HRV Decline:</strong> A downward trend indicates accumulated fatigue and increased injury risk</span>
+                <span><strong>HRV Decline:</strong> Accumulated fatigue</span>
               </li>
               <li className="flex items-start">
                 <span className="text-red-500 mr-2">•</span>
-                <span><strong>RHR Elevation:</strong> Rising resting heart rate suggests inadequate recovery</span>
+                <span><strong>RHR Elevation:</strong> Inadequate recovery</span>
               </li>
               <li className="flex items-start">
                 <span className="text-red-500 mr-2">•</span>
-                <span><strong>Sleep Quality Drop:</strong> Poor sleep compounds training stress</span>
+                <span><strong>Sleep Quality Drop:</strong> Compounds stress</span>
               </li>
               <li className="flex items-start">
                 <span className="text-red-500 mr-2">•</span>
-                <span><strong>Stress Increase:</strong> Life stress adds to overall load</span>
+                <span><strong>Stress Increase:</strong> Added load</span>
               </li>
             </ul>
           </div>
           <div>
-            <h4 className="font-medium text-gray-900 mb-2">Your Personal Patterns</h4>
-            <p className="text-sm text-gray-600">
-              Based on your injury history, your primary warning sign is{' '}
-              <strong className="text-red-600">
-                {METRIC_LABELS[pattern_summary.primary_indicator] || 'not yet determined'}
-              </strong>
-              . Monitor this metric closely, especially when it deviates more than 10% from your baseline.
+            <h4 className="font-medium text-gray-900 text-sm sm:text-base mb-2">Your Personal Patterns</h4>
+            <p className="text-xs sm:text-sm text-gray-600">
+              Primary warning sign: <strong className="text-red-600">{METRIC_LABELS[pattern_summary.primary_indicator] || 'not yet determined'}</strong>.
+              Monitor when it deviates more than 10% from baseline.
             </p>
             {pattern_summary.typical_warning_window && (
-              <p className="text-sm text-gray-600 mt-2">
-                Warning signs typically appear approximately{' '}
-                <strong>{pattern_summary.typical_warning_window} days</strong> before injury.
+              <p className="text-xs sm:text-sm text-gray-600 mt-2">
+                Warning signs typically appear <strong>{pattern_summary.typical_warning_window} days</strong> before injury.
               </p>
             )}
           </div>

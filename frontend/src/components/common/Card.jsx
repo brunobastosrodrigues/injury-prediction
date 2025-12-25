@@ -1,9 +1,9 @@
 function Card({ title, children, className = '', actions }) {
   return (
-    <div className={`bg-white rounded-lg shadow ${className}`}>
+    <div className={`bg-slate-900/50 rounded-2xl border border-slate-800 ${className}`}>
       {title && (
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+        <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
           {actions && <div className="flex space-x-2">{actions}</div>}
         </div>
       )}

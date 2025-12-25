@@ -160,107 +160,103 @@ function RiskAnalysisTab({ datasetId, athleteId, modelId, athleteProfile, athlet
   const topFactors = factorData.slice(0, 10)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Risk Timeline */}
       <Card title="Injury Risk Over Time">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex gap-4 text-sm">
+        <div className="mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
             <span className="flex items-center">
-              <span className="w-3 h-3 rounded-full bg-green-500 mr-1"></span> Low (&lt;5%)
+              <span className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500 mr-1"></span> Low
             </span>
             <span className="flex items-center">
-              <span className="w-3 h-3 rounded-full bg-yellow-500 mr-1"></span> Moderate (5-15%)
+              <span className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500 mr-1"></span> Moderate
             </span>
             <span className="flex items-center">
-              <span className="w-3 h-3 rounded-full bg-orange-500 mr-1"></span> Elevated (15-30%)
+              <span className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-orange-500 mr-1"></span> Elevated
             </span>
             <span className="flex items-center">
-              <span className="w-3 h-3 rounded-full bg-red-500 mr-1"></span> High (&gt;30%)
+              <span className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500 mr-1"></span> High
             </span>
           </div>
-          <div className="text-sm text-gray-500">
-            Red dashed lines indicate actual injuries
+          <div className="text-xs text-gray-500">
+            Red dashed = injuries
           </div>
         </div>
 
-        <Plot
-          data={riskTraces}
-          layout={{
-            xaxis: {
-              title: 'Date',
-              type: 'date',
-              rangeslider: { visible: true }
-            },
-            yaxis: {
-              title: 'Injury Risk (%)',
-              range: [0, Math.max(...risk_scores) * 100 * 1.2, 50]
-            },
-            shapes: riskShapes,
-            margin: { t: 30, r: 30, b: 100, l: 60 },
-            autosize: true,
-            hovermode: 'x'
-          }}
-          useResizeHandler
-          style={{ width: '100%', height: '400px' }}
-          onClick={(data) => {
-            if (data.points?.[0]?.x) {
-              setSelectedDate(data.points[0].x)
-            }
-          }}
-        />
+        <div className="-mx-2 sm:mx-0 overflow-x-auto">
+          <Plot
+            data={riskTraces}
+            layout={{
+              xaxis: { title: 'Date', type: 'date', rangeslider: { visible: true }, tickfont: { size: 10 } },
+              yaxis: { title: 'Injury Risk (%)', range: [0, Math.max(...risk_scores) * 100 * 1.2, 50], tickfont: { size: 10 } },
+              shapes: riskShapes,
+              margin: { t: 20, r: 20, b: 80, l: 45 },
+              autosize: true,
+              hovermode: 'x'
+            }}
+            useResizeHandler
+            style={{ width: '100%', minWidth: '320px', height: '350px' }}
+            config={{ displayModeBar: false }}
+            onClick={(data) => {
+              if (data.points?.[0]?.x) {
+                setSelectedDate(data.points[0].x)
+              }
+            }}
+          />
+        </div>
       </Card>
 
       {/* Risk Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <Card>
-          <div className="text-center">
-            <p className="text-3xl font-bold text-blue-600">
+          <div className="text-center p-1 sm:p-2">
+            <p className="text-xl sm:text-3xl font-bold text-blue-600">
               {(riskTimeline.avg_risk * 100).toFixed(1)}%
             </p>
-            <p className="text-sm text-gray-500">Average Risk</p>
+            <p className="text-xs sm:text-sm text-gray-500">Avg Risk</p>
           </div>
         </Card>
         <Card>
-          <div className="text-center">
-            <p className="text-3xl font-bold text-red-600">
+          <div className="text-center p-1 sm:p-2">
+            <p className="text-xl sm:text-3xl font-bold text-red-600">
               {(riskTimeline.max_risk * 100).toFixed(1)}%
             </p>
-            <p className="text-sm text-gray-500">Maximum Risk</p>
+            <p className="text-xs sm:text-sm text-gray-500">Max Risk</p>
           </div>
         </Card>
         <Card>
-          <div className="text-center">
-            <p className="text-3xl font-bold text-orange-600">
+          <div className="text-center p-1 sm:p-2">
+            <p className="text-xl sm:text-3xl font-bold text-orange-600">
               {riskTimeline.days_above_moderate}
             </p>
-            <p className="text-sm text-gray-500">Days Above Moderate</p>
+            <p className="text-xs sm:text-sm text-gray-500">Days Elevated</p>
           </div>
         </Card>
         <Card>
-          <div className="text-center">
-            <p className="text-3xl font-bold text-purple-600">
+          <div className="text-center p-1 sm:p-2">
+            <p className="text-xl sm:text-3xl font-bold text-purple-600">
               {injury_days.length}
             </p>
-            <p className="text-sm text-gray-500">Total Injuries</p>
+            <p className="text-xs sm:text-sm text-gray-500">Injuries</p>
           </div>
         </Card>
       </div>
 
       {/* Date Selector & Factor Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Date Selection */}
         <Card title="Analyze Specific Date">
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
               <select
                 value={selectedDate || ''}
                 onChange={e => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               >
                 {dates.map((d, i) => (
                   <option key={d} value={d}>
-                    {new Date(d).toLocaleDateString()} - Risk: {(risk_scores[i] * 100).toFixed(1)}%
+                    {new Date(d).toLocaleDateString()} - {(risk_scores[i] * 100).toFixed(1)}%
                     {injury_days.includes(d) ? ' (INJURY)' : ''}
                   </option>
                 ))}
@@ -268,10 +264,10 @@ function RiskAnalysisTab({ datasetId, athleteId, modelId, athleteProfile, athlet
             </div>
 
             {riskFactors && (
-              <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-500">Risk on {selectedDate}</span>
-                  <span className={`text-2xl font-bold ${
+                  <span className="text-xs sm:text-sm text-gray-500">Risk on {selectedDate}</span>
+                  <span className={`text-xl sm:text-2xl font-bold ${
                     riskFactors.current_risk < 0.05 ? 'text-green-600' :
                     riskFactors.current_risk < 0.15 ? 'text-yellow-600' :
                     riskFactors.current_risk < 0.30 ? 'text-orange-600' : 'text-red-600'

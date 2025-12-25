@@ -92,18 +92,18 @@ function TimelineTab({ athleteTimeline, athleteProfile }) {
     : []
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Controls */}
       <Card title="Timeline Controls">
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Metrics to Display</label>
-            <div className="flex flex-wrap gap-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Metrics to Display</label>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {AVAILABLE_METRICS.map(metric => (
                 <button
                   key={metric.id}
                   onClick={() => toggleMetric(metric.id)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium transition-colors ${
                     selectedMetrics.includes(metric.id)
                       ? 'text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -124,9 +124,9 @@ function TimelineTab({ athleteTimeline, athleteProfile }) {
               id="showInjuries"
               checked={showInjuries}
               onChange={e => setShowInjuries(e.target.checked)}
-              className="mr-2"
+              className="mr-2 h-4 w-4"
             />
-            <label htmlFor="showInjuries" className="text-sm text-gray-700">
+            <label htmlFor="showInjuries" className="text-xs sm:text-sm text-gray-700">
               Show injury markers ({injury_days.length} injuries)
             </label>
           </div>
@@ -135,60 +135,67 @@ function TimelineTab({ athleteTimeline, athleteProfile }) {
 
       {/* Main Timeline Chart */}
       <Card title="Athlete Timeline">
-        <Plot
-          data={traces}
-          layout={{
-            xaxis: {
-              title: 'Date',
-              rangeslider: { visible: true },
-              type: 'date'
-            },
-            yaxis: {
-              title: 'HRV / Body Battery',
-              side: 'left',
-              showgrid: true
-            },
-            yaxis2: {
-              title: 'Heart Rate (bpm)',
-              side: 'right',
-              overlaying: 'y',
-              showgrid: false
-            },
-            yaxis3: {
-              title: 'Sleep',
-              side: 'left',
-              overlaying: 'y',
-              position: 0.05,
-              anchor: 'free',
-              showgrid: false,
-              visible: false
-            },
-            yaxis4: {
-              title: 'Stress / TSS',
-              side: 'right',
-              overlaying: 'y',
-              position: 0.95,
-              anchor: 'free',
-              showgrid: false,
-              visible: false
-            },
-            shapes,
-            annotations,
-            legend: {
-              orientation: 'h',
-              y: -0.2
-            },
-            margin: { t: 30, r: 80, b: 100, l: 80 },
-            autosize: true,
-            hovermode: 'x unified'
-          }}
-          useResizeHandler
-          style={{ width: '100%', height: '500px' }}
-        />
+        <div className="-mx-2 sm:mx-0 overflow-x-auto">
+          <Plot
+            data={traces}
+            layout={{
+              xaxis: {
+                title: 'Date',
+                rangeslider: { visible: true },
+                type: 'date',
+                tickfont: { size: 10 }
+              },
+              yaxis: {
+                title: 'HRV / Body Battery',
+                side: 'left',
+                showgrid: true,
+                tickfont: { size: 10 }
+              },
+              yaxis2: {
+                title: 'Heart Rate (bpm)',
+                side: 'right',
+                overlaying: 'y',
+                showgrid: false,
+                tickfont: { size: 10 }
+              },
+              yaxis3: {
+                title: 'Sleep',
+                side: 'left',
+                overlaying: 'y',
+                position: 0.05,
+                anchor: 'free',
+                showgrid: false,
+                visible: false
+              },
+              yaxis4: {
+                title: 'Stress / TSS',
+                side: 'right',
+                overlaying: 'y',
+                position: 0.95,
+                anchor: 'free',
+                showgrid: false,
+                visible: false
+              },
+              shapes,
+              annotations,
+              legend: {
+                orientation: 'h',
+                y: -0.25,
+                font: { size: 10 }
+              },
+              margin: { t: 20, r: 50, b: 100, l: 50 },
+              autosize: true,
+              hovermode: 'x unified'
+            }}
+            useResizeHandler
+            style={{ width: '100%', minWidth: '320px', height: '400px' }}
+            config={{ displayModeBar: false }}
+          />
+        </div>
       </Card>
 
       {/* Summary Stats by Period */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         <Card title="First Quarter">
           <MetricSummary
             dates={dates.slice(0, Math.floor(dates.length / 4))}
@@ -228,10 +235,10 @@ function MetricSummary({ dates, metrics, injuryDays }) {
   const injuries = injuryDays.filter(d => dates.includes(d)).length
 
   return (
-    <div className="space-y-2 text-sm">
+    <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
       <div className="flex justify-between">
         <span className="text-gray-500">Period</span>
-        <span className="font-medium">{dates[0]} - {dates[dates.length - 1]}</span>
+        <span className="font-medium text-right truncate ml-2">{dates[0]?.slice(5)} - {dates[dates.length - 1]?.slice(5)}</span>
       </div>
       <div className="flex justify-between">
         <span className="text-gray-500">Injuries</span>

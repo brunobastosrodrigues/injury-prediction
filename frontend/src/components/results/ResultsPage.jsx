@@ -42,31 +42,31 @@ function ResultsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Results</h1>
-        <p className="text-gray-600 mt-1">View and compare model performance</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Results</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">View and compare model performance</p>
       </div>
 
       {/* Model Selection */}
       <Card title="Select Model">
         {models.length === 0 ? (
-          <p className="text-gray-500">No trained models. Train some models first.</p>
+          <p className="text-gray-500 text-sm sm:text-base">No trained models. Train some models first.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {models.map(model => (
               <button
                 key={model.id}
                 onClick={() => setSelectedModel(model)}
-                className={`p-4 border rounded-lg text-left transition-colors ${
+                className={`p-3 sm:p-4 border rounded-lg text-left transition-colors ${
                   selectedModel?.id === model.id
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <p className="font-medium">{model.model_name || model.model_type}</p>
-                <p className="text-sm text-gray-500 font-mono truncate">{model.id}</p>
-                <div className="mt-2 flex justify-between text-sm">
+                <p className="font-medium text-sm sm:text-base">{model.model_name || model.model_type}</p>
+                <p className="text-xs sm:text-sm text-gray-500 font-mono truncate">{model.id}</p>
+                <div className="mt-2 flex justify-between text-xs sm:text-sm">
                   <span>AUC: {model.metrics?.roc_auc?.toFixed(3)}</span>
                   <span>AP: {model.metrics?.average_precision?.toFixed(3)}</span>
                 </div>
@@ -80,36 +80,36 @@ function ResultsPage() {
         <>
           {/* Metrics Summary */}
           <Card title="Performance Metrics">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-blue-600">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
+              <div className="text-center p-2 sm:p-4 bg-gray-50 rounded-lg">
+                <p className="text-lg sm:text-2xl font-bold text-blue-600">
                   {selectedModel.metrics?.roc_auc?.toFixed(4)}
                 </p>
-                <p className="text-sm text-gray-500">ROC AUC</p>
+                <p className="text-xs sm:text-sm text-gray-500">ROC AUC</p>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-green-600">
+              <div className="text-center p-2 sm:p-4 bg-gray-50 rounded-lg">
+                <p className="text-lg sm:text-2xl font-bold text-green-600">
                   {selectedModel.metrics?.average_precision?.toFixed(4)}
                 </p>
-                <p className="text-sm text-gray-500">Avg Precision</p>
+                <p className="text-xs sm:text-sm text-gray-500">Avg Precision</p>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-purple-600">
+              <div className="text-center p-2 sm:p-4 bg-gray-50 rounded-lg">
+                <p className="text-lg sm:text-2xl font-bold text-purple-600">
                   {selectedModel.metrics?.precision?.toFixed(4)}
                 </p>
-                <p className="text-sm text-gray-500">Precision</p>
+                <p className="text-xs sm:text-sm text-gray-500">Precision</p>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-orange-600">
+              <div className="text-center p-2 sm:p-4 bg-gray-50 rounded-lg">
+                <p className="text-lg sm:text-2xl font-bold text-orange-600">
                   {selectedModel.metrics?.recall?.toFixed(4)}
                 </p>
-                <p className="text-sm text-gray-500">Recall</p>
+                <p className="text-xs sm:text-sm text-gray-500">Recall</p>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-pink-600">
+              <div className="text-center p-2 sm:p-4 bg-gray-50 rounded-lg col-span-2 sm:col-span-1">
+                <p className="text-lg sm:text-2xl font-bold text-pink-600">
                   {selectedModel.metrics?.f1?.toFixed(4)}
                 </p>
-                <p className="text-sm text-gray-500">F1 Score</p>
+                <p className="text-xs sm:text-sm text-gray-500">F1 Score</p>
               </div>
             </div>
           </Card>
@@ -117,12 +117,12 @@ function ResultsPage() {
           {/* Charts */}
           {loading ? (
             <Card title="Loading...">
-              <div className="flex justify-center py-12">
-                <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+              <div className="flex justify-center py-8 sm:py-12">
+                <div className="animate-spin h-6 w-6 sm:h-8 sm:w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
               </div>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {/* ROC Curve */}
               {rocData && (
                 <Card title="ROC Curve">
@@ -149,12 +149,13 @@ function ResultsPage() {
                       xaxis: { title: 'False Positive Rate', range: [0, 1] },
                       yaxis: { title: 'True Positive Rate', range: [0, 1] },
                       showlegend: true,
-                      legend: { x: 0.6, y: 0.1 },
-                      margin: { t: 20, r: 20, b: 50, l: 50 },
+                      legend: { x: 0.5, y: 0.1, font: { size: 10 } },
+                      margin: { t: 10, r: 10, b: 40, l: 40 },
                       autosize: true
                     }}
                     useResizeHandler
-                    style={{ width: '100%', height: '350px' }}
+                    style={{ width: '100%', height: '280px' }}
+                    config={{ displayModeBar: false }}
                   />
                 </Card>
               )}
@@ -177,12 +178,13 @@ function ResultsPage() {
                       xaxis: { title: 'Recall', range: [0, 1] },
                       yaxis: { title: 'Precision', range: [0, 1] },
                       showlegend: true,
-                      legend: { x: 0.1, y: 0.1 },
-                      margin: { t: 20, r: 20, b: 50, l: 50 },
+                      legend: { x: 0.1, y: 0.1, font: { size: 10 } },
+                      margin: { t: 10, r: 10, b: 40, l: 40 },
                       autosize: true
                     }}
                     useResizeHandler
-                    style={{ width: '100%', height: '350px' }}
+                    style={{ width: '100%', height: '280px' }}
+                    config={{ displayModeBar: false }}
                   />
                 </Card>
               )}
@@ -192,56 +194,61 @@ function ResultsPage() {
           {/* Feature Importance */}
           {featureImportance && featureImportance.feature_importance?.length > 0 && (
             <Card title="Feature Importance (Top 20)">
-              <Plot
-                data={[
-                  {
-                    x: featureImportance.feature_importance.slice(0, 20).map(f => f.importance),
-                    y: featureImportance.feature_importance.slice(0, 20).map(f => f.feature),
-                    type: 'bar',
-                    orientation: 'h',
-                    marker: { color: '#6366f1' }
-                  }
-                ]}
-                layout={{
-                  xaxis: { title: 'Importance' },
-                  yaxis: { automargin: true },
-                  margin: { t: 20, r: 20, b: 50, l: 200 },
-                  autosize: true
-                }}
-                useResizeHandler
-                style={{ width: '100%', height: '500px' }}
-              />
+              <div className="-mx-2 sm:mx-0 overflow-x-auto">
+                <Plot
+                  data={[
+                    {
+                      x: featureImportance.feature_importance.slice(0, 20).map(f => f.importance),
+                      y: featureImportance.feature_importance.slice(0, 20).map(f => f.feature),
+                      type: 'bar',
+                      orientation: 'h',
+                      marker: { color: '#6366f1' }
+                    }
+                  ]}
+                  layout={{
+                    xaxis: { title: 'Importance' },
+                    yaxis: { automargin: true, tickfont: { size: 10 } },
+                    margin: { t: 10, r: 10, b: 40, l: 120 },
+                    autosize: true
+                  }}
+                  useResizeHandler
+                  style={{ width: '100%', minWidth: '300px', height: '450px' }}
+                  config={{ displayModeBar: false }}
+                />
+              </div>
             </Card>
           )}
 
           {/* Confusion Matrix */}
           {selectedModel.metrics?.confusion_matrix && (
             <Card title="Confusion Matrix">
-              <div className="flex justify-center">
+              <div className="flex justify-center overflow-x-auto">
                 <Plot
                   data={[
                     {
                       z: selectedModel.metrics.confusion_matrix,
-                      x: ['Predicted No Injury', 'Predicted Injury'],
-                      y: ['Actual No Injury', 'Actual Injury'],
+                      x: ['Pred. No Injury', 'Pred. Injury'],
+                      y: ['No Injury', 'Injury'],
                       type: 'heatmap',
                       colorscale: 'Blues',
-                      showscale: true,
+                      showscale: false,
                       text: selectedModel.metrics.confusion_matrix.map(row =>
                         row.map(val => val.toLocaleString())
                       ),
                       texttemplate: '%{text}',
+                      textfont: { size: 14 },
                       hovertemplate: '%{y} / %{x}: %{z}<extra></extra>'
                     }
                   ]}
                   layout={{
-                    xaxis: { title: 'Predicted' },
-                    yaxis: { title: 'Actual', autorange: 'reversed' },
-                    margin: { t: 20, r: 80, b: 80, l: 100 },
+                    xaxis: { title: 'Predicted', tickfont: { size: 11 } },
+                    yaxis: { title: 'Actual', autorange: 'reversed', tickfont: { size: 11 } },
+                    margin: { t: 10, r: 10, b: 60, l: 80 },
                     autosize: true
                   }}
                   useResizeHandler
-                  style={{ width: '100%', maxWidth: '500px', height: '400px' }}
+                  style={{ width: '100%', maxWidth: '400px', height: '300px' }}
+                  config={{ displayModeBar: false }}
                 />
               </div>
             </Card>

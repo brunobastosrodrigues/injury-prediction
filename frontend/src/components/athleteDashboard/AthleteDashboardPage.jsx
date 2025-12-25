@@ -126,24 +126,24 @@ function AthleteDashboardPage() {
   const displayModels = datasetModels.length > 0 ? datasetModels : models
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Athlete Dashboard</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Athlete Dashboard</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">
           Individual athlete analysis with personalized insights and recommendations
         </p>
       </div>
 
       {/* Selection Controls */}
       <Card>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Dataset</label>
             <select
               value={selectedDataset}
               onChange={e => handleDatasetChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="">Select a dataset...</option>
               {datasets.map(ds => (
@@ -153,39 +153,41 @@ function AthleteDashboardPage() {
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Athlete</label>
-            <select
-              value={selectedAthlete}
-              onChange={e => handleAthleteChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={!selectedDataset}
-            >
-              <option value="">Select an athlete...</option>
-              {athletes.map(a => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Model (for predictions)</label>
-            <select
-              value={selectedModel}
-              onChange={e => setSelectedModel(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={!selectedDataset}
-            >
-              <option value="">Select a model...</option>
-              {displayModels.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.id} ({m.model_name})
-                  {m.dataset_id !== selectedDataset ? ' - Different Dataset' : ''}
-                </option>
-              ))}
-            </select>
-            {datasetModels.length === 0 && models.length > 0 && selectedDataset && (
-              <p className="text-xs text-orange-600 mt-1">No models for this dataset. Train a model first.</p>
-            )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Athlete</label>
+              <select
+                value={selectedAthlete}
+                onChange={e => handleAthleteChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                disabled={!selectedDataset}
+              >
+                <option value="">Select an athlete...</option>
+                {athletes.map(a => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Model (for predictions)</label>
+              <select
+                value={selectedModel}
+                onChange={e => setSelectedModel(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                disabled={!selectedDataset}
+              >
+                <option value="">Select a model...</option>
+                {displayModels.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.id} ({m.model_name})
+                    {m.dataset_id !== selectedDataset ? ' - Different Dataset' : ''}
+                  </option>
+                ))}
+              </select>
+              {datasetModels.length === 0 && models.length > 0 && selectedDataset && (
+                <p className="text-xs text-orange-600 mt-1">No models for this dataset. Train a model first.</p>
+              )}
+            </div>
           </div>
         </div>
       </Card>
@@ -193,8 +195,8 @@ function AthleteDashboardPage() {
       {/* Loading State */}
       {loading && (
         <Card>
-          <div className="flex justify-center py-12">
-            <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+          <div className="flex justify-center py-8 sm:py-12">
+            <div className="animate-spin h-6 w-6 sm:h-8 sm:w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
           </div>
         </Card>
       )}
@@ -202,7 +204,7 @@ function AthleteDashboardPage() {
       {/* Error State */}
       {error && (
         <Card>
-          <div className="text-center py-8 text-red-600">{error}</div>
+          <div className="text-center py-6 sm:py-8 text-red-600 text-sm sm:text-base">{error}</div>
         </Card>
       )}
 
@@ -210,13 +212,13 @@ function AthleteDashboardPage() {
       {selectedDataset && selectedAthlete && athleteProfile && !loading && (
         <>
           {/* Tabs Navigation */}
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8">
+          <div className="border-b border-gray-200 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
+            <nav className="flex space-x-4 sm:space-x-8 min-w-max">
               {tabs.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -278,9 +280,9 @@ function AthleteDashboardPage() {
       {/* Empty State */}
       {(!selectedDataset || !selectedAthlete) && !loading && (
         <Card>
-          <div className="text-center py-12 text-gray-400">
-            <p className="text-lg">Select a dataset and athlete to view their personalized dashboard</p>
-            <p className="text-sm mt-2">
+          <div className="text-center py-8 sm:py-12 text-gray-400">
+            <p className="text-base sm:text-lg">Select a dataset and athlete to view their personalized dashboard</p>
+            <p className="text-xs sm:text-sm mt-2 px-4">
               The dashboard provides historical analysis, injury pattern detection, and personalized recommendations
             </p>
           </div>
