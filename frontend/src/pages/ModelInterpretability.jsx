@@ -30,12 +30,12 @@ import {
  * Designed for Federated Learning privacy constraints.
  */
 const ModelInterpretability = () => {
-  const { datasets } = usePipeline();
+  const { models, refreshModels } = usePipeline();
   const [activeTab, setActiveTab] = useState('local');
-  const [selectedDataset, setSelectedDataset] = useState('');
-  const [selectedModel, setSelectedModel] = useState('xgboost');
+  const [selectedModelId, setSelectedModelId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Explanations state
   const [localExplanation, setLocalExplanation] = useState(null);
@@ -48,38 +48,46 @@ const ModelInterpretability = () => {
   const [athleteData, setAthleteData] = useState(null);
 
   // Features for interaction analysis
-  const [feature1, setFeature1] = useState('Acute_TSS');
-  const [feature2, setFeature2] = useState('Daily_Stress');
+  const [feature1, setFeature1] = useState('stress');
+  const [feature2, setFeature2] = useState('acute_load');
 
-  // Available datasets from pipeline
-  const availableDatasets = datasets
-    .filter(d => d.status === 'completed')
-    .map(d => ({ id: d.id, name: d.id }));
-
-  // Set default dataset
+  // Load models on mount
   useEffect(() => {
-    if (availableDatasets.length > 0 && !selectedDataset) {
-      setSelectedDataset(availableDatasets[0].id);
+    const loadModels = async () => {
+      setInitialLoading(true);
+      await refreshModels();
+      setInitialLoading(false);
+    };
+    loadModels();
+  }, [refreshModels]);
+
+  // Set default model when models load
+  useEffect(() => {
+    if (models.length > 0 && !selectedModelId) {
+      setSelectedModelId(models[0].model_id);
     }
-  }, [availableDatasets]);
+  }, [models, selectedModelId]);
+
+  // Get selected model details
+  const selectedModel = models.find(m => m.model_id === selectedModelId);
 
   // Load sample athlete data for demo
   const loadSampleAthleteData = async () => {
+    if (!selectedModel) return;
+
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch a sample from the test set
-      const response = await api.get(`/api/analytics/dataset/${selectedDataset}`);
+      // Fetch a sample from the test set using the model's split_id
+      const response = await api.get(`/explainability/sample/${selectedModelId}`);
 
-      if (response.data && response.data.test_data) {
-        // Get the last row (most recent)
-        const lastRow = response.data.test_data[response.data.test_data.length - 1];
-        setAthleteData(lastRow);
+      if (response.data && response.data.sample) {
+        setAthleteData(response.data.sample);
       }
     } catch (err) {
       console.error('Error loading sample data:', err);
-      setError('Failed to load sample athlete data');
+      setError('Failed to load sample athlete data. Make sure a model is trained.');
     } finally {
       setLoading(false);
     }
@@ -87,15 +95,14 @@ const ModelInterpretability = () => {
 
   // Load local explanation (Waterfall)
   const loadLocalExplanation = async () => {
-    if (!selectedDataset || !athleteData) return;
+    if (!selectedModelId || !athleteData) return;
 
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.post('/api/explainability/explain/prediction', {
-        dataset_id: selectedDataset,
-        model_name: selectedModel,
+      const response = await api.post('/explainability/explain/prediction', {
+        model_id: selectedModelId,
         athlete_data: athleteData,
         prediction_index: 0,
         max_display: 10
@@ -112,16 +119,15 @@ const ModelInterpretability = () => {
 
   // Load global explanation
   const loadGlobalExplanation = async () => {
-    if (!selectedDataset) return;
+    if (!selectedModelId) return;
 
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.post('/api/explainability/explain/global', {
-        dataset_id: selectedDataset,
-        model_name: selectedModel,
-        sample_size: 1000
+      const response = await api.post('/explainability/explain/global', {
+        model_id: selectedModelId,
+        sample_size: 500
       });
 
       setGlobalExplanation(response.data);
@@ -135,18 +141,17 @@ const ModelInterpretability = () => {
 
   // Load interaction explanation
   const loadInteractionExplanation = async () => {
-    if (!selectedDataset) return;
+    if (!selectedModelId) return;
 
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.post('/api/explainability/explain/interactions', {
-        dataset_id: selectedDataset,
-        model_name: selectedModel,
+      const response = await api.post('/explainability/explain/interactions', {
+        model_id: selectedModelId,
         feature1: feature1,
         feature2: feature2 || null,
-        sample_size: 1000
+        sample_size: 500
       });
 
       setInteractionExplanation(response.data);
@@ -160,15 +165,14 @@ const ModelInterpretability = () => {
 
   // Load counterfactuals
   const loadCounterfactuals = async () => {
-    if (!selectedDataset || !athleteData) return;
+    if (!selectedModelId || !athleteData) return;
 
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.post('/api/explainability/counterfactuals', {
-        dataset_id: selectedDataset,
-        model_name: selectedModel,
+      const response = await api.post('/explainability/counterfactuals', {
+        model_id: selectedModelId,
         athlete_data: athleteData,
         desired_class: 0,
         total_cfs: 3
@@ -185,15 +189,14 @@ const ModelInterpretability = () => {
 
   // Load recommendations
   const loadRecommendations = async () => {
-    if (!selectedDataset || !athleteData) return;
+    if (!selectedModelId || !athleteData) return;
 
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.post('/api/explainability/recommendations', {
-        dataset_id: selectedDataset,
-        model_name: selectedModel,
+      const response = await api.post('/explainability/recommendations', {
+        model_id: selectedModelId,
         athlete_data: athleteData,
         risk_threshold: 0.3
       });
@@ -209,7 +212,7 @@ const ModelInterpretability = () => {
 
   // Load explanations when tab changes
   useEffect(() => {
-    if (!selectedDataset) return;
+    if (!selectedModelId) return;
 
     if (activeTab === 'local' && !localExplanation && athleteData) {
       loadLocalExplanation();
@@ -222,14 +225,21 @@ const ModelInterpretability = () => {
     } else if (activeTab === 'recommendations' && !recommendations && athleteData) {
       loadRecommendations();
     }
-  }, [activeTab, selectedDataset, athleteData]);
+  }, [activeTab, selectedModelId, athleteData]);
 
-  // Load sample data when dataset changes
+  // Load sample data when model changes
   useEffect(() => {
-    if (selectedDataset) {
+    if (selectedModelId) {
+      // Clear previous explanations when model changes
+      setLocalExplanation(null);
+      setGlobalExplanation(null);
+      setInteractionExplanation(null);
+      setCounterfactuals(null);
+      setRecommendations(null);
+      setAthleteData(null);
       loadSampleAthleteData();
     }
-  }, [selectedDataset]);
+  }, [selectedModelId]);
 
   const tabs = [
     { id: 'local', name: 'Local (Waterfall)', icon: SparklesIcon },
@@ -244,84 +254,102 @@ const ModelInterpretability = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
             Model Interpretability (XAI)
           </h1>
-          <p className="text-sm sm:text-base text-gray-600">
+          <p className="text-sm sm:text-base text-slate-400">
             Understand model predictions using SHAP, interaction analysis, and counterfactuals.
-            Privacy-preserving design for Federated Learning.
           </p>
         </div>
 
         {/* Controls */}
-        <Card className="mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Dataset Selector */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Dataset
-              </label>
-              <select
-                value={selectedDataset}
-                onChange={(e) => setSelectedDataset(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select dataset...</option>
-                {availableDatasets.map(ds => (
-                  <option key={ds.id} value={ds.id}>
-                    {ds.name}
-                  </option>
-                ))}
-              </select>
+        <div className="mb-6 bg-slate-800/50 rounded-xl border border-slate-700 p-4">
+          {initialLoading ? (
+            <div className="text-center py-4 text-slate-400">Loading trained models...</div>
+          ) : models.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-slate-400 mb-2">No trained models found.</p>
+              <p className="text-sm text-slate-500">
+                Please train a model first using the Training page.
+              </p>
             </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Model Selector */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Trained Model
+                </label>
+                <select
+                  value={selectedModelId}
+                  onChange={(e) => setSelectedModelId(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select a trained model...</option>
+                  {models.map(model => (
+                    <option key={model.model_id} value={model.model_id}>
+                      {model.model_name || model.model_type} - {new Date(model.created_at).toLocaleDateString()}
+                      {model.metrics?.roc_auc ? ` (AUC: ${model.metrics.roc_auc.toFixed(3)})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Model Selector */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Model
-              </label>
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="xgboost">XGBoost</option>
-                <option value="random_forest">Random Forest</option>
-                <option value="lasso">Lasso</option>
-              </select>
+              {/* Reload Button */}
+              <div className="flex items-end">
+                <button
+                  onClick={() => {
+                    setLocalExplanation(null);
+                    setGlobalExplanation(null);
+                    setInteractionExplanation(null);
+                    setCounterfactuals(null);
+                    setRecommendations(null);
+                    loadSampleAthleteData();
+                  }}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors disabled:bg-slate-700 disabled:text-slate-500"
+                  disabled={!selectedModelId || loading}
+                >
+                  {loading ? 'Loading...' : 'Load Explanations'}
+                </button>
+              </div>
             </div>
+          )}
 
-            {/* Reload Button */}
-            <div className="flex items-end">
-              <button
-                onClick={() => {
-                  // Clear all explanations
-                  setLocalExplanation(null);
-                  setGlobalExplanation(null);
-                  setInteractionExplanation(null);
-                  setCounterfactuals(null);
-                  setRecommendations(null);
-                  loadSampleAthleteData();
-                }}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                disabled={!selectedDataset || loading}
-              >
-                {loading ? 'Loading...' : 'Reload Data'}
-              </button>
+          {/* Model Info */}
+          {selectedModel && (
+            <div className="mt-4 pt-4 border-t border-slate-700">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-slate-500">Type:</span>{' '}
+                  <span className="font-medium text-slate-300">{selectedModel.model_type}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500">AUC:</span>{' '}
+                  <span className="font-medium text-green-400">{selectedModel.metrics?.roc_auc?.toFixed(3) || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500">Precision:</span>{' '}
+                  <span className="font-medium text-slate-300">{selectedModel.metrics?.precision?.toFixed(3) || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500">Recall:</span>{' '}
+                  <span className="font-medium text-slate-300">{selectedModel.metrics?.recall?.toFixed(3) || 'N/A'}</span>
+                </div>
+              </div>
             </div>
-          </div>
-        </Card>
+          )}
+        </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400">
             {error}
           </div>
         )}
 
         {/* Tabs */}
         <div className="mb-6 overflow-x-auto">
-          <div className="flex space-x-2 border-b border-gray-200 min-w-max">
+          <div className="flex space-x-1 border-b border-slate-700 min-w-max">
             {tabs.map(tab => {
               const Icon = tab.icon;
               return (
@@ -330,8 +358,8 @@ const ModelInterpretability = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center space-x-2 px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
                     activeTab === tab.id
-                      ? 'border-blue-600 text-blue-600 font-semibold'
-                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                      ? 'border-blue-500 text-blue-400 font-semibold'
+                      : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -345,139 +373,136 @@ const ModelInterpretability = () => {
         {/* Tab Content */}
         <div className="space-y-6">
           {activeTab === 'local' && (
-            <Card>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Local Explanation - "Why am I at risk TODAY?"
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-4">
+                Local Explanation - Why this prediction?
               </h2>
-              {loading && <p className="text-gray-600">Loading explanation...</p>}
+              {loading && <p className="text-slate-400">Loading explanation...</p>}
               {!loading && localExplanation && (
-                <WaterfallPlot explanation={localExplanation} height={600} />
+                <WaterfallPlot explanation={localExplanation} height={450} />
               )}
               {!loading && !localExplanation && athleteData && (
-                <p className="text-gray-600">Click "Reload Data" to generate explanation</p>
+                <p className="text-slate-500">Click "Load Explanations" to generate</p>
               )}
-            </Card>
+            </div>
           )}
 
           {activeTab === 'global' && (
-            <Card>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-4">
                 Global Feature Importance
               </h2>
-              {loading && <p className="text-gray-600">Loading explanation...</p>}
+              {loading && <p className="text-slate-400">Loading explanation...</p>}
               {!loading && globalExplanation && (
-                <GlobalSHAPPlot globalExplanation={globalExplanation} height={600} />
+                <GlobalSHAPPlot globalExplanation={globalExplanation} height={450} />
               )}
               {!loading && !globalExplanation && (
-                <p className="text-gray-600">Click "Reload Data" to generate explanation</p>
+                <p className="text-slate-500">Click "Load Explanations" to generate</p>
               )}
-            </Card>
+            </div>
           )}
 
           {activeTab === 'interactions' && (
-            <Card>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Interaction Analysis - "Training-Injury Prevention Paradox"
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-4">
+                Interaction Analysis
               </h2>
 
               {/* Feature Selectors */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
                     Primary Feature
                   </label>
                   <input
                     type="text"
                     value={feature1}
                     onChange={(e) => setFeature1(e.target.value)}
-                    placeholder="e.g., Acute_TSS"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="e.g., stress"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
                     Interaction Feature (optional)
                   </label>
                   <input
                     type="text"
                     value={feature2}
                     onChange={(e) => setFeature2(e.target.value)}
-                    placeholder="e.g., Daily_Stress (auto-detect if empty)"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="Auto-detect if empty"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
               </div>
 
               <button
                 onClick={loadInteractionExplanation}
-                className="mb-4 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-                disabled={loading || !selectedDataset}
+                className="mb-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 disabled:bg-slate-700 disabled:text-slate-500"
+                disabled={loading || !selectedModelId}
               >
                 {loading ? 'Loading...' : 'Analyze Interaction'}
               </button>
 
               {!loading && interactionExplanation && (
-                <DependencePlot interaction={interactionExplanation} height={600} />
+                <DependencePlot interaction={interactionExplanation} height={400} />
               )}
-            </Card>
+              {!loading && !interactionExplanation && (
+                <p className="text-slate-500">Enter a feature name and click "Analyze Interaction"</p>
+              )}
+            </div>
           )}
 
           {activeTab === 'counterfactuals' && (
-            <Card>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                What-If Scenarios - "What should I change?"
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-4">
+                What-If Scenarios
               </h2>
-              {loading && <p className="text-gray-600">Generating scenarios...</p>}
+              {loading && <p className="text-slate-400">Generating scenarios...</p>}
               {!loading && counterfactuals && (
                 <CounterfactualScenarios counterfactuals={counterfactuals} />
               )}
               {!loading && !counterfactuals && athleteData && (
-                <p className="text-gray-600">Click "Reload Data" to generate scenarios</p>
+                <p className="text-slate-500">Click "Load Explanations" to generate scenarios</p>
               )}
-            </Card>
+            </div>
           )}
 
           {activeTab === 'recommendations' && (
-            <Card>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-4">
                 Actionable Recommendations
               </h2>
-              {loading && <p className="text-gray-600">Generating recommendations...</p>}
+              {loading && <p className="text-slate-400">Generating recommendations...</p>}
               {!loading && recommendations && (
                 <RecommendationsPanel recommendations={recommendations} />
               )}
               {!loading && !recommendations && athleteData && (
-                <p className="text-gray-600">Click "Reload Data" to generate recommendations</p>
+                <p className="text-slate-500">Click "Load Explanations" to generate recommendations</p>
               )}
-            </Card>
+            </div>
           )}
         </div>
 
         {/* Privacy Note */}
-        <Card className="mt-6 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200">
+        <div className="mt-6 bg-purple-500/10 border border-purple-500/20 rounded-xl p-4">
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-purple-900 mb-1">
+              <h4 className="text-sm font-medium text-purple-300 mb-1">
                 Privacy-Preserving Federated XAI
               </h4>
-              <p className="text-xs text-purple-800">
-                In a real Federated Learning deployment:
+              <p className="text-xs text-slate-400">
+                In Federated Learning: Local explanations stay on-device, only aggregated insights are shared.
               </p>
-              <ul className="text-xs text-purple-800 mt-2 space-y-1 ml-4">
-                <li>• <strong>Local Explanations</strong> (Waterfall, What-If) stay on your device</li>
-                <li>• <strong>Global Insights</strong> use only aggregated SHAP values (no raw data shared)</li>
-                <li>• The server never sees your training data or personal metrics</li>
-                <li>• You maintain full control over your data while benefiting from collective intelligence</li>
-              </ul>
             </div>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

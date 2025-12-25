@@ -5,14 +5,11 @@ import Plot from 'react-plotly.js';
  * SHAP Dependence Plot - Reveals Feature Interactions
  *
  * Shows how a feature's impact varies based on another feature's value.
- * Key for understanding "Training-Injury Prevention Paradox":
- * - High load is OK if stress is low
- * - High load is RISKY if stress is high
  */
-const DependencePlot = ({ interaction, height = 500 }) => {
+const DependencePlot = ({ interaction, height = 400 }) => {
   if (!interaction || !interaction.feature1_values) {
     return (
-      <div className="text-center text-gray-500 py-8">
+      <div className="text-center text-slate-400 py-8">
         No interaction data available
       </div>
     );
@@ -26,27 +23,27 @@ const DependencePlot = ({ interaction, height = 500 }) => {
     feature2_name
   } = interaction;
 
-  // Create scatter plot data
   const data = [{
     type: 'scatter',
     mode: 'markers',
     x: feature1_values,
     y: shap_values,
     marker: {
-      size: 6,
+      size: 8,
       color: interaction_values,
-      colorscale: 'RdYlGn_r',  // Red (high) to Green (low)
+      colorscale: 'RdYlGn_r',
       showscale: true,
       colorbar: {
         title: {
           text: feature2_name.replace(/_/g, ' '),
-          side: 'right'
+          font: { color: '#e2e8f0', size: 11 }
         },
-        thickness: 15,
-        len: 0.7
+        tickfont: { color: '#94a3b8', size: 10 },
+        thickness: 12,
+        len: 0.6
       },
       line: {
-        color: 'rgba(0,0,0,0.1)',
+        color: 'rgba(255,255,255,0.2)',
         width: 0.5
       }
     },
@@ -59,25 +56,28 @@ const DependencePlot = ({ interaction, height = 500 }) => {
 
   const layout = {
     title: {
-      text: `Impact of ${feature1_name.replace(/_/g, ' ')} (colored by ${feature2_name.replace(/_/g, ' ')})`,
-      font: { size: 16, family: 'Inter, sans-serif' }
+      text: `${feature1_name.replace(/_/g, ' ')} vs SHAP Impact`,
+      font: { size: 14, color: '#e2e8f0', family: 'Inter, sans-serif' }
     },
     xaxis: {
-      title: feature1_name.replace(/_/g, ' '),
-      gridcolor: '#e5e7eb'
+      title: { text: feature1_name.replace(/_/g, ' '), font: { color: '#94a3b8', size: 11 } },
+      gridcolor: '#334155',
+      tickfont: { color: '#94a3b8', size: 10 },
+      zerolinecolor: '#475569'
     },
     yaxis: {
-      title: 'SHAP Value (Impact on Risk)',
-      gridcolor: '#e5e7eb',
+      title: { text: 'SHAP Value', font: { color: '#94a3b8', size: 11 } },
+      gridcolor: '#334155',
+      tickfont: { color: '#94a3b8', size: 10 },
       zeroline: true,
-      zerolinecolor: '#9ca3af',
-      zerolinewidth: 2
+      zerolinecolor: '#64748b',
+      zerolinewidth: 1
     },
     height: height,
-    margin: { l: 80, r: 150, t: 80, b: 80 },
-    paper_bgcolor: 'white',
-    plot_bgcolor: '#f9fafb',
-    font: { family: 'Inter, sans-serif', size: 12 }
+    margin: { l: 60, r: 100, t: 50, b: 50 },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(30,41,59,0.5)',
+    font: { family: 'Inter, sans-serif', size: 11, color: '#e2e8f0' }
   };
 
   const config = {
@@ -86,7 +86,7 @@ const DependencePlot = ({ interaction, height = 500 }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
+    <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4">
       <Plot
         data={data}
         layout={layout}
@@ -94,25 +94,19 @@ const DependencePlot = ({ interaction, height = 500 }) => {
         className="w-full"
       />
 
-      <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-        <h4 className="text-sm font-semibold text-purple-900 mb-2">
+      <div className="mt-4 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+        <h4 className="text-sm font-medium text-purple-300 mb-2">
           Understanding Interactions
         </h4>
-        <div className="text-xs text-purple-800 space-y-2">
+        <div className="text-xs text-slate-400 space-y-1">
           <p>
-            This chart reveals how <strong>{feature1_name.replace(/_/g, ' ')}</strong>'s
-            impact depends on <strong>{feature2_name.replace(/_/g, ' ')}</strong>.
+            Shows how <span className="text-purple-300">{feature1_name.replace(/_/g, ' ')}</span>'s
+            impact depends on <span className="text-purple-300">{feature2_name.replace(/_/g, ' ')}</span>.
           </p>
-          <ul className="space-y-1 ml-4">
-            <li>• <span className="text-red-600">Red points</span>: High {feature2_name.replace(/_/g, ' ')}</li>
-            <li>• <span className="text-green-600">Green points</span>: Low {feature2_name.replace(/_/g, ' ')}</li>
-            <li>• If slopes differ by color, features interact</li>
-            <li>• Flat line = no interaction with {feature2_name.replace(/_/g, ' ')}</li>
-          </ul>
-          <p className="mt-2 italic">
-            Example: If high training load (x-axis) has positive SHAP when stress is high (red),
-            but neutral SHAP when stress is low (green), it proves the "paradox."
-          </p>
+          <div className="flex gap-4 mt-2">
+            <span><span className="text-red-400">Red</span> = High {feature2_name.replace(/_/g, ' ')}</span>
+            <span><span className="text-green-400">Green</span> = Low {feature2_name.replace(/_/g, ' ')}</span>
+          </div>
         </div>
       </div>
     </div>

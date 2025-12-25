@@ -5,12 +5,11 @@ import Plot from 'react-plotly.js';
  * SHAP Waterfall Plot - "Why am I at risk TODAY?"
  *
  * Shows how each feature contributes to the model's prediction for a specific instance.
- * Base value + sum of SHAP values = final prediction
  */
-const WaterfallPlot = ({ explanation, height = 500 }) => {
+const WaterfallPlot = ({ explanation, height = 400 }) => {
   if (!explanation || !explanation.shap_values) {
     return (
-      <div className="text-center text-gray-500 py-8">
+      <div className="text-center text-slate-400 py-8">
         No explanation data available
       </div>
     );
@@ -24,78 +23,74 @@ const WaterfallPlot = ({ explanation, height = 500 }) => {
     prediction
   } = explanation;
 
-  // Create waterfall data
-  // Format: [base, feature1_contrib, feature2_contrib, ..., final]
-
-  // Sort features by absolute SHAP value (already sorted from backend)
+  // Build waterfall data
   const features = feature_names.map((name, idx) => ({
     name,
     shap_value: shap_values[idx],
     feature_value: feature_values[idx]
   }));
 
-  // Build waterfall structure
-  const labels = ['Base Value'];
+  const labels = ['Base'];
   const measures = ['absolute'];
   const x = [base_value];
-  const text = [`Base: ${base_value.toFixed(3)}`];
+  const text = [`${base_value.toFixed(3)}`];
 
-  features.forEach((feat, idx) => {
+  features.forEach((feat) => {
     const displayName = feat.name.replace(/_/g, ' ');
     const valueStr = typeof feat.feature_value === 'number'
-      ? feat.feature_value.toFixed(2)
+      ? feat.feature_value.toFixed(1)
       : feat.feature_value;
 
-    labels.push(`${displayName}<br>= ${valueStr}`);
+    labels.push(`${displayName} (${valueStr})`);
     measures.push('relative');
     x.push(feat.shap_value);
 
-    const direction = feat.shap_value > 0 ? '↑' : '↓';
-    text.push(`${direction} ${Math.abs(feat.shap_value).toFixed(3)}`);
+    const sign = feat.shap_value > 0 ? '+' : '';
+    text.push(`${sign}${feat.shap_value.toFixed(3)}`);
   });
 
-  // Add final prediction
-  labels.push('Prediction');
+  labels.push('Final Risk');
   measures.push('total');
   x.push(prediction);
-  text.push(`Risk: ${(prediction * 100).toFixed(1)}%`);
+  text.push(`${(prediction * 100).toFixed(1)}%`);
 
   const data = [{
     type: 'waterfall',
-    orientation: 'v',
+    orientation: 'h',
     measure: measures,
-    x: x,
     y: labels,
+    x: x,
     text: text,
     textposition: 'outside',
+    textfont: { color: '#e2e8f0', size: 10 },
     connector: {
-      line: {
-        color: 'rgb(63, 63, 63)',
-        width: 2
-      }
+      line: { color: '#475569', width: 1 }
     },
-    increasing: { marker: { color: '#ef4444' } },  // Red for increased risk
-    decreasing: { marker: { color: '#10b981' } },  // Green for decreased risk
-    totals: { marker: { color: '#3b82f6' } }       // Blue for base/prediction
+    increasing: { marker: { color: '#ef4444' } },
+    decreasing: { marker: { color: '#22c55e' } },
+    totals: { marker: { color: '#3b82f6' } }
   }];
 
   const layout = {
     title: {
-      text: 'Feature Contributions to Risk Prediction',
-      font: { size: 16, family: 'Inter, sans-serif' }
+      text: 'Feature Contributions to Risk',
+      font: { size: 14, color: '#e2e8f0', family: 'Inter, sans-serif' }
     },
     xaxis: {
-      title: 'SHAP Value (Risk Contribution)',
-      gridcolor: '#e5e7eb'
+      title: { text: 'SHAP Value', font: { color: '#94a3b8', size: 11 } },
+      gridcolor: '#334155',
+      tickfont: { color: '#94a3b8', size: 10 },
+      zerolinecolor: '#475569'
     },
     yaxis: {
-      automargin: true
+      automargin: true,
+      tickfont: { color: '#e2e8f0', size: 10 }
     },
     height: height,
-    margin: { l: 150, r: 50, t: 80, b: 80 },
-    paper_bgcolor: 'white',
-    plot_bgcolor: '#f9fafb',
-    font: { family: 'Inter, sans-serif', size: 12 }
+    margin: { l: 140, r: 60, t: 50, b: 50 },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(30,41,59,0.5)',
+    font: { family: 'Inter, sans-serif', size: 11, color: '#e2e8f0' }
   };
 
   const config = {
@@ -104,7 +99,7 @@ const WaterfallPlot = ({ explanation, height = 500 }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
+    <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4">
       <Plot
         data={data}
         layout={layout}
@@ -112,16 +107,15 @@ const WaterfallPlot = ({ explanation, height = 500 }) => {
         className="w-full"
       />
 
-      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h4 className="text-sm font-semibold text-blue-900 mb-2">
+      <div className="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+        <h4 className="text-sm font-medium text-blue-300 mb-2">
           How to Read This Chart
         </h4>
-        <ul className="text-xs text-blue-800 space-y-1">
-          <li>• <span className="text-red-600">Red bars</span> increase injury risk</li>
-          <li>• <span className="text-green-600">Green bars</span> decrease injury risk</li>
-          <li>• Each bar shows the feature's impact on the prediction</li>
-          <li>• Values flow from base prediction to final risk score</li>
-        </ul>
+        <div className="text-xs text-slate-400 flex flex-wrap gap-4">
+          <span><span className="text-red-400">Red</span> = Increases risk</span>
+          <span><span className="text-green-400">Green</span> = Decreases risk</span>
+          <span><span className="text-blue-400">Blue</span> = Base/Final value</span>
+        </div>
       </div>
     </div>
   );
