@@ -2,7 +2,8 @@
 
 ## Application Preview
 
-<img width="1268" height="566" alt="injury-prediction-landingpage" src="https://github.com/user-attachments/assets/54a830e8-8c13-4647-9a16-014f6970a156" />
+<img width="941" height="570" alt="injury-prediction-landingpage-new" src="https://github.com/user-attachments/assets/47f36be8-627d-43dc-8fb3-a1e3717a43c7" />
+
 
 > *The main dashboard providing an overview of the data pipeline status.*
 
