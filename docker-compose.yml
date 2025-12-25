@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build: 
@@ -44,5 +42,7 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    environment:
+      - BACKEND_URL=http://backend:5000
     depends_on:
       - backend
