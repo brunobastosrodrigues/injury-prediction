@@ -16,55 +16,119 @@ np.random.seed(42)
 random.seed(42)
 
 
-def calculate_injury_probability(day_data, athlete, fatigue, form, acwr=1.0):
+def calculate_injury_probability_asymmetric(day_data, athlete, fatigue, form, acwr=1.0, daily_load=0):
     """
-    Calculate injury probability based on ACWR (Gabbett model) + wellness vulnerability.
+    Asymmetric ACWR Injury Model - Based on PMData Exposure Analysis.
 
-    ACWR-Based Injury Model (Gabbett, 2016 - validated on PMData):
-    - ACWR < 0.8:  Undertrained zone (detraining risk, moderate injury risk)
-    - ACWR 0.8-1.3: Sweet spot (optimal training, lowest injury risk)
-    - ACWR 1.3-1.5: Danger zone (elevated injury risk)
-    - ACWR > 1.5:  High risk zone (highest injury probability)
+    KEY SCIENTIFIC INSIGHT:
+    The ACWR-injury relationship is NOT symmetric. Our analysis reveals:
 
-    PMData Results:
-    - ACWR >1.5 zone has 33.7% injury rate (vs 28.5% in optimal zone)
-    - Load features (acute_load, chronic_load, acwr) dominate prediction
-    - Wellness features act as vulnerability modifiers
+    1. UNDERTRAINED (ACWR < 0.8): TRUE PHYSIOLOGICAL MECHANISM
+       - 2.66x higher injury rate PER LOAD UNIT than optimal
+       - Athletes train LESS but get injured MORE per training unit
+       - Mechanism: Detraining → tissue fragility → vulnerability on return
 
-    The model: Injury_Risk = ACWR_Risk × Wellness_Vulnerability
+    2. OPTIMAL (ACWR 0.8-1.3): BASELINE RISK
+       - Lowest injury rate per load unit
+       - Tissue adapted to current training demands
 
-    Returns probability in range [0, 0.06] per day
+    3. HIGH ACWR (>1.3): STOCHASTIC EXPOSURE MECHANISM
+       - Only 1.04x injury rate per load unit (essentially same as optimal!)
+       - Higher raw injury rate is explained by MORE TRAINING TIME
+       - Mechanism: More hours training = more opportunities for accidents
+       - NOT acute physiological overload as commonly believed
+
+    This model implements TWO SEPARATE injury mechanisms:
+    - Physiological vulnerability (undertrained)
+    - Stochastic exposure (high load)
+
+    Returns: (total_probability, injury_type) where injury_type is
+             'physiological', 'exposure', or 'baseline'
     """
     # ========================================
-    # PART 1: ACWR-BASED RISK (PRIMARY TRIGGER)
+    # MECHANISM 1: PHYSIOLOGICAL DETRAINING
+    # (ACWR < 0.8 - True tissue vulnerability)
     # ========================================
-    # Gabbett injury zones - this is the main driver
+    # PMData evidence: 2.66x higher injury rate per load unit
+    # This is INDEPENDENT of exposure time - it's biological fragility
+
+    physiological_risk = 0.0
     if acwr < 0.8:
-        # Undertrained: moderate risk from detraining/sudden load increases
-        acwr_risk = 0.4 + (0.8 - acwr) * 0.5  # 0.4-0.9 range
-    elif acwr <= 1.3:
-        # Sweet spot: lowest risk
-        # Risk is lowest around ACWR=1.0, slightly higher at edges
-        deviation = abs(acwr - 1.0) / 0.3  # 0-1 range within sweet spot
-        acwr_risk = 0.2 + deviation * 0.15  # 0.2-0.35 range
-    elif acwr <= 1.5:
-        # Danger zone: elevated risk
-        progress = (acwr - 1.3) / 0.2  # 0-1 within danger zone
-        acwr_risk = 0.5 + progress * 0.3  # 0.5-0.8 range
+        # Severity increases as ACWR drops (more detrained = more fragile)
+        detraining_severity = (0.8 - acwr) / 0.8  # 0 at 0.8, 1 at 0.0
+
+        # Base physiological vulnerability (per day, not per load)
+        # Calibrated: ~3% daily risk at very low ACWR
+        base_physio_risk = 0.008
+
+        # Amplify by detraining severity (up to 2.66x as found in PMData)
+        physio_multiplier = 1.0 + (1.66 * detraining_severity)
+
+        physiological_risk = base_physio_risk * physio_multiplier
+
+        # Wellness compounds physiological vulnerability
+        # (poor sleep + detrained tissue = disaster)
+        wellness_vulnerability = _calculate_wellness_vulnerability(day_data, fatigue, form)
+        physiological_risk *= (1.0 + wellness_vulnerability * 0.5)
+
+    # ========================================
+    # MECHANISM 2: STOCHASTIC EXPOSURE
+    # (ACWR > 1.3 - More training time = more accidents)
+    # ========================================
+    # PMData evidence: 1.04x injury rate per load unit (same as optimal!)
+    # The "danger" is just spending more time in harm's way
+
+    exposure_risk = 0.0
+    if daily_load > 0:
+        # Base accident rate per unit of training load
+        # This is CONSTANT across ACWR zones (the key insight!)
+        accident_rate_per_load = 0.0001  # ~0.01% per load unit
+
+        # Exposure risk scales linearly with training load
+        exposure_risk = accident_rate_per_load * daily_load
+
+        # Small random variation (accidents are stochastic)
+        exposure_risk *= random.uniform(0.7, 1.3)
+
+    # ========================================
+    # MECHANISM 3: BASELINE RISK
+    # (Optimal zone - minimal but non-zero)
+    # ========================================
+    # Even in perfect conditions, some baseline injury risk exists
+
+    baseline_risk = 0.002  # ~0.2% daily baseline
+
+    # Wellness can slightly elevate baseline risk
+    if 0.8 <= acwr <= 1.3:
+        wellness_vulnerability = _calculate_wellness_vulnerability(day_data, fatigue, form)
+        baseline_risk *= (1.0 + wellness_vulnerability * 0.3)
+
+    # ========================================
+    # COMBINE MECHANISMS (they are additive, not multiplicative)
+    # ========================================
+    total_risk = physiological_risk + exposure_risk + baseline_risk
+
+    # Determine dominant mechanism for logging/analysis
+    if physiological_risk > max(exposure_risk, baseline_risk):
+        injury_type = 'physiological'
+    elif exposure_risk > baseline_risk:
+        injury_type = 'exposure'
     else:
-        # High risk zone: highest probability
-        excess = min(1.0, (acwr - 1.5) / 0.5)  # Cap at ACWR=2.0
-        acwr_risk = 0.8 + excess * 0.2  # 0.8-1.0 range
+        injury_type = 'baseline'
 
-    # ========================================
-    # PART 2: WELLNESS VULNERABILITY MODIFIER
-    # ========================================
-    # Wellness doesn't cause injuries, but makes athletes more susceptible
-    # when combined with high ACWR
+    # Clamp to reasonable range
+    total_risk = min(0.08, max(0.001, total_risk))
 
-    # Extract wellness features (normalized 0-1)
+    return total_risk, injury_type
+
+
+def _calculate_wellness_vulnerability(day_data, fatigue, form):
+    """
+    Calculate wellness vulnerability score (0-1).
+    This modifies injury risk but doesn't cause injuries alone.
+    """
     sleep_hours = day_data.get('sleep_hours', 7.5)
-    sleep_deficit = max(0, (7.0 - sleep_hours) / 3.0)  # Deficit below 7 hours
+    sleep_deficit = max(0, (7.0 - sleep_hours) / 3.0)
 
     sleep_quality = day_data.get('sleep_quality', 0.7)
     poor_sleep_quality = 1.0 - sleep_quality
@@ -75,51 +139,29 @@ def calculate_injury_probability(day_data, athlete, fatigue, form, acwr=1.0):
     body_battery = day_data.get('body_battery_morning', 75)
     low_recovery = 1.0 - (body_battery / 100.0)
 
-    # Fatigue from training
     fatigue_norm = min(1.0, max(0.0, fatigue / 100.0))
-
-    # Form (TSB) - negative form means accumulated fatigue
     form_risk = max(0.0, min(1.0, -form / 30.0))
 
-    # Wellness vulnerability score (0-1)
-    # These don't trigger injuries alone, but amplify ACWR risk
     vulnerability = (
-        0.25 * sleep_deficit +           # Sleep debt
-        0.15 * poor_sleep_quality +       # Poor sleep quality
-        0.20 * high_stress +              # High stress
-        0.15 * low_recovery +             # Poor recovery
-        0.15 * fatigue_norm +             # Training fatigue
-        0.10 * form_risk                  # Negative form
+        0.25 * sleep_deficit +
+        0.15 * poor_sleep_quality +
+        0.20 * high_stress +
+        0.15 * low_recovery +
+        0.15 * fatigue_norm +
+        0.10 * form_risk
     )
 
-    # Clamp vulnerability to reasonable range
-    vulnerability = min(1.0, max(0.0, vulnerability))
+    return min(1.0, max(0.0, vulnerability))
 
-    # ========================================
-    # PART 3: COMBINED INJURY PROBABILITY
-    # ========================================
-    # Base probability varies by ACWR zone
-    # Vulnerability acts as a multiplier (1.0 to 2.0x)
 
-    # Base probabilities calibrated to PMData injury rates:
-    # - Optimal zone: ~28% 3-day injury rate → ~0.01/day
-    # - High risk zone: ~34% 3-day injury rate → ~0.015/day
-    base_prob = 0.003  # Minimum (perfect conditions, optimal ACWR)
-    max_prob = 0.05    # Maximum (high ACWR + poor wellness)
-
-    # Calculate base injury probability from ACWR
-    acwr_prob = base_prob + (max_prob * 0.6) * acwr_risk
-
-    # Apply vulnerability modifier (1.0x to 2.0x multiplier)
-    vulnerability_multiplier = 1.0 + vulnerability
-
-    injury_prob = acwr_prob * vulnerability_multiplier
-
-    # Add stochastic variation (±20%)
-    injury_prob *= random.uniform(0.8, 1.2)
-
-    # Clamp to valid range
-    return min(max_prob, max(base_prob * 0.3, injury_prob))
+# Keep old function for backwards compatibility
+def calculate_injury_probability(day_data, athlete, fatigue, form, acwr=1.0):
+    """Legacy wrapper - calls the new asymmetric model."""
+    daily_load = day_data.get('actual_tss', 50)
+    prob, _ = calculate_injury_probability_asymmetric(
+        day_data, athlete, fatigue, form, acwr, daily_load
+    )
+    return prob
 
 
 def generate_load_spike_schedule(year=2024):
@@ -313,43 +355,44 @@ def simulate_full_year(athlete, year=2024):
                 recovery_days_remaining = np.random.randint(3, 10)
                 pending_injury_date = None
             else:
-                # Calculate injury probability using ACWR-based Gabbett model
-                # ACWR is the primary trigger, wellness acts as vulnerability modifier
-                feature_based_prob = calculate_injury_probability(day_data, athlete, fatigue, form, acwr)
+                # ==========================================================
+                # ASYMMETRIC ACWR INJURY MODEL
+                # Two separate mechanisms based on PMData analysis:
+                # 1. Physiological (undertrained): 2.66x risk per load unit
+                # 2. Stochastic Exposure (high load): constant risk per load unit
+                # ==========================================================
+
+                daily_load = day_data.get('actual_tss', 50)
+                injury_prob, injury_type = calculate_injury_probability_asymmetric(
+                    day_data, athlete, fatigue, form, acwr, daily_load
+                )
 
                 # Apply modulations (Menstrual)
                 if modulations and 'injury_risk_modifier' in modulations:
-                    feature_based_prob *= modulations['injury_risk_modifier']
+                    injury_prob *= modulations['injury_risk_modifier']
 
                 # Apply modulations (Circadian)
                 if 'circadian_injury_modifier' in day_data:
-                    feature_based_prob *= day_data['circadian_injury_modifier']
+                    injury_prob *= day_data['circadian_injury_modifier']
 
-                # Small chance of truly random injury (unexplained, no patterns)
-                random_injury_prob = 0.001  # ~0.4 per year
-                if random.random() < random_injury_prob:
+                # Roll for injury
+                if random.random() < injury_prob:
                     day_data['injury'] = 1
-                    recovery_days_remaining = np.random.randint(3, 7)
-                # HIGH ACWR immediate injury (acute overload mechanism)
-                # This creates direct ACWR-injury correlation
-                elif acwr > 1.5 and random.random() < 0.08:  # ~8% chance when high ACWR
-                    day_data['injury'] = 1
-                    recovery_days_remaining = np.random.randint(3, 7)
-                # DANGER zone ACWR - elevated but not immediate
-                elif acwr > 1.3 and random.random() < 0.04:  # ~4% chance in danger zone
-                    day_data['injury'] = 1
-                    recovery_days_remaining = np.random.randint(3, 5)
-                # UNDERTRAINED zone - also risky (coming back too fast)
-                elif acwr < 0.8 and random.random() < 0.03:  # ~3% chance when undertrained
-                    day_data['injury'] = 1
-                    recovery_days_remaining = np.random.randint(2, 5)
-                # Wellness-triggered injury (vulnerability in optimal ACWR zone)
-                elif len(daily_data) > 30 and random.random() < feature_based_prob * 0.5:
-                    # Lower probability for pure wellness injuries
-                    day_data['injury'] = 1
-                    recovery_days_remaining = np.random.randint(3, 7)
+                    day_data['injury_type'] = injury_type  # Track mechanism for analysis
+
+                    # Recovery time varies by injury type
+                    if injury_type == 'physiological':
+                        # Physiological injuries (tissue damage) take longer to heal
+                        recovery_days_remaining = np.random.randint(5, 12)
+                    elif injury_type == 'exposure':
+                        # Exposure injuries (accidents) vary widely
+                        recovery_days_remaining = np.random.randint(2, 10)
+                    else:
+                        # Baseline injuries
+                        recovery_days_remaining = np.random.randint(3, 7)
                 else:
                     day_data['injury'] = 0
+                    day_data['injury_type'] = None
         else:
             # Still in recovery period
             day_data['injury'] = 1
