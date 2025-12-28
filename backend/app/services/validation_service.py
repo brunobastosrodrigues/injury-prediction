@@ -24,11 +24,12 @@ class ValidationService:
     def get_pmdata_path(cls) -> str:
         """Get the PMData directory path."""
         from flask import current_app
-        # Try multiple paths
+        # Try multiple paths (Docker mounts data at /data)
         possible_paths = [
+            '/data/external/pmdata',  # Docker volume mount
             os.path.join(current_app.config.get('BASE_DIR', os.getcwd()), 'data', 'external', 'pmdata'),
             os.path.join(os.path.dirname(current_app.root_path), 'data', 'external', 'pmdata'),
-            '/home/rodrigues/injury-prediction/backend/data/external/pmdata',
+            '/home/rodrigues/injury-prediction/data/external/pmdata',
         ]
         for path in possible_paths:
             if os.path.exists(path):
@@ -39,8 +40,9 @@ class ValidationService:
     def get_synthetic_path(cls) -> Optional[str]:
         """Get the latest synthetic dataset path."""
         from flask import current_app
-        # Try multiple paths
+        # Try multiple paths (Docker mounts data at /data)
         possible_paths = [
+            '/data/raw',  # Docker volume mount
             os.path.join(current_app.config.get('BASE_DIR', os.getcwd()), 'data', 'raw'),
             os.path.join(os.path.dirname(current_app.root_path), 'data', 'raw'),
             '/home/rodrigues/injury-prediction/data/raw',
@@ -304,12 +306,26 @@ class ValidationService:
         for feat in feature_cols:
             if feat in df.columns:
                 try:
-                    spearman_r, spearman_p = stats.spearmanr(df[feat], df[target])
+                    # Drop NaN values for correlation calculation
+                    valid_mask = df[feat].notna() & df[target].notna()
+                    feat_vals = df.loc[valid_mask, feat]
+                    target_vals = df.loc[valid_mask, target]
+
+                    # Skip if not enough valid data or constant values
+                    if len(feat_vals) < 10 or feat_vals.std() == 0:
+                        continue
+
+                    spearman_r, spearman_p = stats.spearmanr(feat_vals, target_vals)
+
+                    # Skip if correlation is NaN
+                    if np.isnan(spearman_r) or np.isnan(spearman_p):
+                        continue
+
                     correlations.append({
                         'feature': feat,
                         'correlation': round(float(spearman_r), 4),
                         'p_value': round(float(spearman_p), 4),
-                        'significant': spearman_p < 0.05,
+                        'significant': bool(spearman_p < 0.05),
                         'direction': 'increases risk' if spearman_r > 0 else 'decreases risk'
                     })
                 except (ValueError, TypeError, FloatingPointError):
@@ -327,6 +343,11 @@ class ValidationService:
                 try:
                     safe_mean = safe_days[feat].mean()
                     preinjury_mean = preinjury_days[feat].mean()
+
+                    # Skip if either mean is NaN
+                    if np.isnan(safe_mean) or np.isnan(preinjury_mean):
+                        continue
+
                     delta_pct = ((preinjury_mean - safe_mean) / (safe_mean + 1e-8)) * 100
                     signature.append({
                         'feature': feat,

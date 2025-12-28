@@ -1,17 +1,38 @@
 import { NavLink, Link } from 'react-router-dom'
 import { usePipeline } from '../../context/PipelineContext'
 
-const navItems = [
-  { path: '/pipeline', label: 'Pipeline Overview', icon: '📊' },
-  { path: '/data-generation', label: 'Data Generation', icon: '🔄' },
-  { path: '/ingestion', label: 'Data Ingestion', icon: '📤' },
-  { path: '/preprocessing', label: 'Preprocessing', icon: '⚙️' },
-  { path: '/training', label: 'Training', icon: '🤖' },
-  { path: '/results', label: 'Results', icon: '📈' },
-  { path: '/interpretability', label: 'Model Interpretability', icon: '🔍' },
-  { path: '/validation', label: 'Data Validation', icon: '✅' },
-  { path: '/analytics', label: 'Analytics', icon: '🔬' },
-  { path: '/athletes', label: 'Athlete Dashboard', icon: '🏃' }
+// Scientific workflow navigation structure
+const navSections = [
+  {
+    title: 'Study Design',
+    items: [
+      { path: '/pipeline', label: 'Study Overview', icon: '📋' },
+      { path: '/data-generation', label: 'Synthetic Cohort', icon: '🧬' },
+      { path: '/ingestion', label: 'Real Data', icon: '📤' },
+      { path: '/validation', label: 'Data Quality', icon: '✅' },
+    ]
+  },
+  {
+    title: 'Methods',
+    items: [
+      { path: '/preprocessing', label: 'Feature Engineering', icon: '⚙️' },
+      { path: '/training', label: 'Model Development', icon: '🤖' },
+    ]
+  },
+  {
+    title: 'Results',
+    items: [
+      { path: '/results', label: 'Model Performance', icon: '📈' },
+      { path: '/interpretability', label: 'Feature Attribution', icon: '🔍' },
+    ]
+  },
+  {
+    title: 'Analysis',
+    items: [
+      { path: '/analytics', label: 'Population Analytics', icon: '🔬' },
+      { path: '/athletes', label: 'Individual Profiles', icon: '🏃' },
+    ]
+  }
 ]
 
 function Sidebar({ onClose }) {
@@ -30,7 +51,7 @@ function Sidebar({ onClose }) {
           </div>
           <div className="min-w-0">
             <h1 className="text-lg font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent truncate">Injury Prediction</h1>
-            <p className="text-xs text-slate-500">ML Pipeline</p>
+            <p className="text-xs text-slate-500">Research Platform</p>
           </div>
         </Link>
 
@@ -47,29 +68,35 @@ function Sidebar({ onClose }) {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 overflow-y-auto">
-        <div className="mb-3">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pipeline</span>
-        </div>
-        <ul className="space-y-1">
-          {navItems.map(item => (
-            <li key={item.path}>
-              <NavLink
-                to={item.path}
-                onClick={onClose}
-                className={({ isActive }) =>
-                  `flex items-center px-4 py-2.5 rounded-xl transition-all ${
-                    isActive
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  }`
-                }
-              >
-                <span className="mr-3 text-lg">{item.icon}</span>
-                <span className="text-sm font-medium">{item.label}</span>
-              </NavLink>
-            </li>
-          ))}
-        </ul>
+        {navSections.map((section, sectionIndex) => (
+          <div key={section.title} className={sectionIndex > 0 ? 'mt-6' : ''}>
+            <div className="mb-2 px-2">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                {section.title}
+              </span>
+            </div>
+            <ul className="space-y-1">
+              {section.items.map(item => (
+                <li key={item.path}>
+                  <NavLink
+                    to={item.path}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center px-3 py-2 rounded-lg transition-all ${
+                        isActive
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
+                          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                      }`
+                    }
+                  >
+                    <span className="mr-3 text-base">{item.icon}</span>
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       {/* Running Jobs Indicator */}
@@ -95,7 +122,7 @@ function Sidebar({ onClose }) {
         <Link
           to="/"
           onClick={onClose}
-          className="flex items-center px-4 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all text-sm"
+          className="flex items-center px-3 py-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all text-sm"
         >
           <svg className="w-5 h-5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
