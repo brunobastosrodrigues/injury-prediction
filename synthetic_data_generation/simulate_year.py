@@ -244,7 +244,7 @@ def simulate_full_year(athlete, year=2024):
     annual_plan, race_dates = generate_annual_training_plan(athlete, start_date)
     try:
         annual_plan.to_parquet('athlete_annual_training_plan.parquet', index=False)
-    except:
+    except (ImportError, OSError, ValueError):
         annual_plan.to_csv('athlete_annual_training_plan.csv', index=False)
     max_daily_tss = calculate_max_daily_tss(athlete['weekly_training_hours'], athlete['training_experience'])
 

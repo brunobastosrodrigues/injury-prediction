@@ -22,7 +22,7 @@ def get_validation_summary():
     """
     try:
         summary = ValidationService.get_validation_summary()
-        return jsonify(summary)
+        return jsonify(summary), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -39,7 +39,7 @@ def get_distributions():
         result = ValidationService.get_distribution_comparison()
         if 'error' in result and not result.get('has_synthetic') or not result.get('has_pmdata'):
             return jsonify(result), 404
-        return jsonify(result)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -58,7 +58,7 @@ def run_sim2real():
         result = ValidationService.run_sim2real_experiment()
         if 'error' in result:
             return jsonify(result), 400
-        return jsonify(result)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -75,7 +75,7 @@ def get_pmdata_analysis():
         result = ValidationService.get_pmdata_analysis()
         if 'error' in result:
             return jsonify(result), 404
-        return jsonify(result)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -94,7 +94,7 @@ def get_model_evaluation():
         result = ValidationService.evaluate_pmdata_model()
         if 'error' in result:
             return jsonify(result), 400
-        return jsonify(result)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
