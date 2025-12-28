@@ -15,6 +15,185 @@ from datetime import timedelta
 np.random.seed(42)
 random.seed(42)
 
+
+def calculate_injury_probability(day_data, athlete, fatigue, form, acwr=1.0):
+    """
+    Calculate injury probability based on ACWR (Gabbett model) + wellness vulnerability.
+
+    ACWR-Based Injury Model (Gabbett, 2016 - validated on PMData):
+    - ACWR < 0.8:  Undertrained zone (detraining risk, moderate injury risk)
+    - ACWR 0.8-1.3: Sweet spot (optimal training, lowest injury risk)
+    - ACWR 1.3-1.5: Danger zone (elevated injury risk)
+    - ACWR > 1.5:  High risk zone (highest injury probability)
+
+    PMData Results:
+    - ACWR >1.5 zone has 33.7% injury rate (vs 28.5% in optimal zone)
+    - Load features (acute_load, chronic_load, acwr) dominate prediction
+    - Wellness features act as vulnerability modifiers
+
+    The model: Injury_Risk = ACWR_Risk × Wellness_Vulnerability
+
+    Returns probability in range [0, 0.06] per day
+    """
+    # ========================================
+    # PART 1: ACWR-BASED RISK (PRIMARY TRIGGER)
+    # ========================================
+    # Gabbett injury zones - this is the main driver
+    if acwr < 0.8:
+        # Undertrained: moderate risk from detraining/sudden load increases
+        acwr_risk = 0.4 + (0.8 - acwr) * 0.5  # 0.4-0.9 range
+    elif acwr <= 1.3:
+        # Sweet spot: lowest risk
+        # Risk is lowest around ACWR=1.0, slightly higher at edges
+        deviation = abs(acwr - 1.0) / 0.3  # 0-1 range within sweet spot
+        acwr_risk = 0.2 + deviation * 0.15  # 0.2-0.35 range
+    elif acwr <= 1.5:
+        # Danger zone: elevated risk
+        progress = (acwr - 1.3) / 0.2  # 0-1 within danger zone
+        acwr_risk = 0.5 + progress * 0.3  # 0.5-0.8 range
+    else:
+        # High risk zone: highest probability
+        excess = min(1.0, (acwr - 1.5) / 0.5)  # Cap at ACWR=2.0
+        acwr_risk = 0.8 + excess * 0.2  # 0.8-1.0 range
+
+    # ========================================
+    # PART 2: WELLNESS VULNERABILITY MODIFIER
+    # ========================================
+    # Wellness doesn't cause injuries, but makes athletes more susceptible
+    # when combined with high ACWR
+
+    # Extract wellness features (normalized 0-1)
+    sleep_hours = day_data.get('sleep_hours', 7.5)
+    sleep_deficit = max(0, (7.0 - sleep_hours) / 3.0)  # Deficit below 7 hours
+
+    sleep_quality = day_data.get('sleep_quality', 0.7)
+    poor_sleep_quality = 1.0 - sleep_quality
+
+    stress = day_data.get('stress', 40)
+    high_stress = stress / 100.0
+
+    body_battery = day_data.get('body_battery_morning', 75)
+    low_recovery = 1.0 - (body_battery / 100.0)
+
+    # Fatigue from training
+    fatigue_norm = min(1.0, max(0.0, fatigue / 100.0))
+
+    # Form (TSB) - negative form means accumulated fatigue
+    form_risk = max(0.0, min(1.0, -form / 30.0))
+
+    # Wellness vulnerability score (0-1)
+    # These don't trigger injuries alone, but amplify ACWR risk
+    vulnerability = (
+        0.25 * sleep_deficit +           # Sleep debt
+        0.15 * poor_sleep_quality +       # Poor sleep quality
+        0.20 * high_stress +              # High stress
+        0.15 * low_recovery +             # Poor recovery
+        0.15 * fatigue_norm +             # Training fatigue
+        0.10 * form_risk                  # Negative form
+    )
+
+    # Clamp vulnerability to reasonable range
+    vulnerability = min(1.0, max(0.0, vulnerability))
+
+    # ========================================
+    # PART 3: COMBINED INJURY PROBABILITY
+    # ========================================
+    # Base probability varies by ACWR zone
+    # Vulnerability acts as a multiplier (1.0 to 2.0x)
+
+    # Base probabilities calibrated to PMData injury rates:
+    # - Optimal zone: ~28% 3-day injury rate → ~0.01/day
+    # - High risk zone: ~34% 3-day injury rate → ~0.015/day
+    base_prob = 0.003  # Minimum (perfect conditions, optimal ACWR)
+    max_prob = 0.05    # Maximum (high ACWR + poor wellness)
+
+    # Calculate base injury probability from ACWR
+    acwr_prob = base_prob + (max_prob * 0.6) * acwr_risk
+
+    # Apply vulnerability modifier (1.0x to 2.0x multiplier)
+    vulnerability_multiplier = 1.0 + vulnerability
+
+    injury_prob = acwr_prob * vulnerability_multiplier
+
+    # Add stochastic variation (±20%)
+    injury_prob *= random.uniform(0.8, 1.2)
+
+    # Clamp to valid range
+    return min(max_prob, max(base_prob * 0.3, injury_prob))
+
+
+def generate_load_spike_schedule(year=2024):
+    """
+    Generate a schedule of training load spikes throughout the year.
+
+    These represent realistic scenarios that cause ACWR to spike:
+    - Training camps (5-10 days of high volume)
+    - Race preparation blocks (increased intensity)
+    - Return from illness/vacation (sudden load increase)
+    - Overreaching periods (intentional overload)
+    - Acute spikes (single high-intensity days)
+
+    Calibrated to PMData: ~12% of days should have ACWR > 1.5
+
+    Returns list of (start_day, duration, multiplier) tuples
+    """
+    spikes = []
+
+    # Training camps (3-4 per year, 5-10 days each, 1.6-2.2x load)
+    num_camps = random.randint(3, 4)
+    camp_months = random.sample([2, 3, 4, 5, 6, 7, 8, 9], num_camps)
+    for month in camp_months:
+        start_day = (month - 1) * 30 + random.randint(5, 20)
+        duration = random.randint(5, 10)
+        multiplier = random.uniform(1.6, 2.2)  # Higher intensity
+        spikes.append((start_day, duration, multiplier, 'camp'))
+
+    # Return from rest periods (sudden load after deload, 1.5-2.0x)
+    num_returns = random.randint(4, 6)
+    for _ in range(num_returns):
+        start_day = random.randint(30, 330)
+        duration = random.randint(3, 7)
+        multiplier = random.uniform(1.5, 2.0)  # Higher intensity
+        spikes.append((start_day, duration, multiplier, 'return'))
+
+    # Overreaching blocks (intentional, 5-10 days, 1.4-1.8x)
+    num_overreach = random.randint(3, 5)
+    for _ in range(num_overreach):
+        start_day = random.randint(60, 300)
+        duration = random.randint(5, 10)
+        multiplier = random.uniform(1.4, 1.8)
+        spikes.append((start_day, duration, multiplier, 'overreach'))
+
+    # Acute spikes (single or 2-3 day very high load events - races, tests)
+    num_acute = random.randint(6, 10)
+    for _ in range(num_acute):
+        start_day = random.randint(30, 340)
+        duration = random.randint(1, 3)
+        multiplier = random.uniform(1.8, 2.5)  # Very high intensity
+        spikes.append((start_day, duration, multiplier, 'acute'))
+
+    # Reduced load periods (illness, vacation, life stress - causes undertrained ACWR)
+    num_reduced = random.randint(3, 5)
+    for _ in range(num_reduced):
+        start_day = random.randint(30, 330)
+        duration = random.randint(7, 14)
+        multiplier = random.uniform(0.2, 0.5)  # Lower load
+        spikes.append((start_day, duration, multiplier, 'reduced'))
+
+    return spikes
+
+
+def get_load_multiplier(day_of_year, load_spikes):
+    """
+    Check if current day falls within a load spike period.
+    Returns the multiplier if in a spike, 1.0 otherwise.
+    """
+    for start_day, duration, multiplier, spike_type in load_spikes:
+        if start_day <= day_of_year < start_day + duration:
+            return multiplier, spike_type
+    return 1.0, None
+
+
 def simulate_full_year(athlete, year=2024):
     # Set starting date
     start_date = datetime.datetime(year, 1, 1)
@@ -55,6 +234,9 @@ def simulate_full_year(athlete, year=2024):
     pending_injury_date = None
     days_to_next_false_alarm = random.randint(30, 60)  # Schedule first false alarm
 
+    # Generate load spike schedule for realistic ACWR variability
+    load_spikes = generate_load_spike_schedule(year)
+
     sensor_profile = athlete.get('sensor_profile', 'garmin')
 
     # Menstrual cycle state
@@ -91,8 +273,21 @@ def simulate_full_year(athlete, year=2024):
                     wearable_activity_data[sport] = SensorNoiseModel.apply_optical_profile(wearable_activity_data[sport])
         
         activity_data.append(wearable_activity_data)
+
+        # Apply load spike multiplier for realistic ACWR variability
+        day_of_year = (day['date'] - start_date).days + 1
+        load_multiplier, spike_type = get_load_multiplier(day_of_year, load_spikes)
+
+        # Modify TSS based on load spike (training camp, overreaching, rest period, etc.)
+        original_tss = day_data['actual_tss']
+        day_data['actual_tss'] = original_tss * load_multiplier
+
+        # Also add some daily random variation (±15%) to increase ACWR variability
+        daily_variation = random.uniform(0.85, 1.15)
+        day_data['actual_tss'] *= daily_variation
+
         tss_today = day_data['actual_tss']
-        
+
         # Update TSS and HRV history
         tss_history, hrv_history = update_history(tss_history, hrv_history, tss_today, hrv)
 
@@ -118,30 +313,41 @@ def simulate_full_year(athlete, year=2024):
                 recovery_days_remaining = np.random.randint(3, 10)
                 pending_injury_date = None
             else:
-                # Calculate injury risk factors
-                base_injury_prob = 0.003
-                pattern_injury_prob = 0.0135
-                
+                # Calculate injury probability using ACWR-based Gabbett model
+                # ACWR is the primary trigger, wellness acts as vulnerability modifier
+                feature_based_prob = calculate_injury_probability(day_data, athlete, fatigue, form, acwr)
+
                 # Apply modulations (Menstrual)
                 if modulations and 'injury_risk_modifier' in modulations:
-                    base_injury_prob *= modulations['injury_risk_modifier']
-                    pattern_injury_prob *= modulations['injury_risk_modifier']
-                
+                    feature_based_prob *= modulations['injury_risk_modifier']
+
                 # Apply modulations (Circadian)
                 if 'circadian_injury_modifier' in day_data:
-                    base_injury_prob *= day_data['circadian_injury_modifier']
-                    pattern_injury_prob *= day_data['circadian_injury_modifier']
+                    feature_based_prob *= day_data['circadian_injury_modifier']
 
-                # Add some truly random injuries (unexplained, no patterns)
-                if random.random() < base_injury_prob:  # ~1 random injuries per year
+                # Small chance of truly random injury (unexplained, no patterns)
+                random_injury_prob = 0.001  # ~0.4 per year
+                if random.random() < random_injury_prob:
                     day_data['injury'] = 1
-                    recovery_days_remaining = np.random.randint(3, 7)  # Shorter recovery for sudden injuries
-                # Plan future injuries with patterns
-                elif len(daily_data) > 30 and random.random() < pattern_injury_prob:  # ~4.5-5 pattern-based injuries per year
-                    # Variable warning period (longer is more realistic)
-                    injury_warning_days = random.randint(7, 14)
-                    injury_date = day['date'] + timedelta(days=injury_warning_days)
-                    pending_injury_date = injury_date
+                    recovery_days_remaining = np.random.randint(3, 7)
+                # HIGH ACWR immediate injury (acute overload mechanism)
+                # This creates direct ACWR-injury correlation
+                elif acwr > 1.5 and random.random() < 0.08:  # ~8% chance when high ACWR
+                    day_data['injury'] = 1
+                    recovery_days_remaining = np.random.randint(3, 7)
+                # DANGER zone ACWR - elevated but not immediate
+                elif acwr > 1.3 and random.random() < 0.04:  # ~4% chance in danger zone
+                    day_data['injury'] = 1
+                    recovery_days_remaining = np.random.randint(3, 5)
+                # UNDERTRAINED zone - also risky (coming back too fast)
+                elif acwr < 0.8 and random.random() < 0.03:  # ~3% chance when undertrained
+                    day_data['injury'] = 1
+                    recovery_days_remaining = np.random.randint(2, 5)
+                # Wellness-triggered injury (vulnerability in optimal ACWR zone)
+                elif len(daily_data) > 30 and random.random() < feature_based_prob * 0.5:
+                    # Lower probability for pure wellness injuries
+                    day_data['injury'] = 1
+                    recovery_days_remaining = np.random.randint(3, 7)
                 else:
                     day_data['injury'] = 0
         else:
@@ -233,7 +439,7 @@ def save_simulation_data(simulated_data, output_folder="simulated_data"):
             'smoking_factor': athlete['smoking_factor'],
             'drinking_factor': athlete['drinking_factor'],
             'sensor_profile': athlete['sensor_profile'],
-            'chronotype': athlete['chronotype']
+            'chronotype': athlete.get('chronotype', 'intermediate')
         })
 
         # Save daily data

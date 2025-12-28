@@ -58,8 +58,77 @@ LIFESTYLE_DESCRIPTIONS = {
 }
 
 
+from scipy.spatial.distance import jensenshannon
+
 class AnalyticsService:
     """Service for analytics and visualization data."""
+
+    @classmethod
+    def validate_distributions(cls, synthetic_df: pd.DataFrame, real_df: pd.DataFrame, features: List[str] = None) -> Dict[str, Any]:
+        """
+        Compares synthetic vs real data distributions.
+        Returns statistical distance metrics (Jensen-Shannon Divergence).
+        """
+        if features is None:
+            features = ['sleep_quality_daily', 'stress_score']
+            
+        results = {}
+        
+        # Mapping for common column discrepancies between schemas
+        # Synthetic (standard) -> Real (adapter output)
+        col_map = {
+            'sleep_quality': 'sleep_quality_daily',
+            'stress': 'stress_score',
+            'body_battery_morning': 'recovery_score'
+        }
+        
+        for feature in features:
+            # Handle column names if they differ
+            synth_col = feature
+            real_col = col_map.get(feature, feature)
+            
+            if synth_col not in synthetic_df.columns or real_col not in real_df.columns:
+                results[feature] = {'error': 'Column missing in one of the datasets'}
+                continue
+
+            # Get data
+            synth_data = synthetic_df[synth_col].dropna()
+            real_data = real_df[real_col].dropna()
+            
+            if len(synth_data) == 0 or len(real_data) == 0:
+                results[feature] = {'error': 'Empty data'}
+                continue
+            
+            # Calculate histograms for JS Divergence
+            # Normalize to form probability distributions
+            range_min = min(synth_data.min(), real_data.min())
+            range_max = max(synth_data.max(), real_data.max())
+            
+            # Use fixed number of bins
+            try:
+                bins = np.linspace(range_min, range_max, 20)
+                
+                p, _ = np.histogram(synth_data, bins=bins, density=True)
+                q, _ = np.histogram(real_data, bins=bins, density=True)
+                
+                # Add small epsilon to avoid division by zero
+                p = p + 1e-10
+                q = q + 1e-10
+                
+                js_dist = jensenshannon(p, q)
+                
+                results[feature] = {
+                    'js_divergence': float(js_dist),
+                    'synthetic_mean': float(synth_data.mean()),
+                    'real_mean': float(real_data.mean()),
+                    'synthetic_std': float(synth_data.std()),
+                    'real_std': float(real_data.std()),
+                    'status': 'PASS' if js_dist < 0.2 else 'WARNING'
+                }
+            except Exception as e:
+                results[feature] = {'error': str(e)}
+        
+        return results
 
     @classmethod
     def simulate_intervention(

@@ -22,6 +22,7 @@ def create_app(config_name=None):
         from .api.routes.analytics import bp as analytics_bp
         from .api.routes.data_ingestion import bp as data_ingestion_bp
         from .api.routes.explainability import explainability_bp
+        from .api.routes.validation import validation_bp
 
         app.register_blueprint(data_generation_bp, url_prefix='/api/data')
         app.register_blueprint(preprocessing_bp, url_prefix='/api/preprocessing')
@@ -29,5 +30,6 @@ def create_app(config_name=None):
         app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
         app.register_blueprint(data_ingestion_bp, url_prefix='/api/ingestion')
         app.register_blueprint(explainability_bp)
+        app.register_blueprint(validation_bp, url_prefix='/api/validation')
 
     return app

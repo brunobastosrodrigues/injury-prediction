@@ -81,4 +81,13 @@ export const analyticsApi = {
     })
 }
 
+// Validation API (Sim2Real)
+export const validationApi = {
+  getSummary: () => api.get('/validation/summary'),
+  getDistributions: () => api.get('/validation/distributions'),
+  runSim2Real: () => api.get('/validation/sim2real'),
+  getPmdataAnalysis: () => api.get('/validation/pmdata-analysis'),
+  getStatus: () => api.get('/validation/status')
+}
+
 export default api

@@ -9,6 +9,7 @@ const navItems = [
   { path: '/training', label: 'Training', icon: '🤖' },
   { path: '/results', label: 'Results', icon: '📈' },
   { path: '/interpretability', label: 'Model Interpretability', icon: '🔍' },
+  { path: '/validation', label: 'Data Validation', icon: '✅' },
   { path: '/analytics', label: 'Analytics', icon: '🔬' },
   { path: '/athletes', label: 'Athlete Dashboard', icon: '🏃' }
 ]

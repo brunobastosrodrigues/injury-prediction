@@ -554,7 +554,10 @@ class AthleteMetricsSimulator:
         return round(new_body_battery)
     
     def _calculate_stress_factors(self, athlete, fatigue, daily_data):
-        """Calculate stress factors based on lifestyle, biometrics, and recovery."""
+        """Calculate stress factors based on lifestyle, biometrics, and recovery.
+
+        Distribution tuned to match PMData real-world patterns (right-skewed, mode ~25-35).
+        """
         factors = {
             'smoking': athlete.get('smoking_factor', 0),
             'alcohol': athlete.get('drinking_factor', 0),
@@ -565,13 +568,13 @@ class AthleteMetricsSimulator:
             'battery': max(0, min(1, (100 - daily_data['body_battery_morning']) / 100)),
             'fatigue': max(0, min(1, fatigue / 100))
         }
-        
+
         # Exponential scaling for critical cases
         if daily_data['hrv'] < athlete['hrv_baseline'] * 0.8:
             factors['hrv'] **= 1.5
         if daily_data['resting_hr'] > athlete['resting_hr'] * 1.1:
             factors['hr'] **= 1.5
-            
+
         weights = {
             'smoking': 15,
             'alcohol': 15,
@@ -582,9 +585,22 @@ class AthleteMetricsSimulator:
             'battery': 10,
             'fatigue': 5
         }
-        
-        stress = sum(factors[k] * weights[k] for k in factors) + np.random.normal(0, 3)  # Add variability
-        return min(max(stress, 0), 100)
+
+        stress_raw = sum(factors[k] * weights[k] for k in factors) + np.random.normal(0, 3)
+        stress_raw = min(max(stress_raw, 0), 100)
+
+        # Apply right-skew transformation to match PMData distribution
+        # PMData stress tends to cluster at low-moderate levels (mode ~25-35)
+        # with a long tail toward high stress values
+        # Using a power transformation: stress_adjusted = 100 * (stress_raw/100)^0.7
+        # This compresses the lower end and expands the higher end
+        stress_normalized = stress_raw / 100.0
+        stress_skewed = 100 * (stress_normalized ** 0.7)
+
+        # Add slight shift toward the typical PMData range (mean ~30-40)
+        stress_adjusted = stress_skewed * 0.85 + 5  # Scale and shift
+
+        return min(max(stress_adjusted, 0), 100)
     
     def _calculate_evening_body_battery(self, daily_data, stress, fatigue, current_hour):
         """Calculate evening body battery considering various drains."""
