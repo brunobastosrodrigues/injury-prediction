@@ -7,6 +7,8 @@ function ValidationPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [summary, setSummary] = useState(null)
+  const [causalData, setCausalData] = useState(null)
+  const [threePillars, setThreePillars] = useState(null)
   const [activeTab, setActiveTab] = useState('overview')
 
   useEffect(() => {
@@ -17,8 +19,14 @@ function ValidationPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await validationApi.getSummary()
-      setSummary(response.data)
+      const [summaryRes, causalRes, pillarsRes] = await Promise.all([
+        validationApi.getSummary(),
+        validationApi.getCausalMechanism().catch(() => ({ data: null })),
+        validationApi.getThreePillars().catch(() => ({ data: null }))
+      ])
+      setSummary(summaryRes.data)
+      setCausalData(causalRes.data)
+      setThreePillars(pillarsRes.data)
     } catch (err) {
       console.error('Failed to load validation data:', err)
       setError(err.response?.data?.error || 'Failed to load validation data')
@@ -41,10 +49,17 @@ function ValidationPage() {
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
+    { id: 'causal', label: 'Causal Mechanism' },
     { id: 'distributions', label: 'Distributions' },
     { id: 'sim2real', label: 'Sim2Real' },
     { id: 'pmdata', label: 'PMData Analysis' }
   ]
+
+  const getPillarColor = (status) => {
+    if (status === 'pass') return 'bg-green-100 text-green-800 border-green-200'
+    if (status === 'warning') return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+    return 'bg-red-100 text-red-800 border-red-200'
+  }
 
   if (loading) {
     return (
@@ -175,6 +190,294 @@ function ValidationPage() {
               </div>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* Causal Mechanism Tab */}
+      {activeTab === 'causal' && (
+        <div className="space-y-4">
+          {/* Three Pillars Summary */}
+          {threePillars && (
+            <Card title="Three Pillars of Validity">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                {/* Statistical Fidelity */}
+                <div className={`p-4 rounded-lg border ${getPillarColor(threePillars.pillars?.statistical_fidelity?.status)}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold">Statistical Fidelity</h4>
+                    <span className="text-xs uppercase font-bold">
+                      {threePillars.pillars?.statistical_fidelity?.status || 'pending'}
+                    </span>
+                  </div>
+                  <p className="text-2xl font-bold mb-1">
+                    {((threePillars.pillars?.statistical_fidelity?.score || 0) * 100).toFixed(0)}%
+                  </p>
+                  <p className="text-xs opacity-75">
+                    JS Div: {threePillars.pillars?.statistical_fidelity?.avg_js_divergence?.toFixed(4) || 'N/A'}
+                  </p>
+                  <p className="text-xs mt-1 opacity-60">Target: JS &lt; 0.1</p>
+                </div>
+
+                {/* Causal Fidelity */}
+                <div className={`p-4 rounded-lg border ${getPillarColor(threePillars.pillars?.causal_fidelity?.status)}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold">Causal Fidelity</h4>
+                    <span className="text-xs uppercase font-bold">
+                      {threePillars.pillars?.causal_fidelity?.status || 'pending'}
+                    </span>
+                  </div>
+                  <p className="text-2xl font-bold mb-1">
+                    {threePillars.pillars?.causal_fidelity?.undertrained_risk_ratio?.toFixed(1) || '?'}x
+                  </p>
+                  <p className="text-xs opacity-75">
+                    Undertrained vs Optimal risk ratio
+                  </p>
+                  <p className="text-xs mt-1 opacity-60">Target: 2-3x higher</p>
+                </div>
+
+                {/* Transferability */}
+                <div className={`p-4 rounded-lg border ${getPillarColor(threePillars.pillars?.transferability?.status)}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold">Transferability</h4>
+                    <span className="text-xs uppercase font-bold">
+                      {threePillars.pillars?.transferability?.status || 'pending'}
+                    </span>
+                  </div>
+                  <p className="text-2xl font-bold mb-1">
+                    {threePillars.pillars?.transferability?.sim2real_auc?.toFixed(3) || '?'}
+                  </p>
+                  <p className="text-xs opacity-75">Sim2Real AUC</p>
+                  <p className="text-xs mt-1 opacity-60">Target: AUC &gt; 0.60</p>
+                </div>
+              </div>
+
+              {/* Overall Status */}
+              <div className={`p-4 rounded-lg ${threePillars.ready_for_publication ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">
+                      {threePillars.ready_for_publication ? 'Ready for Publication' : 'Needs Improvement'}
+                    </p>
+                    <p className="text-sm opacity-75">
+                      {threePillars.pillars_passing} pillars passing
+                    </p>
+                  </div>
+                  <span className="text-3xl font-bold">
+                    {(threePillars.overall_score * 100).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Causal Asymmetry Chart (The Paper's Main Finding) */}
+          {causalData?.causal_asymmetry?.zones && (
+            <Card title="Causal Asymmetry: Risk per Load Unit by ACWR Zone">
+              <Plot
+                data={[{
+                  x: causalData.causal_asymmetry.zones.map(z => z.zone),
+                  y: causalData.causal_asymmetry.zones.map(z => z.risk_per_load),
+                  type: 'bar',
+                  marker: {
+                    color: causalData.causal_asymmetry.zones.map(z =>
+                      z.zone === 'Optimal' ? '#22c55e' :
+                      z.zone === 'Undertrained' ? '#ef4444' :
+                      z.zone === 'High Risk' ? '#f97316' : '#eab308'
+                    )
+                  },
+                  text: causalData.causal_asymmetry.zones.map(z => `${z.relative_risk}x`),
+                  textposition: 'outside',
+                  textfont: { size: 14, color: '#374151' }
+                }]}
+                layout={{
+                  height: 350,
+                  margin: { t: 40, r: 20, b: 60, l: 60 },
+                  xaxis: { title: 'ACWR Zone' },
+                  yaxis: { title: 'Injuries per 10,000 TSS Units' },
+                  showlegend: false,
+                  annotations: [{
+                    x: 0.5,
+                    y: -0.15,
+                    xref: 'paper',
+                    yref: 'paper',
+                    text: causalData.causal_asymmetry.summary?.interpretation || '',
+                    showarrow: false,
+                    font: { size: 11, color: '#6b7280' },
+                    align: 'center'
+                  }]
+                }}
+                config={{ displayModeBar: false, responsive: true }}
+                style={{ width: '100%' }}
+              />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                {causalData.causal_asymmetry.zones.map(zone => (
+                  <div key={zone.zone} className="text-center p-2 bg-gray-50 rounded text-xs">
+                    <p className="font-medium">{zone.zone}</p>
+                    <p>{zone.total_injuries} injuries / {zone.total_days} days</p>
+                    <p className="text-gray-500">{zone.injury_rate_pct}% daily rate</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Risk Landscape Contour */}
+          {causalData?.risk_landscape?.risk_grid && (
+            <Card title="Risk Landscape: Acute vs Chronic Load">
+              <Plot
+                data={[{
+                  z: causalData.risk_landscape.risk_grid,
+                  x: causalData.risk_landscape.chronic_values,
+                  y: causalData.risk_landscape.acute_values,
+                  type: 'contour',
+                  colorscale: 'RdYlGn',
+                  reversescale: true,
+                  contours: { showlabels: true, labelfont: { size: 10 } },
+                  colorbar: { title: 'Injury Prob', titleside: 'right' }
+                },
+                // ACWR reference lines
+                {
+                  x: causalData.risk_landscape.acwr_lines?.x || [],
+                  y: causalData.risk_landscape.acwr_lines?.['acwr_0.8'] || [],
+                  type: 'scatter',
+                  mode: 'lines',
+                  name: 'ACWR 0.8',
+                  line: { dash: 'dash', color: 'white', width: 2 }
+                },
+                {
+                  x: causalData.risk_landscape.acwr_lines?.x || [],
+                  y: causalData.risk_landscape.acwr_lines?.['acwr_1.3'] || [],
+                  type: 'scatter',
+                  mode: 'lines',
+                  name: 'ACWR 1.3',
+                  line: { dash: 'dash', color: 'white', width: 2 }
+                }]}
+                layout={{
+                  height: 400,
+                  margin: { t: 30, r: 100, b: 60, l: 60 },
+                  xaxis: { title: 'Chronic Load (Fitness)' },
+                  yaxis: { title: 'Acute Load (Fatigue)' },
+                  showlegend: true,
+                  legend: { x: 0, y: 1.1, orientation: 'h' }
+                }}
+                config={{ displayModeBar: false, responsive: true }}
+                style={{ width: '100%' }}
+              />
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                The "Sweet Spot" (green) is where ACWR is 0.8-1.3. Red zones indicate elevated risk.
+              </p>
+            </Card>
+          )}
+
+          {/* Load Scenario Analysis */}
+          {causalData?.load_scenarios?.scenarios && (
+            <Card title="Injury Risk by Training Scenario">
+              <Plot
+                data={[{
+                  x: causalData.load_scenarios.scenarios.map(s => s.scenario),
+                  y: causalData.load_scenarios.scenarios.map(s => s.injury_rate * 100),
+                  type: 'bar',
+                  marker: {
+                    color: causalData.load_scenarios.scenarios.map(s =>
+                      s.scenario === causalData.load_scenarios.highest_risk_scenario ? '#ef4444' :
+                      s.scenario === causalData.load_scenarios.lowest_risk_scenario ? '#22c55e' : '#3b82f6'
+                    )
+                  }
+                }]}
+                layout={{
+                  height: 280,
+                  margin: { t: 20, r: 20, b: 80, l: 50 },
+                  xaxis: { title: 'Training Scenario', tickangle: -45 },
+                  yaxis: { title: 'Injury Rate (%)' },
+                  showlegend: false
+                }}
+                config={{ displayModeBar: false, responsive: true }}
+                style={{ width: '100%' }}
+              />
+              <div className="flex justify-center gap-4 mt-2 text-xs">
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-red-500 rounded"></span>
+                  Highest Risk: {causalData.load_scenarios.highest_risk_scenario}
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-green-500 rounded"></span>
+                  Lowest Risk: {causalData.load_scenarios.lowest_risk_scenario}
+                </span>
+              </div>
+            </Card>
+          )}
+
+          {/* Injury Type Breakdown */}
+          {causalData?.injury_types?.breakdown && (
+            <Card title="Injury Mechanism Breakdown">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Plot
+                  data={[{
+                    labels: causalData.injury_types.breakdown.map(t => t.type),
+                    values: causalData.injury_types.breakdown.map(t => t.count),
+                    type: 'pie',
+                    marker: {
+                      colors: ['#ef4444', '#f97316', '#3b82f6', '#8b5cf6']
+                    },
+                    textinfo: 'label+percent',
+                    hole: 0.4
+                  }]}
+                  layout={{
+                    height: 250,
+                    margin: { t: 20, r: 20, b: 20, l: 20 },
+                    showlegend: false
+                  }}
+                  config={{ displayModeBar: false, responsive: true }}
+                  style={{ width: '100%' }}
+                />
+                <div className="space-y-2">
+                  {causalData.injury_types.breakdown.map(type => (
+                    <div key={type.type} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div>
+                        <span className="font-medium capitalize">{type.type}</span>
+                        <span className="text-xs text-gray-500 ml-2">({type.percentage}%)</span>
+                      </div>
+                      <span className="text-lg font-bold">{type.count}</span>
+                    </div>
+                  ))}
+                  <div className="pt-2 border-t">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">Total Injuries</span>
+                      <span className="font-bold">{causalData.injury_types.total_injuries}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Dominant mechanism: <span className="font-medium">{causalData.injury_types.dominant_mechanism}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* No Data Warning */}
+          {!causalData?.causal_asymmetry?.zones && (
+            <Card>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Glass-Box Data Required</h3>
+                <p className="text-gray-600 mb-4">
+                  Regenerate synthetic data to include causal mechanism columns (ACWR, injury_type, wellness_vulnerability).
+                </p>
+                <a
+                  href="/data-generation"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Regenerate Synthetic Cohort
+                </a>
+              </div>
+            </Card>
+          )}
         </div>
       )}
 

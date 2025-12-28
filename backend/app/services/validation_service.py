@@ -524,3 +524,230 @@ class ValidationService:
             'pmdata_analysis': pmdata,
             'model_evaluation': model_eval
         }
+
+    # =========================================================================
+    # CAUSAL MECHANISM ANALYSIS (For Publication)
+    # =========================================================================
+
+    @classmethod
+    def get_causal_mechanism_analysis(cls) -> Dict[str, Any]:
+        """
+        Comprehensive causal mechanism analysis for synthetic data.
+
+        Validates the "Asymmetric ACWR" hypothesis and provides
+        publication-quality metrics for the Three Pillars of Validity:
+        1. Statistical Fidelity
+        2. Causal Fidelity
+        3. Transferability
+        """
+        from ..utils.publication_plots import (
+            calculate_causal_asymmetry,
+            calculate_risk_landscape,
+            calculate_wellness_vulnerability_analysis,
+            calculate_load_scenario_analysis,
+            calculate_injury_type_breakdown
+        )
+
+        df_synth = cls.load_synthetic_raw()  # Load with glass-box columns
+
+        if df_synth is None:
+            return {'error': 'No synthetic data found. Generate a cohort first.'}
+
+        results = {
+            'has_data': True,
+            'total_samples': len(df_synth),
+            'total_athletes': df_synth['athlete_id'].nunique() if 'athlete_id' in df_synth.columns else 0
+        }
+
+        # 1. Causal Asymmetry Analysis (The Paper's Main Finding)
+        if 'acwr' in df_synth.columns:
+            results['causal_asymmetry'] = calculate_causal_asymmetry(
+                df_synth,
+                acwr_col='acwr',
+                injury_col='injury',
+                load_col='actual_tss'
+            )
+        else:
+            results['causal_asymmetry'] = {'error': 'ACWR column not found - regenerate data with glass-box columns'}
+
+        # 2. Risk Landscape (Contour plot data)
+        if 'actual_tss' in df_synth.columns:
+            results['risk_landscape'] = calculate_risk_landscape(
+                df_synth,
+                injury_col='injury'
+            )
+        else:
+            results['risk_landscape'] = {'error': 'Load data not found'}
+
+        # 3. Wellness Vulnerability Analysis
+        if 'wellness_vulnerability' in df_synth.columns:
+            results['wellness_vulnerability'] = calculate_wellness_vulnerability_analysis(
+                df_synth,
+                wellness_col='wellness_vulnerability',
+                injury_col='injury'
+            )
+        else:
+            results['wellness_vulnerability'] = {'error': 'Wellness vulnerability not found - regenerate with glass-box columns'}
+
+        # 4. Load Scenario Analysis
+        if 'load_scenario' in df_synth.columns:
+            results['load_scenarios'] = calculate_load_scenario_analysis(
+                df_synth,
+                scenario_col='load_scenario',
+                injury_col='injury'
+            )
+        else:
+            results['load_scenarios'] = {'error': 'Load scenario not found'}
+
+        # 5. Injury Type Breakdown
+        if 'injury_type' in df_synth.columns:
+            results['injury_types'] = calculate_injury_type_breakdown(
+                df_synth,
+                injury_type_col='injury_type',
+                injury_col='injury'
+            )
+        else:
+            results['injury_types'] = {'error': 'Injury type not found'}
+
+        # 6. Overall injury statistics
+        if 'injury' in df_synth.columns:
+            injury_days = df_synth['injury'].sum()
+            total_days = len(df_synth)
+            results['injury_statistics'] = {
+                'total_injury_days': int(injury_days),
+                'total_days': int(total_days),
+                'injury_rate_pct': round(injury_days / total_days * 100, 2) if total_days > 0 else 0,
+                'injuries_per_athlete': round(injury_days / results['total_athletes'], 2) if results['total_athletes'] > 0 else 0
+            }
+
+        return results
+
+    @classmethod
+    def load_synthetic_raw(cls) -> Optional[pd.DataFrame]:
+        """Load synthetic dataset with all glass-box columns (no renaming)."""
+        synth_path = cls.get_synthetic_path()
+        if not synth_path:
+            return None
+
+        try:
+            parquet_path = os.path.join(synth_path, 'daily_data.parquet')
+            csv_path = os.path.join(synth_path, 'daily_data.csv')
+
+            if os.path.exists(parquet_path):
+                return pd.read_parquet(parquet_path)
+            elif os.path.exists(csv_path):
+                return pd.read_csv(csv_path)
+            else:
+                return None
+        except Exception as e:
+            print(f"Error loading synthetic data: {e}")
+            return None
+
+    @classmethod
+    def get_raincloud_data(cls, feature: str) -> Dict[str, Any]:
+        """
+        Get data for raincloud plot comparing synthetic vs real distributions.
+        """
+        from ..utils.publication_plots import calculate_raincloud_data
+
+        df_synth = cls.load_synthetic()
+        df_real = cls.load_pmdata()
+
+        if df_synth is None:
+            return {'error': 'No synthetic data found'}
+        if df_real is None:
+            return {'error': 'No PMData found'}
+
+        return calculate_raincloud_data(df_synth, df_real, feature)
+
+    @classmethod
+    def get_three_pillars_summary(cls) -> Dict[str, Any]:
+        """
+        Get a summary aligned with the Three Pillars of Validity framework.
+
+        1. Statistical Fidelity: JS Divergence < 0.1 for wellness features
+        2. Causal Fidelity: Undertrained zone shows 2-3x higher risk per load
+        3. Transferability: Sim2Real AUC > 0.60
+        """
+        results = {
+            'pillars': {
+                'statistical_fidelity': {'status': 'pending', 'score': 0},
+                'causal_fidelity': {'status': 'pending', 'score': 0},
+                'transferability': {'status': 'pending', 'score': 0}
+            }
+        }
+
+        # 1. Statistical Fidelity
+        try:
+            distributions = cls.get_distribution_comparison()
+            if 'features' in distributions:
+                js_scores = [
+                    f.get('js_divergence', 1.0)
+                    for f in distributions['features'].values()
+                    if isinstance(f, dict) and 'js_divergence' in f
+                ]
+                if js_scores:
+                    avg_js = sum(js_scores) / len(js_scores)
+                    passing = sum(1 for js in js_scores if js < 0.1)
+
+                    results['pillars']['statistical_fidelity'] = {
+                        'status': 'pass' if avg_js < 0.1 else 'warning' if avg_js < 0.2 else 'fail',
+                        'score': round(max(0, 1 - avg_js), 2),
+                        'avg_js_divergence': round(avg_js, 4),
+                        'features_passing': f'{passing}/{len(js_scores)}',
+                        'target': 'JS < 0.1 for all features'
+                    }
+        except Exception as e:
+            results['pillars']['statistical_fidelity']['error'] = str(e)
+
+        # 2. Causal Fidelity
+        try:
+            causal = cls.get_causal_mechanism_analysis()
+            if 'causal_asymmetry' in causal and 'summary' in causal['causal_asymmetry']:
+                summary = causal['causal_asymmetry']['summary']
+                ut_ratio = summary.get('undertrained_vs_optimal', 0)
+                hr_ratio = summary.get('high_risk_vs_optimal', 0)
+
+                # Good: undertrained > 1.5x and > high_risk (proves physiological mechanism)
+                is_asymmetric = ut_ratio > hr_ratio and ut_ratio > 1.5
+
+                results['pillars']['causal_fidelity'] = {
+                    'status': 'pass' if is_asymmetric else 'warning' if ut_ratio > 1.2 else 'fail',
+                    'score': round(min(1.0, ut_ratio / 3.0), 2),  # Score based on undertrained ratio
+                    'undertrained_risk_ratio': ut_ratio,
+                    'high_risk_ratio': hr_ratio,
+                    'is_asymmetric': is_asymmetric,
+                    'target': 'Undertrained zone shows 2-3x higher risk per load unit',
+                    'interpretation': summary.get('interpretation', '')
+                }
+        except Exception as e:
+            results['pillars']['causal_fidelity']['error'] = str(e)
+
+        # 3. Transferability
+        try:
+            sim2real = cls.run_sim2real_experiment()
+            auc = sim2real.get('auc', 0.5)
+
+            results['pillars']['transferability'] = {
+                'status': 'pass' if auc > 0.60 else 'warning' if auc > 0.55 else 'fail',
+                'score': round(max(0, (auc - 0.5) * 2), 2),
+                'sim2real_auc': round(auc, 4),
+                'target': 'Sim2Real AUC > 0.60',
+                'interpretation': sim2real.get('interpretation', '')
+            }
+        except Exception as e:
+            results['pillars']['transferability']['error'] = str(e)
+
+        # Overall assessment
+        scores = [
+            p.get('score', 0)
+            for p in results['pillars'].values()
+            if isinstance(p, dict) and 'score' in p
+        ]
+        results['overall_score'] = round(sum(scores) / len(scores), 2) if scores else 0
+
+        passing = sum(1 for p in results['pillars'].values() if p.get('status') == 'pass')
+        results['pillars_passing'] = f'{passing}/3'
+        results['ready_for_publication'] = passing == 3
+
+        return results

@@ -106,7 +106,11 @@ export const validationApi = {
   getDistributions: () => api.get('/validation/distributions'),
   runSim2Real: () => api.get('/validation/sim2real'),
   getPmdataAnalysis: () => api.get('/validation/pmdata-analysis'),
-  getStatus: () => api.get('/validation/status')
+  getStatus: () => api.get('/validation/status'),
+  // Causal Mechanism Analysis (Publication-quality)
+  getCausalMechanism: () => api.get('/validation/causal-mechanism'),
+  getThreePillars: () => api.get('/validation/three-pillars'),
+  getRaincloudData: (feature) => api.get(`/validation/raincloud/${feature}`)
 }
 
 export default api

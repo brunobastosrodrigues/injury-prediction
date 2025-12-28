@@ -118,3 +118,71 @@ def get_validation_status():
         })
     except Exception as e:
         return jsonify({'error': str(e), 'ready': False}), 500
+
+
+# =========================================================================
+# CAUSAL MECHANISM ANALYSIS ENDPOINTS (For Publication)
+# =========================================================================
+
+@validation_bp.route('/causal-mechanism', methods=['GET'])
+def get_causal_mechanism():
+    """
+    Get comprehensive causal mechanism analysis for synthetic data.
+
+    Validates the "Asymmetric ACWR" hypothesis and provides
+    publication-quality metrics including:
+    - Causal asymmetry by ACWR zone
+    - Risk landscape data
+    - Wellness vulnerability analysis
+    - Load scenario analysis
+    - Injury type breakdown
+
+    Returns:
+        JSON with complete causal mechanism analysis.
+    """
+    try:
+        result = ValidationService.get_causal_mechanism_analysis()
+        if 'error' in result:
+            return jsonify(result), 404
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/three-pillars', methods=['GET'])
+def get_three_pillars():
+    """
+    Get summary aligned with the Three Pillars of Validity framework.
+
+    1. Statistical Fidelity: JS Divergence < 0.1 for wellness features
+    2. Causal Fidelity: Undertrained zone shows 2-3x higher risk per load
+    3. Transferability: Sim2Real AUC > 0.60
+
+    Returns:
+        JSON with pillar scores and overall publication readiness.
+    """
+    try:
+        result = ValidationService.get_three_pillars_summary()
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/raincloud/<feature>', methods=['GET'])
+def get_raincloud_data(feature):
+    """
+    Get data for raincloud plot comparing synthetic vs real distributions.
+
+    Args:
+        feature: Feature name to compare (e.g., 'stress_score', 'sleep_quality_daily')
+
+    Returns:
+        JSON with density, box stats, and sample points for both datasets.
+    """
+    try:
+        result = ValidationService.get_raincloud_data(feature)
+        if 'error' in result:
+            return jsonify(result), 404
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
