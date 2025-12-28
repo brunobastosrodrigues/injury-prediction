@@ -38,7 +38,7 @@ python synthetic_data_generation/main.py
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/redsleo02/Bachelorarbeit.git
+    git clone https://github.com/brunobastosrodrigues/injury-prediction
     cd injury-prediction
     ```
 
