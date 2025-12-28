@@ -2,6 +2,25 @@ import axios from 'axios';
 
 const api = axios.create({ baseURL: '/api' });
 
+// Error interceptor for consistent error handling
+api.interceptors.response.use(
+  response => response,
+  error => {
+    // Handle different error types
+    if (error.response) {
+      // Server responded with an error status
+      console.error(`API Error: ${error.response.status} - ${error.response.data?.error || 'Unknown error'}`);
+    } else if (error.request) {
+      // Request was made but no response received (network error)
+      console.error('Network Error: No response received from server');
+    } else {
+      // Error in request configuration
+      console.error('Request Error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Data Generation API
 export const dataApi = {
   generate: (config) => api.post('/data/generate', config),

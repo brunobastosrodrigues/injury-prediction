@@ -38,14 +38,14 @@ def get_preprocessing_status(job_id):
     if not status:
         return jsonify({'error': 'Job not found'}), 404
 
-    return jsonify(status)
+    return jsonify(status), 200
 
 
 @bp.route('/splits', methods=['GET'])
 def list_splits():
     """List all available preprocessed splits."""
     splits = PreprocessingService.list_splits()
-    return jsonify({'splits': splits})
+    return jsonify({'splits': splits}), 200
 
 
 @bp.route('/splits/<split_id>', methods=['GET'])
@@ -56,7 +56,7 @@ def get_split(split_id):
     if not split:
         return jsonify({'error': 'Split not found'}), 404
 
-    return jsonify(split)
+    return jsonify(split), 200
 
 
 @bp.route('/jobs', methods=['GET'])
@@ -64,4 +64,4 @@ def list_jobs():
     """List all preprocessing jobs."""
     from ...utils.progress_tracker import ProgressTracker
     jobs = ProgressTracker.get_all_jobs('preprocessing')
-    return jsonify({'jobs': jobs})
+    return jsonify({'jobs': jobs}), 200

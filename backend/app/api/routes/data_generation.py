@@ -38,7 +38,7 @@ def get_generation_status(job_id):
     if not status:
         return jsonify({'error': 'Job not found'}), 404
 
-    return jsonify(status)
+    return jsonify(status), 200
 
 
 @bp.route('/generate/<job_id>/cancel', methods=['POST'])
@@ -47,7 +47,7 @@ def cancel_generation(job_id):
     success = DataGenerationService.cancel_generation(job_id)
 
     if success:
-        return jsonify({'status': 'cancelled', 'message': 'Job cancelled successfully'})
+        return jsonify({'status': 'cancelled', 'message': 'Job cancelled successfully'}), 200
     else:
         return jsonify({'error': 'Job not found or not running'}), 400
 
@@ -56,7 +56,7 @@ def cancel_generation(job_id):
 def list_datasets():
     """List all available datasets."""
     datasets = DataGenerationService.list_datasets()
-    return jsonify({'datasets': datasets})
+    return jsonify({'datasets': datasets}), 200
 
 
 @bp.route('/datasets/<dataset_id>', methods=['GET'])
@@ -67,7 +67,7 @@ def get_dataset(dataset_id):
     if not dataset:
         return jsonify({'error': 'Dataset not found'}), 404
 
-    return jsonify(dataset)
+    return jsonify(dataset), 200
 
 
 @bp.route('/datasets/<dataset_id>', methods=['DELETE'])
@@ -76,7 +76,7 @@ def delete_dataset(dataset_id):
     success = DataGenerationService.delete_dataset(dataset_id)
 
     if success:
-        return jsonify({'status': 'deleted', 'message': 'Dataset deleted successfully'})
+        return jsonify({'status': 'deleted', 'message': 'Dataset deleted successfully'}), 200
     else:
         return jsonify({'error': 'Dataset not found'}), 404
 
@@ -95,7 +95,7 @@ def get_dataset_sample(dataset_id):
     if not sample:
         return jsonify({'error': 'Dataset or table not found'}), 404
 
-    return jsonify(sample)
+    return jsonify(sample), 200
 
 
 @bp.route('/jobs', methods=['GET'])
@@ -103,4 +103,4 @@ def list_jobs():
     """List all data generation jobs."""
     from ...utils.progress_tracker import ProgressTracker
     jobs = ProgressTracker.get_all_jobs('data_generation')
-    return jsonify({'jobs': jobs})
+    return jsonify({'jobs': jobs}), 200

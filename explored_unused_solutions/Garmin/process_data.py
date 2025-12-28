@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import ast
 from datetime import datetime
 
 class GarminDataProcessor:
@@ -128,13 +129,14 @@ class GarminDataProcessor:
         activities_grouped.columns = ['calendarDate', 'activities']
         # Prepare sleep data
         # Convert sleep scores from string to dict if they're stored as strings
+        # Using ast.literal_eval for safe evaluation of literal structures
         if sleep['sleepScores'].dtype == 'object':
             sleep['sleepScores'] = sleep['sleepScores'].apply(
-                lambda x: eval(x) if isinstance(x, str) else x
+                lambda x: ast.literal_eval(x) if isinstance(x, str) else x
             )
         if sleep['overallSleepScore'].dtype == 'object':
             sleep['overallSleepScore'] = sleep['overallSleepScore'].apply(
-                lambda x: eval(x) if isinstance(x, str) else x
+                lambda x: ast.literal_eval(x) if isinstance(x, str) else x
             )
         
         # Create sleep data dictionary

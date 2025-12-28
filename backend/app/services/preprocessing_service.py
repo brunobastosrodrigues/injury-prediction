@@ -193,7 +193,7 @@ class PreprocessingService:
             if X[col].dtype == 'object':
                 try:
                     X[col] = pd.to_numeric(X[col], errors='coerce')
-                except:
+                except (ValueError, TypeError):
                     columns_to_drop.append(col)
 
         if 'athlete_id' in X.columns:
@@ -207,7 +207,7 @@ class PreprocessingService:
                 X[f'{col}_dayofweek'] = dt_col.dt.dayofweek
                 X[f'{col}_month'] = dt_col.dt.month
                 columns_to_drop.append(col)
-            except:
+            except (ValueError, TypeError, KeyError):
                 columns_to_drop.append(col)
 
         X = X.drop(columns=[c for c in columns_to_drop if c in X.columns], errors='ignore')

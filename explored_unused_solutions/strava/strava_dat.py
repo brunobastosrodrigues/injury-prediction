@@ -3,10 +3,17 @@ import pandas as pd
 import time
 import os
 
-# Strava API credentials
-CLIENT_ID = "144607"
-CLIENT_SECRET = "5103b9d299464cde9b0ec9ba1b289dcbe18efb48"
-REDIRECT_URI = "http://localhost:8080/exchange_token"
+# Strava API credentials - loaded from environment variables for security
+CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
+CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
+REDIRECT_URI = os.getenv('STRAVA_REDIRECT_URI', 'http://localhost:8080/exchange_token')
+
+# Validate required credentials are set
+if not CLIENT_ID or not CLIENT_SECRET:
+    raise ValueError(
+        "Strava API credentials not configured. "
+        "Please set STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET environment variables."
+    )
 
 # Step 1: Obtain access token
 def get_access_token():

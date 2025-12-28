@@ -312,7 +312,7 @@ class ValidationService:
                         'significant': spearman_p < 0.05,
                         'direction': 'increases risk' if spearman_r > 0 else 'decreases risk'
                     })
-                except:
+                except (ValueError, TypeError, FloatingPointError):
                     pass
 
         correlations.sort(key=lambda x: abs(x['correlation']), reverse=True)
@@ -335,7 +335,7 @@ class ValidationService:
                         'delta_percent': round(float(delta_pct), 2),
                         'direction': 'increases' if delta_pct > 0 else 'decreases'
                     })
-                except:
+                except (ValueError, TypeError, FloatingPointError):
                     pass
 
         signature.sort(key=lambda x: abs(x['delta_percent']), reverse=True)
