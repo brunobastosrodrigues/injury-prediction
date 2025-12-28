@@ -1,0 +1,786 @@
+# =============================================================================
+# SYNTHETIC DATA GENERATION CONFIGURATION
+# =============================================================================
+# All configurable parameters for the injury prediction simulation.
+# Organized by module and function for easy navigation.
+#
+# CALIBRATION NOTES:
+# - Parameters marked [PMData] are calibrated against real PMData distributions
+# - Parameters marked [Literature] are based on sports science research
+# - Parameters marked [Empirical] are tuned through simulation experiments
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# INJURY MODEL PARAMETERS
+# Based on Asymmetric ACWR hypothesis from PMData analysis
+# -----------------------------------------------------------------------------
+injury_model:
+  # ACWR Zone Thresholds [PMData]
+  acwr_thresholds:
+    undertrained: 0.8      # Below this = physiological vulnerability
+    optimal_upper: 1.3     # Above this = exposure mechanism dominates
+    danger_zone: 1.5       # High risk zone (for visualization)
+
+  # Mechanism 1: Physiological Detraining (ACWR < 0.8)
+  # PMData evidence: 2.66x higher injury rate per load unit
+  physiological:
+    base_daily_risk: 0.008         # ~0.8% base daily risk when undertrained
+    max_detraining_multiplier: 2.66  # From PMData analysis
+    wellness_amplification: 0.5    # How much wellness compounds risk
+
+  # Mechanism 2: Stochastic Exposure (high load days)
+  # PMData evidence: 1.04x injury rate per load unit (same as optimal!)
+  exposure:
+    accident_rate_per_load_unit: 0.0001  # ~0.01% per TSS unit
+    random_variation_range: [0.7, 1.3]   # Stochastic noise bounds
+
+  # Mechanism 3: Baseline Risk (optimal zone)
+  baseline:
+    daily_risk: 0.002              # ~0.2% daily baseline in optimal zone
+    wellness_amplification: 0.3   # Lower amplification in optimal zone
+
+  # Risk Bounds
+  bounds:
+    min_probability: 0.001
+    max_probability: 0.08          # Cap prevents unrealistic values
+
+  # Recovery Duration (days)
+  recovery_days:
+    physiological: [5, 12]         # Tissue damage takes longer
+    exposure: [2, 10]              # Accidents vary widely
+    baseline: [3, 7]               # Standard recovery
+
+# -----------------------------------------------------------------------------
+# WELLNESS VULNERABILITY CALCULATION
+# Modulates injury risk based on holistic athlete state
+# -----------------------------------------------------------------------------
+wellness_vulnerability:
+  # Component Weights (must sum to 1.0)
+  weights:
+    sleep_deficit: 0.25
+    poor_sleep_quality: 0.15
+    high_stress: 0.20
+    low_recovery: 0.15
+    fatigue: 0.15
+    negative_form: 0.10
+
+  # Sleep Parameters
+  sleep:
+    target_hours: 7.0              # Optimal sleep duration
+    deficit_scale: 3.0             # Hours below target / scale = deficit
+
+  # Stress Sensitivity Enhancement [PMData]
+  # With right-skewed stress (mode ~25-35), boost high-stress impact
+  stress:
+    boost_threshold: 50            # Apply exponential boost above this
+    boost_exponent: 1.5            # Shape of exponential curve
+    max_boost_multiplier: 3.0      # Maximum stress amplification
+
+# -----------------------------------------------------------------------------
+# LOAD SPIKE SCHEDULE
+# Creates realistic ACWR variability throughout the year
+# Calibrated to PMData: ~12% of days should have ACWR > 1.5
+# -----------------------------------------------------------------------------
+load_spikes:
+  # Training Camps (high volume blocks)
+  camps:
+    count_range: [3, 4]            # Number per year
+    duration_range: [5, 10]        # Days per camp
+    multiplier_range: [1.6, 2.2]   # Load increase factor
+    allowed_months: [2, 3, 4, 5, 6, 7, 8, 9]  # Feb-Sep
+
+  # Return from Rest (sudden load after deload)
+  returns:
+    count_range: [4, 6]
+    duration_range: [3, 7]
+    multiplier_range: [1.5, 2.0]
+
+  # Overreaching Blocks (intentional overload)
+  overreach:
+    count_range: [3, 5]
+    duration_range: [5, 10]
+    multiplier_range: [1.4, 1.8]
+
+  # Acute Spikes (races, tests, single hard days)
+  acute:
+    count_range: [6, 10]
+    duration_range: [1, 3]
+    multiplier_range: [1.8, 2.5]
+
+  # Reduced Load (illness, vacation, life stress)
+  reduced:
+    count_range: [3, 5]
+    duration_range: [7, 14]
+    multiplier_range: [0.2, 0.5]
+
+  # Daily Variation
+  daily_variation_range: [0.85, 1.15]  # ±15% random daily TSS variation
+
+# -----------------------------------------------------------------------------
+# FALSE ALARM PATTERNS
+# Creates patterns that mimic pre-injury but don't result in injury
+# Critical for model specificity
+# -----------------------------------------------------------------------------
+false_alarms:
+  first_alarm_days: [30, 60]       # Days until first false alarm
+  interval_days: [20, 35]          # Days between false alarms
+  duration_days: [7, 12]           # How long pattern persists
+  strong_probability: 0.3          # 30% are "strong" false alarms
+  strong_strength_range: [0.8, 1.1]
+  weak_strength_range: [0.4, 0.8]
+
+# -----------------------------------------------------------------------------
+# PRE-INJURY PATTERN PARAMETERS
+# Controls how injury warning signs manifest in sensor data
+# -----------------------------------------------------------------------------
+preinjury_patterns:
+  # Pattern injection lookback window
+  lookback_days: 14                 # Days to look back when modifying pre-injury data
+
+  # Pattern Visibility Probabilities
+  # Not all metrics show changes before every injury
+  visibility:
+    hrv: 0.85                      # 85% of injuries show HRV decline
+    rhr: 0.80                      # 80% show RHR increase
+    sleep: 0.70                    # 70% show sleep decline
+    body_battery: 0.75             # 75% show battery decline
+
+  # Acute Injury (minimal warning)
+  acute_injury:
+    probability: 0.15              # 15% of injuries are acute
+    warning_window_days: [1, 3]    # Minimal pre-injury signal
+
+  # Pattern Strength Variability
+  pattern_strength:
+    modifier_range: [0.7, 1.3]     # Individual athlete variability
+    start_point_fraction: 0.33    # Pattern starts within first 1/3 of window
+
+  # HRV Decline Parameters
+  hrv:
+    max_decline: 0.25              # Maximum 25% decline
+    base_decline: 0.05             # Starting decline rate
+    progression_factor: 0.20       # How much progression adds
+    curve_shape: 1.2               # Convex curve (accelerating)
+    bounds: [0.65, 1.10]           # 65-110% of baseline
+    noise_range: [0.0, 0.2]        # Daily variation
+
+  # RHR Increase Parameters
+  rhr:
+    max_increase: 0.12             # Maximum 12% increase
+    base_increase: 0.02            # Starting increase rate
+    progression_factor: 0.10       # How much progression adds
+    bounds: [0.92, 1.15]           # 92-115% of baseline
+
+  # Sleep Decline Parameters
+  sleep:
+    pattern_offset: 0.3            # Sleep issues start later (30% into window)
+    max_decline: 0.20              # Maximum quality decline
+    progression_factor: 0.30       # How fast it declines
+    quality_bounds: [0.4, 0.95]    # Quality limits
+    stage_variation: [-0.3, 0.3]   # ±30% deep/REM variation
+
+  # Body Battery Parameters
+  body_battery:
+    max_decline: 0.25              # Maximum 25% decline
+    base_decline: 0.05             # Starting decline rate
+    progression_factor: 0.10       # How much progression adds
+    morning_bounds: [40, 100]      # Morning battery limits
+    evening_bounds: [15, 60]       # Evening (more depleted)
+
+  # Stress Increase Parameters
+  stress:
+    max_increase: 30               # Maximum stress increase
+    progression_cap: 20            # Cap on progression contribution
+    bounds: [20, 95]               # Stress range limits
+
+# -----------------------------------------------------------------------------
+# CROSS-METRIC INTERACTION MULTIPLIERS
+# Captures synergistic effects between stressors
+# -----------------------------------------------------------------------------
+metric_interactions:
+  # Poor Sleep + High Stress
+  sleep_stress:
+    sleep_threshold: 0.6           # Sleep quality below this
+    stress_threshold: 70           # Stress above this
+    hrv_multiplier: 1.4            # 40% stronger HRV impact
+    rhr_multiplier: 1.3            # 30% stronger RHR impact
+
+  # High Fatigue + Poor Sleep
+  fatigue_sleep:
+    fatigue_threshold: 75          # Fatigue above this
+    sleep_threshold: 0.7           # Sleep quality below this
+    hrv_multiplier: 1.5            # 50% stronger HRV impact
+    battery_multiplier: 1.4        # 40% stronger battery impact
+
+  # Chronic High Stress + High Training
+  chronic_stress_training:
+    stress_consecutive_days: 3     # Days of high stress
+    hrv_multiplier: 1.6            # 60% stronger HRV impact
+    sleep_multiplier: 1.3          # 30% stronger sleep impact
+
+# -----------------------------------------------------------------------------
+# FITNESS-FATIGUE-FORM MODEL (Banister Impulse-Response)
+# -----------------------------------------------------------------------------
+training_model:
+  # EWMA Decay Constants
+  ewma:
+    chronic_days: 28               # CTL time constant
+    acute_days: 7                  # ATL time constant
+
+  # Base TSS by Training Experience [Literature]
+  base_tss_by_experience:
+    novice:                        # <1 year
+      years: [0, 1]
+      base_tss: 40
+      variability: 0.35
+    beginner:                      # 1-3 years
+      years: [1, 3]
+      base_tss: 60
+      variability: 0.30
+    intermediate:                  # 3-5 years
+      years: [3, 5]
+      base_tss: 70
+      variability: 0.25
+    advanced:                      # 5-8 years
+      years: [5, 8]
+      base_tss: 85
+      variability: 0.20
+    expert:                        # 8-12 years
+      years: [8, 12]
+      base_tss: 95
+      variability: 0.15
+    elite:                         # 12+ years
+      years: [12, 100]
+      base_tss: 100
+      variability: 0.12
+
+  # Day-of-Week TSS Factors [Empirical]
+  # Typical triathlete weekly pattern
+  day_factors:
+    monday: 1.0                    # Moderate
+    tuesday: 1.5                   # Hard
+    wednesday: 0.9                 # Moderate
+    thursday: 1.4                  # Hard
+    friday: 0.6                    # Easy
+    saturday: 1.7                  # Long/hard
+    sunday: 0.3                    # Rest/very easy
+
+  # Periodization
+  periodization:
+    recovery_week_frequency: 4     # Every 4th week
+    recovery_week_multiplier: 0.7  # Reduced to 70%
+    advanced_athlete_trend: [0.9, 1.1]  # Linear trend range
+
+  # Max Daily TSS by Experience
+  max_tss_by_experience:
+    novice:
+      years: [0, 1]
+      tss_per_hour: [40, 50]
+      volume_factor: 0.30
+    intermediate:
+      years: [1, 4]
+      tss_per_hour: [50, 65]
+      volume_factor: 0.35
+    advanced:
+      years: [4, 7]
+      tss_per_hour: [65, 80]
+      volume_factor: 0.40
+    elite:
+      years: [8, 100]
+      tss_per_hour: [80, 90]
+      volume_factor: 0.45
+
+# -----------------------------------------------------------------------------
+# HRV SIMULATION PARAMETERS
+# -----------------------------------------------------------------------------
+hrv_model:
+  # TSS Impact on HRV
+  tss_impact_factor: -0.03         # -3% per normalized load unit
+
+  # Recovery Day Bonus
+  recovery_day:
+    tss_threshold: 30              # Below this = recovery day
+    hrv_bonus: 2                   # +2ms HRV
+
+  # Daily Variation
+  sleep_effect_std: 1              # Normal distribution with sleep quality mean
+  random_variation_std: 1          # Additional daily noise
+
+  # Floor Value
+  min_hrv: 40                      # Physiological minimum
+
+  # Supracompensation Pattern
+  supracompensation:
+    trigger_high_load_days: 3      # Exactly 3 high load days
+    false_recovery_boost: 0.08     # +8% HRV (false recovery)
+    crash_threshold_days: 4        # 4+ high load days
+    crash_decline: -0.15           # -15% HRV crash
+
+  # Deviation Factors
+  deviations:
+    sleep_debt: -3.0               # Major negative impact
+    injury_effect: -0.25           # Multiplied by baseline
+    fatigue_impact: -0.15          # Multiplied by baseline
+    recovery_benefit: 0.10         # Multiplied by baseline
+    sleep_benefit: 0.05            # Multiplied by baseline
+    acwr_impact: -0.12             # Multiplied by baseline
+
+  # Conditional Adjustments
+  conditional:
+    overtraining_risk: -0.20       # -20% if overtraining signs
+    excessive_fatigue: -0.12       # -12% if form < -20
+    very_high_load: -0.25          # -25% if load > 1.5x max
+    high_load: -0.10               # -10% if load > max
+    peaking: 0.08                  # +8% if form 20-35
+    high_stress: -0.07             # -7% if stress > 50
+
+  # Bounds
+  normal_bounds: [0.85, 1.15]      # 85-115% of baseline
+  fatigue_bounds: [0.60, 1.40]     # 60-140% under excessive fatigue
+
+# -----------------------------------------------------------------------------
+# RESTING HEART RATE SIMULATION
+# -----------------------------------------------------------------------------
+rhr_model:
+  # Deviation Factors
+  deviations:
+    sleep_debt: 0.6                # Major factor
+    injury_effect: 0.08            # Multiplied by RHR baseline
+    fatigue_impact: 0.10           # Multiplied by RHR baseline
+    recovery_benefit: -0.03        # Negative (beneficial)
+    sleep_benefit: -0.02           # Negative (beneficial)
+    acwr_impact: 0.08              # Multiplied by RHR baseline
+
+  # Conditional Adjustments
+  conditional:
+    overtraining_risk: 0.08        # +8% RHR
+    excessive_fatigue: 0.08        # +8% RHR
+    high_load: 0.07                # +7% RHR
+    consecutive_high_load: 0.05    # +5% RHR if 3+ days
+    peaking: -0.05                 # -5% RHR (good)
+    high_stress: 0.05              # +5% RHR
+
+  # Daily Variation
+  daily_variation_std: 0.02        # Normal distribution std
+
+  # Bounds
+  bounds: [0.85, 1.15]             # 85-115% of baseline
+
+# -----------------------------------------------------------------------------
+# SLEEP SIMULATION PARAMETERS
+# -----------------------------------------------------------------------------
+sleep_model:
+  # Duration Constraints
+  min_hours: 4.0                   # Physiological minimum
+
+  # Ideal Sleep Stage Proportions [Literature]
+  ideal_proportions:
+    deep: 0.20                     # 20% deep sleep
+    rem: 0.25                      # 25% REM sleep
+    light: 0.55                    # 55% light sleep
+
+  # Duration Effects
+  duration_effects:
+    fatigue_increase: 0.1          # Fatigue increases sleep
+    injury_decrease: 0.2           # Injury decreases sleep
+    stress_decrease: 0.1           # Stress reduces sleep
+    daily_variation_std: 0.5       # Random variation
+
+  # Sleep Stage Reduction Factors
+  stage_reductions:
+    fatigue:
+      deep: 0.05
+      rem: 0.03
+    injury:
+      deep: 0.07
+      rem: 0.05
+    stress:
+      deep: 0.03
+      rem: 0.02
+
+  # Sleep Stage Bounds
+  stage_bounds:
+    deep: [0.08, 0.25]
+    rem: [0.15, 0.25]
+
+  # Sleep Quality Scoring by Duration
+  quality_by_duration:
+    - hours: [0, 5]
+      base_score: 0.1
+    - hours: [5, 6]
+      base_score: 0.2
+    - hours: [6, 7]
+      base_score: 0.4
+    - hours: [7, 8]
+      base_score: 0.7
+    - hours: [8, 9]
+      base_score: 0.9              # Peak quality
+    - hours: [9, 10]
+      base_score: 0.7              # Slight decline
+    - hours: [10, 24]
+      base_score: 0.6
+
+  # Stage Quality Weighting
+  stage_weights:
+    deep: 0.45                     # 45% emphasis on deep sleep
+    rem: 0.35                      # 35% emphasis on REM
+    light: 0.20                    # 20% emphasis on light
+
+  # Duration vs Stage Quality Balance
+  quality_balance:
+    low_sleep_threshold: 6         # Hours below which duration dominates
+    low_sleep_weights: [0.6, 0.4]  # [duration, stage]
+    normal_weights: [0.4, 0.6]     # [duration, stage]
+
+# -----------------------------------------------------------------------------
+# BODY BATTERY SIMULATION
+# -----------------------------------------------------------------------------
+body_battery:
+  # Morning Calculation
+  morning:
+    max_battery: 120               # Recharge ceiling
+    sleep_efficiency_cap: 1.3      # Max benefit from sleep
+
+    # Sleep Duration Effects
+    sleep_deprivation:
+      threshold: 6                 # Hours below = deprivation
+      multiplier_range: [0.5, 0.9] # Reduced recharge
+
+    optimal_sleep:
+      range: [8, 9]                # Optimal hours
+      multiplier: 1.1              # Boost for optimal sleep
+
+    # Recovery Calculation
+    recovery_weights:
+      hrv: 0.6
+      rhr: 0.4
+    recovery_multiplier: 2
+
+    # Drains
+    stress_drain_factor: 0.15      # Stress drains battery
+    training_drain_factor: 0.1    # TSS drains battery
+
+    # Diminishing Returns
+    diminishing_threshold: 80      # At >80, recharge slows
+    diminishing_factor: 0.8        # 80% efficiency above threshold
+
+    # Bounds
+    bounds: [60, 100]
+
+  # Evening Calculation
+  evening:
+    # Decay Parameters
+    hour_factor_base: 15
+    hour_factor_divisor: 12
+    base_decay: 25
+    decay_per_hour: 5
+
+    # Battery-Based Decay Modifiers
+    high_battery_threshold: 80
+    high_battery_decay_multiplier: 1.4
+    low_battery_threshold: 40
+    low_battery_decay_multiplier: 0.8
+
+    # Activity-Based Drains
+    low_training_threshold: 40
+    low_training_decay_multiplier: 1.3
+    workout_drain_base: 0.085
+    workout_drain_tss_factor: 0.1
+    workout_drain_tss_scale: 400
+    stress_drain_exponent: 1.2
+    stress_drain_multiplier: 25
+    fatigue_drain_factor: 0.12
+
+    # Noise and Bounds
+    noise_std: 2
+    min_battery: 5
+    max_reduction: 40              # Max reduction from morning
+
+# -----------------------------------------------------------------------------
+# STRESS SIMULATION PARAMETERS [PMData calibrated]
+# -----------------------------------------------------------------------------
+stress_model:
+  # Component Weights
+  weights:
+    smoking: 15
+    alcohol: 15
+    life_stress: 20
+    hrv_deviation: 15
+    hr_elevation: 10
+    sleep_quality: 10
+    battery_level: 10
+    fatigue: 5
+
+  # Exponential Scaling Thresholds
+  exponential_scaling:
+    hrv_threshold: 0.8             # Below 80% baseline
+    rhr_threshold: 1.1             # Above 110% baseline
+    exponent: 1.5                  # Scaling power
+
+  # Distribution Transformation [PMData]
+  # Right-skew to match real PMData (mode ~25-35)
+  distribution:
+    noise_std: 3                   # Random variation
+    skew_exponent: 0.7             # Power transformation
+    scale_factor: 0.85             # Post-transform scaling
+    shift: 5                       # Post-transform shift
+
+  # Bounds
+  bounds: [0, 100]
+
+# -----------------------------------------------------------------------------
+# ATHLETE PROFILE GENERATION
+# -----------------------------------------------------------------------------
+athlete_profiles:
+  # Demographics
+  demographics:
+    gender_weights: [0.6, 0.4]     # [male, female]
+    age:
+      mean: 33
+      std: 6
+      bounds: [18, 50]
+    height:
+      male: { mean: 178, std: 7 }
+      female: { mean: 165, std: 6 }
+    weight:
+      male_base: 72
+      female_base: 58
+
+  # Genetic Factor
+  genetic:
+    range: [0.8, 1.2]              # 10% variation around 1.0
+
+  # Training Experience
+  experience:
+    max_age_based: 15              # age - 15 = max experience
+    minimum: 2                     # At least 2 years
+
+  # Weekly Training Hours
+  training_hours:
+    mean: 12
+    std: 2
+    bounds: [8, 16]
+    drinking_impact: -0.3          # Per drinking unit
+    experience_boost: 0.03         # 3% per year
+
+  # Heart Rate Calculations [Literature: Tanaka formula]
+  heart_rate:
+    max_hr:
+      base: 208
+      age_factor: -0.7
+      variation: 5
+      female_modifier: 1.03        # 3% higher for women
+    resting_hr:
+      bounds: [38, 60]
+
+  # HRV Estimation
+  hrv:
+    base: 110
+    vo2max_factor: 1.2
+    rhr_factor: -0.5
+    sleep_factor: 2
+    stress_factor: -5
+    smoking_factor: -10
+    drinking_factor: -7
+    experience_factor: 0.8
+    age_decline: -0.8              # -0.8ms per year after 20
+    age_decline_start: 20
+    range_multiplier: [0.85, 1.15] # ±15% around baseline
+
+  # Recovery Rate
+  recovery_rate:
+    genetic_weight: 0.8
+    vo2max_base: 40
+    vo2max_scale: 150
+    sleep_bonus: 0.12
+    sleep_deficit_penalty: 0.1
+    sleep_deficit_threshold: 6
+    nutrition_factor: 0.08
+    age_factor: -0.002             # Per year
+    drinking_penalty: -0.15
+    smoking_penalty: -0.15
+    stress_penalty: -0.12
+    bounds: [0.5, 1.3]
+
+  # VO2max Constraints
+  vo2max:
+    bounds: [50, 75]               # Competitive athlete range
+
+  # FTP (Cycling Power)
+  ftp:
+    power_to_weight:
+      male: { mean: 3.8, std: 0.7 }
+      female: { mean: 3.4, std: 0.7 }
+    experience_boost: 0.01         # 1% per year
+    bike_specialist_bonus: 1.1     # 10% boost
+    substance_penalty: 0.95        # 5% reduction
+    bounds: [2.5, 5.5]             # W/kg range
+
+  # CSS (Swim Speed)
+  css:
+    base: 0.80                     # m/s
+    vo2max_base: 50
+    vo2max_factor: 0.008
+    swim_training_percent: 0.25
+    swim_hours_cap: 15
+    swim_hours_factor: 0.015
+    experience_cap: 10
+    experience_factor: 0.015
+    swim_specialist_bonus: 1.08    # 8% boost
+    bounds: [0.80, 1.55]           # m/s range
+
+  # Running Threshold Pace
+  threshold_pace:
+    base:
+      male: 16.2                   # min/km
+      female: 16.7
+    vo2max_factor: -0.16           # Faster with higher VO2max
+    weight_reference:
+      male: 70
+      female: 55
+    weight_sensitivity:
+      male: 0.0025
+      female: 0.0035
+    optimal_age: 28
+    age_curve_std: 11
+    max_age_penalty: 0.12
+    optimal_lthr_percent: 0.86
+    lthr_exponent: 1.7
+    lthr_multiplier: 0.45
+    experience_multiplier: 0.08
+    volume_multiplier: 0.065
+    lifestyle_adjustment: 0.2
+    genetic_scale: [0.8, 1.0]
+    pace_variation_std: 0.1
+    bounds: [3.0, 5.5]             # min/km range
+
+  # LTHR (Lactate Threshold Heart Rate)
+  lthr:
+    base_percent: 0.87             # 87% of max HR
+    age_modifiers:
+      - age_range: [0, 24]
+        modifier: 1.03
+      - age_range: [25, 35]
+        modifier: 1.02
+      - age_range: [36, 45]
+        modifier: 1.0
+      - age_range: [46, 100]
+        modifier: 0.98
+    experience_boost_per_year: 0.015
+    experience_boost_cap: 1.15
+    high_vo2max_threshold: 65
+    high_vo2max_bonus: 0.15
+    low_vo2max_threshold: 55
+    low_vo2max_penalty: 0.10
+    high_hrr_threshold: 130
+    high_hrr_bonus: 1.02
+    low_hrr_threshold: 120
+    low_hrr_penalty: 0.98
+    female_bonus: 1.03
+    random_variation: [-0.015, 0.015]
+    bounds: [160, 190]
+
+  # Sensor Profiles
+  sensor_profiles:
+    garmin: 0.7
+    optical: 0.3
+
+  # Chronotypes
+  chronotypes:
+    lark: 0.2
+    owl: 0.2
+    intermediate: 0.6
+
+  # Menstrual Cycle (females only)
+  menstrual_cycle:
+    cycle_length:
+      mean: 28
+      std: 2
+      bounds: [21, 35]
+    regularity_beta: [5, 1]        # High regularity
+    luteal_phase:
+      mean: 14
+      std: 1
+      bounds: [10, 16]
+
+  # Lifestyle Profiles
+  lifestyles:
+    profiles:
+      highly_disciplined:
+        weight: 0.30
+        sleep_hours: [7.5, 9.0]
+        sleep_quality: [0.9, 1.0]
+        nutrition: [0.9, 1.0]
+        drinking: [0.0, 0.1]
+        stress: [0.0, 0.2]
+        exercise: [0.9, 1.0]
+      balanced_competitor:
+        weight: 0.25
+        sleep_hours: [6.5, 8.0]
+        sleep_quality: [0.7, 0.9]
+        nutrition: [0.7, 0.9]
+        drinking: [0.1, 0.2]
+        stress: [0.2, 0.4]
+        exercise: [0.7, 0.9]
+      weekend_socializer:
+        weight: 0.12
+        sleep_hours: [6.0, 7.5]
+        sleep_quality: [0.6, 0.8]
+        nutrition: [0.6, 0.8]
+        drinking: [0.3, 0.6]
+        stress: [0.3, 0.6]
+        exercise: [0.6, 0.8]
+      sleep_deprived_workaholic:
+        weight: 0.12
+        sleep_hours: [4.5, 6.5]
+        sleep_quality: [0.4, 0.7]
+        nutrition: [0.5, 0.8]
+        drinking: [0.2, 0.4]
+        stress: [0.6, 0.9]
+        exercise: [0.6, 0.8]
+      under_recovered:
+        weight: 0.11
+        sleep_hours: [5.0, 7.0]
+        sleep_quality: [0.3, 0.6]
+        nutrition: [0.4, 0.7]
+        drinking: [0.2, 0.4]
+        stress: [0.4, 0.8]
+        exercise: [0.7, 0.9]
+      health_conscious:
+        weight: 0.10
+        sleep_hours: [7.0, 8.5]
+        sleep_quality: [0.8, 1.0]
+        nutrition: [0.8, 1.0]
+        drinking: [0.0, 0.2]
+        stress: [0.1, 0.3]
+        exercise: [0.8, 1.0]
+
+    # Lifestyle Score Weights
+    score_weights:
+      sleep_hours: 0.20
+      sleep_quality: 0.15
+      nutrition: 0.20
+      drinking: 0.10
+      smoking: 0.15
+      stress: 0.10
+      exercise: 0.10
+
+  # Cohort Validation Bounds
+  validation:
+    age: [18, 50]
+    vo2max: [50, 75]
+    weekly_hours: [8, 16]
+    resting_hr: [38, 60]
+    min_experience: 2
+    sleep_hours: [5, 9]
+
+# -----------------------------------------------------------------------------
+# SPECIALIZATION TYPES
+# -----------------------------------------------------------------------------
+specializations:
+  types:
+    - balanced
+    - swim_focused
+    - bike_focused
+    - run_focused
+  weights: [0.25, 0.25, 0.25, 0.25]  # Equal distribution

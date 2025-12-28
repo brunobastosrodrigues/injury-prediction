@@ -1,4 +1,10 @@
 import random
+import sys
+import os
+
+# Add parent directory to path for config import
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import SimConfig as cfg
 
 # set seed for reproducibility
 random.seed(42)
@@ -45,18 +51,26 @@ def inject_realistic_injury_patterns(athlete, daily_data_list, injury_day_index,
     baseline_hrv = athlete['hrv_baseline']
     baseline_rhr = athlete['resting_hr']
     
+    # Load pre-injury pattern configuration
+    pattern_cfg = cfg.get('preinjury_patterns', {})
+    strength_cfg = pattern_cfg.get('pattern_strength', {})
+    visibility_cfg = pattern_cfg.get('visibility', {})
+    acute_cfg = pattern_cfg.get('acute_injury', {})
+
     # Add some athlete-specific variability to pattern strength (some athletes show stronger patterns)
-    pattern_strength_modifier = random.uniform(0.7, 1.3)
-    
+    modifier_range = strength_cfg.get('modifier_range', [0.7, 1.3])
+    pattern_strength_modifier = random.uniform(modifier_range[0], modifier_range[1])
+
     # Add some randomness to the pattern onset (not all patterns start at the same time)
-    pattern_start_point = random.randint(1, min(5, period_length//3))
+    start_fraction = strength_cfg.get('start_point_fraction', 0.33)
+    pattern_start_point = random.randint(1, min(5, int(period_length * start_fraction)))
     effective_days = period_length - pattern_start_point
-    
+
     # Decide which patterns this athlete will exhibit (not all athletes show all patterns)
-    show_hrv_pattern = random.random() < 0.85  # 85% show HRV decline
-    show_rhr_pattern = random.random() < 0.80  # 80% show RHR increase
-    show_sleep_pattern = random.random() < 0.70  # 70% show sleep quality decline
-    show_bb_pattern = random.random() < 0.75  # 75% show body battery decline
+    show_hrv_pattern = random.random() < visibility_cfg.get('hrv', 0.85)
+    show_rhr_pattern = random.random() < visibility_cfg.get('rhr', 0.80)
+    show_sleep_pattern = random.random() < visibility_cfg.get('sleep', 0.70)
+    show_bb_pattern = random.random() < visibility_cfg.get('body_battery', 0.75)
 
     hrv_sensitivity = athlete['recovery_signature']['hrv_sensitivity']
     rhr_sensitivity = athlete['recovery_signature']['rhr_sensitivity'] 
@@ -64,10 +78,12 @@ def inject_realistic_injury_patterns(athlete, daily_data_list, injury_day_index,
     stress_sensitivity = athlete['recovery_signature']['stress_sensitivity']
     
     # Sometimes injuries happen with minimal warning (acute injuries)
-    is_acute_injury = random.random() < 0.15  # 15% of injuries are acute with minimal warning
+    acute_prob = acute_cfg.get('probability', 0.15)
+    is_acute_injury = random.random() < acute_prob
     if is_acute_injury:
-        # For acute injuries, only modify 1-3 days before injury
-        pattern_start_point = period_length - random.randint(1, 3)
+        # For acute injuries, only modify minimal days before injury
+        warning_range = acute_cfg.get('warning_window_days', [1, 3])
+        pattern_start_point = period_length - random.randint(warning_range[0], warning_range[1])
     
     # Create a recent history of the athlete's data
     if len(daily_data_list) > 3:
@@ -76,39 +92,51 @@ def inject_realistic_injury_patterns(athlete, daily_data_list, injury_day_index,
     else:
         recent_history = None
 
+    # Load metric-specific configuration
+    hrv_cfg = pattern_cfg.get('hrv', {})
+    rhr_cfg = pattern_cfg.get('rhr', {})
+    sleep_cfg = pattern_cfg.get('sleep', {})
+    bb_cfg = pattern_cfg.get('body_battery', {})
+    stress_cfg = pattern_cfg.get('stress', {})
+
     # Create pattern alterations with realistic noise
     for i, day_data in enumerate(pre_injury_period):
         # Skip early days before pattern starts
         if i < pattern_start_point:
             continue
-            
+
         # Calculate progression factor (0 to 1) - how close to injury day
         progression = (i - pattern_start_point) / (period_length - pattern_start_point) if (period_length - pattern_start_point) > 0 else 0
-        
+
         # Add day-to-day variability (good days even during overall decline)
-        daily_variability = random.normalvariate(0, 0.2)  # Higher variability
+        noise_range = hrv_cfg.get('noise_range', [0.0, 0.2])
+        daily_variability = random.normalvariate(0, noise_range[1])
 
         # Calculate cross-stress multipliers
         cross_stress_mults = calculate_cross_stress_effects(day_data, recent_history)
-        
+
         # 1. Modify HRV if this athlete shows HRV pattern
         if show_hrv_pattern:
-            # Alpha: Maximum decline magnitude
-            alpha = min(0.25, 0.05 + progression * 0.20) * pattern_strength_modifier * hrv_sensitivity * cross_stress_mults['hrv']
-            # Beta: Curve shape
-            beta = 1.2
-            
+            # Alpha: Maximum decline magnitude (from config)
+            hrv_max_decline = hrv_cfg.get('max_decline', 0.25)
+            hrv_base_decline = hrv_cfg.get('base_decline', 0.05)
+            hrv_progression_factor = hrv_cfg.get('progression_factor', 0.20)
+            alpha = min(hrv_max_decline, hrv_base_decline + progression * hrv_progression_factor) * pattern_strength_modifier * hrv_sensitivity * cross_stress_mults['hrv']
+            # Beta: Curve shape (from config)
+            beta = hrv_cfg.get('curve_shape', 1.2)
+
             # Calculate multiplier using the formal mathematical curve
             hrv_multiplier = calculate_decline_curve(progression, alpha, beta)
-            
+
             # Add daily variability - some days HRV might improve slightly despite overall decline
             daily_hrv_adjustment = daily_variability * baseline_hrv * 0.15
-            
+
             # Calculate new HRV
             new_hrv = baseline_hrv * hrv_multiplier + daily_hrv_adjustment
-            
-            # Ensure within physiological limits (don't let it drop too low)
-            day_data['hrv'] = max(baseline_hrv * 0.65, min(baseline_hrv * 1.1, new_hrv))
+
+            # Ensure within physiological limits (from config)
+            hrv_bounds = hrv_cfg.get('bounds', [0.65, 1.10])
+            day_data['hrv'] = max(baseline_hrv * hrv_bounds[0], min(baseline_hrv * hrv_bounds[1], new_hrv))
         
         if show_hrv_pattern and random.random() < 0.3:  # 30% chance of non-linear pattern
             # Sometimes HRV improves briefly before crashing (false recovery)
@@ -126,70 +154,82 @@ def inject_realistic_injury_patterns(athlete, daily_data_list, injury_day_index,
         
         # 2. Modify resting heart rate if this athlete shows RHR pattern
         if show_rhr_pattern:
-            # Base increase factor - more subtle (12% max)
-            rhr_increase_factor = min(0.12, 0.02 + progression * 0.10) * pattern_strength_modifier * rhr_sensitivity * cross_stress_mults['rhr']
-            
+            # Base increase factor (from config)
+            rhr_max_increase = rhr_cfg.get('max_increase', 0.12)
+            rhr_base_increase = rhr_cfg.get('base_increase', 0.02)
+            rhr_progression_factor = rhr_cfg.get('progression_factor', 0.10)
+            rhr_increase_factor = min(rhr_max_increase, rhr_base_increase + progression * rhr_progression_factor) * pattern_strength_modifier * rhr_sensitivity * cross_stress_mults['rhr']
+
             # Add daily variability
             daily_rhr_adjustment = -daily_variability * baseline_rhr * 0.08  # Negative because lower is better for RHR
-            
+
             # Calculate new RHR with realistic noise
-            # Note: RHR increases, so we use (1 + ...), effectively similar structure but addition.
             new_rhr = baseline_rhr * (1 + rhr_increase_factor * (progression ** 1.1)) + daily_rhr_adjustment
-            
-            # Ensure within physiological limits
-            day_data['resting_hr'] = max(baseline_rhr * 0.92, min(baseline_rhr * 1.15, new_rhr))
+
+            # Ensure within physiological limits (from config)
+            rhr_bounds = rhr_cfg.get('bounds', [0.92, 1.15])
+            day_data['resting_hr'] = max(baseline_rhr * rhr_bounds[0], min(baseline_rhr * rhr_bounds[1], new_rhr))
         
         # 3. Modify sleep quality if this athlete shows sleep pattern
-        if show_sleep_pattern and progression > 0.3:  # Sleep issues often start later
-            # Alpha for sleep
-            sleep_alpha = min(0.2, (progression - 0.3) * 0.3) * pattern_strength_modifier * sleep_sensitivity * cross_stress_mults['sleep']
-            
-            # Apply decay curve (beta=1 implicitly in original code, effectively linear after offset)
-            # Original: new_sleep = old * (1 - reduction)
-            # Here reduction varies with progression.
-            
+        sleep_offset = sleep_cfg.get('pattern_offset', 0.3)
+        if show_sleep_pattern and progression > sleep_offset:
+            # Alpha for sleep (from config)
+            sleep_max_decline = sleep_cfg.get('max_decline', 0.20)
+            sleep_progression_factor = sleep_cfg.get('progression_factor', 0.30)
+            sleep_alpha = min(sleep_max_decline, (progression - sleep_offset) * sleep_progression_factor) * pattern_strength_modifier * sleep_sensitivity * cross_stress_mults['sleep']
+
             # Add daily variability - some nights are better than others
-            daily_sleep_adjustment = daily_variability * 0.15  # Some nights are better/worse
-            
+            daily_sleep_adjustment = daily_variability * 0.15
+
             # Apply changes with noise
             new_sleep_quality = day_data['sleep_quality'] * (1 - sleep_alpha) + daily_sleep_adjustment
-            
-            # Ensure within limits
-            day_data['sleep_quality'] = max(0.4, min(0.95, new_sleep_quality))
-            
-            # Also adjust sleep stages
-            deep_sleep_reduction = sleep_alpha * (1.0 + random.uniform(-0.3, 0.3))
-            rem_sleep_reduction = sleep_alpha * (0.8 + random.uniform(-0.3, 0.3))
-            
+
+            # Ensure within limits (from config)
+            sleep_quality_bounds = sleep_cfg.get('quality_bounds', [0.4, 0.95])
+            day_data['sleep_quality'] = max(sleep_quality_bounds[0], min(sleep_quality_bounds[1], new_sleep_quality))
+
+            # Also adjust sleep stages (from config)
+            stage_var = sleep_cfg.get('stage_variation', [-0.3, 0.3])
+            deep_sleep_reduction = sleep_alpha * (1.0 + random.uniform(stage_var[0], stage_var[1]))
+            rem_sleep_reduction = sleep_alpha * (0.8 + random.uniform(stage_var[0], stage_var[1]))
+
             day_data['deep_sleep'] = day_data['deep_sleep'] * (1 - deep_sleep_reduction)
             day_data['rem_sleep'] = day_data['rem_sleep'] * (1 - rem_sleep_reduction)
             day_data['light_sleep'] = day_data['sleep_hours'] - day_data['deep_sleep'] - day_data['rem_sleep']
         
         # 4. Modify body battery metrics if this athlete shows that pattern
         if show_bb_pattern and 'body_battery_morning' in day_data:
-            # Alpha for body battery
-            bb_alpha = min(0.25, 0.05 + progression * 0.10) * pattern_strength_modifier * cross_stress_mults['body_battery']
-            
+            # Alpha for body battery (from config)
+            bb_max_decline = bb_cfg.get('max_decline', 0.25)
+            bb_base_decline = bb_cfg.get('base_decline', 0.05)
+            bb_progression_factor = bb_cfg.get('progression_factor', 0.10)
+            bb_alpha = min(bb_max_decline, bb_base_decline + progression * bb_progression_factor) * pattern_strength_modifier * cross_stress_mults['body_battery']
+
             # Add daily variability
             daily_bb_adjustment = daily_variability * 8  # Some days feel better than others
-            
+
             # Apply to morning body battery using decline curve (beta=1.0)
             bb_multiplier = calculate_decline_curve(progression, bb_alpha, 1.0)
             new_bb_morning = day_data['body_battery_morning'] * bb_multiplier + daily_bb_adjustment
-            day_data['body_battery_morning'] = max(40, min(100, new_bb_morning))
-            
+            bb_morning_bounds = bb_cfg.get('morning_bounds', [40, 100])
+            day_data['body_battery_morning'] = max(bb_morning_bounds[0], min(bb_morning_bounds[1], new_bb_morning))
+
             # Apply to evening body battery (beta=1.1)
             if 'body_battery_evening' in day_data:
                 bb_evening_multiplier = calculate_decline_curve(progression, bb_alpha, 1.1)
                 new_bb_evening = day_data['body_battery_evening'] * bb_evening_multiplier + daily_bb_adjustment * 0.5
-                day_data['body_battery_evening'] = max(15, min(60, new_bb_evening))
+                bb_evening_bounds = bb_cfg.get('evening_bounds', [15, 60])
+                day_data['body_battery_evening'] = max(bb_evening_bounds[0], min(bb_evening_bounds[1], new_bb_evening))
         
-        # 5. Increase stress levels as injury approaches - most athletes show this
-        stress_increase = min(20, progression * 30 * pattern_strength_modifier) * stress_sensitivity * cross_stress_mults['stress']
+        # 5. Increase stress levels as injury approaches - most athletes show this (from config)
+        stress_max_increase = stress_cfg.get('max_increase', 30)
+        stress_progression_cap = stress_cfg.get('progression_cap', 20)
+        stress_increase = min(stress_progression_cap, progression * stress_max_increase * pattern_strength_modifier) * stress_sensitivity * cross_stress_mults['stress']
         stress_daily_variability = random.normalvariate(0, 8)  # High daily stress variability
-        
+
         new_stress = day_data['stress'] + stress_increase + stress_daily_variability
-        day_data['stress'] = min(95, max(20, new_stress))  # Keep within range
+        stress_bounds = stress_cfg.get('bounds', [20, 95])
+        day_data['stress'] = min(stress_bounds[1], max(stress_bounds[0], new_stress))
 
     return daily_data_list
 
@@ -213,20 +253,26 @@ def create_false_alarm_patterns(athlete, daily_data_list, start_index, pattern_d
     # Ensure we have enough days to work with
     if start_index + pattern_days >= len(daily_data_list):
         return daily_data_list
-    
-    if random.random() < 0.3:  # 30% of false alarms are "strong" 
-        pattern_strength = random.uniform(0.8, 1.1)
+
+    # Load false alarm configuration
+    false_alarm_cfg = cfg.get('false_alarms', {})
+    strong_prob = false_alarm_cfg.get('strong_probability', 0.3)
+    strong_range = false_alarm_cfg.get('strong_strength_range', [0.8, 1.1])
+    weak_range = false_alarm_cfg.get('weak_strength_range', [0.4, 0.8])
+
+    if random.random() < strong_prob:
+        pattern_strength = random.uniform(strong_range[0], strong_range[1])
     else:
-        pattern_strength = random.uniform(0.4, 0.8)
-    
+        pattern_strength = random.uniform(weak_range[0], weak_range[1])
+
     # Baseline values
     baseline_hrv = athlete['hrv_baseline']
     baseline_rhr = athlete['resting_hr']
     hrv_sensitivity = athlete['recovery_signature']['hrv_sensitivity']
-    rhr_sensitivity = athlete['recovery_signature']['rhr_sensitivity'] 
+    rhr_sensitivity = athlete['recovery_signature']['rhr_sensitivity']
     sleep_sensitivity = athlete['recovery_signature']['sleep_sensitivity']
     stress_sensitivity = athlete['recovery_signature']['stress_sensitivity']
-    
+
     # Decide which patterns to show (usually fewer than real injury patterns)
     show_hrv_pattern = random.random() < 0.7
     show_rhr_pattern = random.random() < 0.6
@@ -300,14 +346,22 @@ def create_false_alarm_patterns(athlete, daily_data_list, start_index, pattern_d
 def calculate_cross_stress_effects(metrics, history=None):
     """
     Calculate multiplicative effects between different stressors.
-    
+
+    Configuration loaded from: config/simulation_config.yaml (metric_interactions section)
+
     Args:
         metrics: Dictionary of current day's metrics
         history: Optional list of previous days' metrics
-    
+
     Returns:
         Dictionary of interaction multipliers for various metrics
     """
+    # Load interaction configuration
+    interaction_cfg = cfg.get('metric_interactions', {})
+    sleep_stress_cfg = interaction_cfg.get('sleep_stress', {})
+    fatigue_sleep_cfg = interaction_cfg.get('fatigue_sleep', {})
+    chronic_cfg = interaction_cfg.get('chronic_stress_training', {})
+
     multipliers = {
         'hrv': 1.0,
         'rhr': 1.0,
@@ -315,24 +369,29 @@ def calculate_cross_stress_effects(metrics, history=None):
         'stress': 1.0,
         'body_battery': 1.0
     }
-    
+
     # Sleep and stress interaction (poor sleep + high stress = worse effect)
-    if metrics['sleep_quality'] < 0.6 and metrics['stress'] > 70:
-        multipliers['hrv'] *= 1.4  # 40% stronger HRV impact
-        multipliers['rhr'] *= 1.3  # 30% stronger RHR impact
-    
+    sleep_thresh = sleep_stress_cfg.get('sleep_threshold', 0.6)
+    stress_thresh = sleep_stress_cfg.get('stress_threshold', 70)
+    if metrics['sleep_quality'] < sleep_thresh and metrics['stress'] > stress_thresh:
+        multipliers['hrv'] *= sleep_stress_cfg.get('hrv_multiplier', 1.4)
+        multipliers['rhr'] *= sleep_stress_cfg.get('rhr_multiplier', 1.3)
+
     # High fatigue and poor sleep interaction
-    if 'fatigue' in metrics and metrics['fatigue'] > 75 and metrics['sleep_quality'] < 0.7:
-        multipliers['hrv'] *= 1.5
-        multipliers['body_battery'] *= 1.4
-    
+    fatigue_thresh = fatigue_sleep_cfg.get('fatigue_threshold', 75)
+    fatigue_sleep_thresh = fatigue_sleep_cfg.get('sleep_threshold', 0.7)
+    if 'fatigue' in metrics and metrics['fatigue'] > fatigue_thresh and metrics['sleep_quality'] < fatigue_sleep_thresh:
+        multipliers['hrv'] *= fatigue_sleep_cfg.get('hrv_multiplier', 1.5)
+        multipliers['body_battery'] *= fatigue_sleep_cfg.get('battery_multiplier', 1.4)
+
     # Temporal sequence effects (if we have history)
-    if history and len(history) >= 3:
+    consecutive_days = chronic_cfg.get('stress_consecutive_days', 3)
+    if history and len(history) >= consecutive_days:
         # High stress followed by high training load
-        if (history[-3]['stress'] > 70 and 
-            history[-2]['stress'] > 70 and 
+        if (history[-3]['stress'] > stress_thresh and
+            history[-2]['stress'] > stress_thresh and
             history[-1]['actual_tss'] > history[-1]['planned_tss'] * 1.1):
-            multipliers['hrv'] *= 1.6
-            multipliers['sleep'] *= 1.3
-    
+            multipliers['hrv'] *= chronic_cfg.get('hrv_multiplier', 1.6)
+            multipliers['sleep'] *= chronic_cfg.get('sleep_multiplier', 1.3)
+
     return multipliers

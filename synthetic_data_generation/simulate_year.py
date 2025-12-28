@@ -8,6 +8,7 @@ from logistics.athlete_profiles import generate_athlete_cohort
 from sensor_data.simulate_activities import simulate_training_day_with_wearables
 from sensor_data.sensor_noise import SensorNoiseModel
 from physiological.menstrual_cycle import MenstrualCycleModel
+from config import SimConfig as cfg
 import pandas as pd
 from datetime import timedelta
 
@@ -23,92 +24,76 @@ def calculate_injury_probability_asymmetric(day_data, athlete, fatigue, form, ac
     KEY SCIENTIFIC INSIGHT:
     The ACWR-injury relationship is NOT symmetric. Our analysis reveals:
 
-    1. UNDERTRAINED (ACWR < 0.8): TRUE PHYSIOLOGICAL MECHANISM
-       - 2.66x higher injury rate PER LOAD UNIT than optimal
-       - Athletes train LESS but get injured MORE per training unit
+    1. UNDERTRAINED (ACWR < threshold): TRUE PHYSIOLOGICAL MECHANISM
+       - Higher injury rate PER LOAD UNIT than optimal
        - Mechanism: Detraining → tissue fragility → vulnerability on return
 
-    2. OPTIMAL (ACWR 0.8-1.3): BASELINE RISK
+    2. OPTIMAL (within threshold): BASELINE RISK
        - Lowest injury rate per load unit
        - Tissue adapted to current training demands
 
-    3. HIGH ACWR (>1.3): STOCHASTIC EXPOSURE MECHANISM
-       - Only 1.04x injury rate per load unit (essentially same as optimal!)
+    3. HIGH ACWR (>threshold): STOCHASTIC EXPOSURE MECHANISM
+       - Similar injury rate per load unit as optimal
        - Higher raw injury rate is explained by MORE TRAINING TIME
-       - Mechanism: More hours training = more opportunities for accidents
-       - NOT acute physiological overload as commonly believed
 
-    This model implements TWO SEPARATE injury mechanisms:
-    - Physiological vulnerability (undertrained)
-    - Stochastic exposure (high load)
+    Configuration loaded from: config/simulation_config.yaml
 
     Returns: (total_probability, injury_type) where injury_type is
              'physiological', 'exposure', or 'baseline'
     """
+    # Load configuration
+    thresholds = cfg.acwr_thresholds()
+    physio_cfg = cfg.get('injury_model.physiological', {})
+    exposure_cfg = cfg.get('injury_model.exposure', {})
+    baseline_cfg = cfg.get('injury_model.baseline', {})
+    bounds = cfg.get('injury_model.bounds', {})
+
+    undertrained_threshold = thresholds.get('undertrained', 0.8)
+    optimal_upper = thresholds.get('optimal_upper', 1.3)
+
     # ========================================
     # MECHANISM 1: PHYSIOLOGICAL DETRAINING
-    # (ACWR < 0.8 - True tissue vulnerability)
     # ========================================
-    # PMData evidence: 2.66x higher injury rate per load unit
-    # This is INDEPENDENT of exposure time - it's biological fragility
-
     physiological_risk = 0.0
-    if acwr < 0.8:
-        # Severity increases as ACWR drops (more detrained = more fragile)
-        detraining_severity = (0.8 - acwr) / 0.8  # 0 at 0.8, 1 at 0.0
+    if acwr < undertrained_threshold:
+        detraining_severity = (undertrained_threshold - acwr) / undertrained_threshold
 
-        # Base physiological vulnerability (per day, not per load)
-        # Calibrated: ~3% daily risk at very low ACWR
-        base_physio_risk = 0.008
+        base_physio_risk = physio_cfg.get('base_daily_risk', 0.008)
+        max_multiplier = physio_cfg.get('max_detraining_multiplier', 2.66)
+        wellness_amp = physio_cfg.get('wellness_amplification', 0.5)
 
-        # Amplify by detraining severity (up to 2.66x as found in PMData)
-        physio_multiplier = 1.0 + (1.66 * detraining_severity)
-
+        physio_multiplier = 1.0 + ((max_multiplier - 1.0) * detraining_severity)
         physiological_risk = base_physio_risk * physio_multiplier
 
-        # Wellness compounds physiological vulnerability
-        # (poor sleep + detrained tissue = disaster)
         wellness_vulnerability = _calculate_wellness_vulnerability(day_data, fatigue, form)
-        physiological_risk *= (1.0 + wellness_vulnerability * 0.5)
+        physiological_risk *= (1.0 + wellness_vulnerability * wellness_amp)
 
     # ========================================
     # MECHANISM 2: STOCHASTIC EXPOSURE
-    # (ACWR > 1.3 - More training time = more accidents)
     # ========================================
-    # PMData evidence: 1.04x injury rate per load unit (same as optimal!)
-    # The "danger" is just spending more time in harm's way
-
     exposure_risk = 0.0
     if daily_load > 0:
-        # Base accident rate per unit of training load
-        # This is CONSTANT across ACWR zones (the key insight!)
-        accident_rate_per_load = 0.0001  # ~0.01% per load unit
+        accident_rate = exposure_cfg.get('accident_rate_per_load_unit', 0.0001)
+        variation_range = exposure_cfg.get('random_variation_range', [0.7, 1.3])
 
-        # Exposure risk scales linearly with training load
-        exposure_risk = accident_rate_per_load * daily_load
-
-        # Small random variation (accidents are stochastic)
-        exposure_risk *= random.uniform(0.7, 1.3)
+        exposure_risk = accident_rate * daily_load
+        exposure_risk *= random.uniform(variation_range[0], variation_range[1])
 
     # ========================================
     # MECHANISM 3: BASELINE RISK
-    # (Optimal zone - minimal but non-zero)
     # ========================================
-    # Even in perfect conditions, some baseline injury risk exists
+    baseline_risk = baseline_cfg.get('daily_risk', 0.002)
+    baseline_wellness_amp = baseline_cfg.get('wellness_amplification', 0.3)
 
-    baseline_risk = 0.002  # ~0.2% daily baseline
-
-    # Wellness can slightly elevate baseline risk
-    if 0.8 <= acwr <= 1.3:
+    if undertrained_threshold <= acwr <= optimal_upper:
         wellness_vulnerability = _calculate_wellness_vulnerability(day_data, fatigue, form)
-        baseline_risk *= (1.0 + wellness_vulnerability * 0.3)
+        baseline_risk *= (1.0 + wellness_vulnerability * baseline_wellness_amp)
 
     # ========================================
-    # COMBINE MECHANISMS (they are additive, not multiplicative)
+    # COMBINE MECHANISMS
     # ========================================
     total_risk = physiological_risk + exposure_risk + baseline_risk
 
-    # Determine dominant mechanism for logging/analysis
     if physiological_risk > max(exposure_risk, baseline_risk):
         injury_type = 'physiological'
     elif exposure_risk > baseline_risk:
@@ -116,8 +101,9 @@ def calculate_injury_probability_asymmetric(day_data, athlete, fatigue, form, ac
     else:
         injury_type = 'baseline'
 
-    # Clamp to reasonable range
-    total_risk = min(0.08, max(0.001, total_risk))
+    min_prob = bounds.get('min_probability', 0.001)
+    max_prob = bounds.get('max_probability', 0.08)
+    total_risk = min(max_prob, max(min_prob, total_risk))
 
     return total_risk, injury_type
 
@@ -126,15 +112,37 @@ def _calculate_wellness_vulnerability(day_data, fatigue, form):
     """
     Calculate wellness vulnerability score (0-1).
     This modifies injury risk but doesn't cause injuries alone.
+
+    Configuration loaded from: config/simulation_config.yaml
     """
+    # Load configuration
+    weights = cfg.wellness_weights()
+    sleep_cfg = cfg.get('wellness_vulnerability.sleep', {})
+    stress_cfg = cfg.get('wellness_vulnerability.stress', {})
+
+    target_sleep = sleep_cfg.get('target_hours', 7.0)
+    deficit_scale = sleep_cfg.get('deficit_scale', 3.0)
+
     sleep_hours = day_data.get('sleep_hours', 7.5)
-    sleep_deficit = max(0, (7.0 - sleep_hours) / 3.0)
+    sleep_deficit = max(0, (target_sleep - sleep_hours) / deficit_scale)
 
     sleep_quality = day_data.get('sleep_quality', 0.7)
     poor_sleep_quality = 1.0 - sleep_quality
 
+    # === ENHANCED STRESS SENSITIVITY ===
     stress = day_data.get('stress', 40)
-    high_stress = stress / 100.0
+    stress_norm = stress / 100.0
+
+    boost_threshold = stress_cfg.get('boost_threshold', 50)
+    boost_exponent = stress_cfg.get('boost_exponent', 1.5)
+    max_boost = stress_cfg.get('max_boost_multiplier', 3.0)
+
+    if stress > boost_threshold:
+        stress_excess = (stress - boost_threshold) / (100 - boost_threshold)
+        stress_boost = 1.0 + (stress_excess ** boost_exponent) * (max_boost - 1.0)
+        high_stress = stress_norm * stress_boost
+    else:
+        high_stress = stress_norm
 
     body_battery = day_data.get('body_battery_morning', 75)
     low_recovery = 1.0 - (body_battery / 100.0)
@@ -143,12 +151,12 @@ def _calculate_wellness_vulnerability(day_data, fatigue, form):
     form_risk = max(0.0, min(1.0, -form / 30.0))
 
     vulnerability = (
-        0.25 * sleep_deficit +
-        0.15 * poor_sleep_quality +
-        0.20 * high_stress +
-        0.15 * low_recovery +
-        0.15 * fatigue_norm +
-        0.10 * form_risk
+        weights.get('sleep_deficit', 0.25) * sleep_deficit +
+        weights.get('poor_sleep_quality', 0.15) * poor_sleep_quality +
+        weights.get('high_stress', 0.20) * high_stress +
+        weights.get('low_recovery', 0.15) * low_recovery +
+        weights.get('fatigue', 0.15) * fatigue_norm +
+        weights.get('negative_form', 0.10) * form_risk
     )
 
     return min(1.0, max(0.0, vulnerability))
@@ -168,58 +176,77 @@ def generate_load_spike_schedule(year=2024):
     """
     Generate a schedule of training load spikes throughout the year.
 
-    These represent realistic scenarios that cause ACWR to spike:
-    - Training camps (5-10 days of high volume)
-    - Race preparation blocks (increased intensity)
-    - Return from illness/vacation (sudden load increase)
-    - Overreaching periods (intentional overload)
-    - Acute spikes (single high-intensity days)
+    Configuration loaded from: config/simulation_config.yaml
 
-    Calibrated to PMData: ~12% of days should have ACWR > 1.5
-
-    Returns list of (start_day, duration, multiplier) tuples
+    Returns list of (start_day, duration, multiplier, spike_type) tuples
     """
     spikes = []
 
-    # Training camps (3-4 per year, 5-10 days each, 1.6-2.2x load)
-    num_camps = random.randint(3, 4)
-    camp_months = random.sample([2, 3, 4, 5, 6, 7, 8, 9], num_camps)
+    # Training camps
+    camps_cfg = cfg.load_spike_config('camps')
+    count_range = camps_cfg.get('count_range', [3, 4])
+    duration_range = camps_cfg.get('duration_range', [5, 10])
+    multiplier_range = camps_cfg.get('multiplier_range', [1.6, 2.2])
+    allowed_months = camps_cfg.get('allowed_months', [2, 3, 4, 5, 6, 7, 8, 9])
+
+    num_camps = random.randint(count_range[0], count_range[1])
+    camp_months = random.sample(allowed_months, min(num_camps, len(allowed_months)))
     for month in camp_months:
         start_day = (month - 1) * 30 + random.randint(5, 20)
-        duration = random.randint(5, 10)
-        multiplier = random.uniform(1.6, 2.2)  # Higher intensity
+        duration = random.randint(duration_range[0], duration_range[1])
+        multiplier = random.uniform(multiplier_range[0], multiplier_range[1])
         spikes.append((start_day, duration, multiplier, 'camp'))
 
-    # Return from rest periods (sudden load after deload, 1.5-2.0x)
-    num_returns = random.randint(4, 6)
+    # Return from rest periods
+    returns_cfg = cfg.load_spike_config('returns')
+    count_range = returns_cfg.get('count_range', [4, 6])
+    duration_range = returns_cfg.get('duration_range', [3, 7])
+    multiplier_range = returns_cfg.get('multiplier_range', [1.5, 2.0])
+
+    num_returns = random.randint(count_range[0], count_range[1])
     for _ in range(num_returns):
         start_day = random.randint(30, 330)
-        duration = random.randint(3, 7)
-        multiplier = random.uniform(1.5, 2.0)  # Higher intensity
+        duration = random.randint(duration_range[0], duration_range[1])
+        multiplier = random.uniform(multiplier_range[0], multiplier_range[1])
         spikes.append((start_day, duration, multiplier, 'return'))
 
-    # Overreaching blocks (intentional, 5-10 days, 1.4-1.8x)
-    num_overreach = random.randint(3, 5)
+    # Overreaching blocks
+    overreach_cfg = cfg.load_spike_config('overreach')
+    count_range = overreach_cfg.get('count_range', [3, 5])
+    duration_range = overreach_cfg.get('duration_range', [5, 10])
+    multiplier_range = overreach_cfg.get('multiplier_range', [1.4, 1.8])
+
+    num_overreach = random.randint(count_range[0], count_range[1])
     for _ in range(num_overreach):
         start_day = random.randint(60, 300)
-        duration = random.randint(5, 10)
-        multiplier = random.uniform(1.4, 1.8)
+        duration = random.randint(duration_range[0], duration_range[1])
+        multiplier = random.uniform(multiplier_range[0], multiplier_range[1])
         spikes.append((start_day, duration, multiplier, 'overreach'))
 
-    # Acute spikes (single or 2-3 day very high load events - races, tests)
-    num_acute = random.randint(6, 10)
+    # Acute spikes
+    acute_cfg = cfg.load_spike_config('acute')
+    count_range = acute_cfg.get('count_range', [6, 10])
+    duration_range = acute_cfg.get('duration_range', [1, 3])
+    multiplier_range = acute_cfg.get('multiplier_range', [1.8, 2.5])
+
+    num_acute = random.randint(count_range[0], count_range[1])
     for _ in range(num_acute):
         start_day = random.randint(30, 340)
-        duration = random.randint(1, 3)
-        multiplier = random.uniform(1.8, 2.5)  # Very high intensity
+        duration = random.randint(duration_range[0], duration_range[1])
+        multiplier = random.uniform(multiplier_range[0], multiplier_range[1])
         spikes.append((start_day, duration, multiplier, 'acute'))
 
-    # Reduced load periods (illness, vacation, life stress - causes undertrained ACWR)
-    num_reduced = random.randint(3, 5)
+    # Reduced load periods
+    reduced_cfg = cfg.load_spike_config('reduced')
+    count_range = reduced_cfg.get('count_range', [3, 5])
+    duration_range = reduced_cfg.get('duration_range', [7, 14])
+    multiplier_range = reduced_cfg.get('multiplier_range', [0.2, 0.5])
+
+    num_reduced = random.randint(count_range[0], count_range[1])
     for _ in range(num_reduced):
         start_day = random.randint(30, 330)
-        duration = random.randint(7, 14)
-        multiplier = random.uniform(0.2, 0.5)  # Lower load
+        duration = random.randint(duration_range[0], duration_range[1])
+        multiplier = random.uniform(multiplier_range[0], multiplier_range[1])
         spikes.append((start_day, duration, multiplier, 'reduced'))
 
     return spikes
@@ -274,7 +301,9 @@ def simulate_full_year(athlete, year=2024):
 
     # Track when we should inject injury patterns
     pending_injury_date = None
-    days_to_next_false_alarm = random.randint(30, 60)  # Schedule first false alarm
+    false_alarm_cfg = cfg.get('false_alarms', {})
+    first_alarm_range = false_alarm_cfg.get('first_alarm_days', [30, 60])
+    days_to_next_false_alarm = random.randint(first_alarm_range[0], first_alarm_range[1])
 
     # Generate load spike schedule for realistic ACWR variability
     load_spikes = generate_load_spike_schedule(year)
@@ -320,12 +349,17 @@ def simulate_full_year(athlete, year=2024):
         day_of_year = (day['date'] - start_date).days + 1
         load_multiplier, spike_type = get_load_multiplier(day_of_year, load_spikes)
 
+        # === GLASS-BOX: Save training context for explainability ===
+        day_data['load_scenario'] = spike_type if spike_type else 'normal_training'
+        day_data['load_multiplier'] = round(load_multiplier, 2)
+
         # Modify TSS based on load spike (training camp, overreaching, rest period, etc.)
         original_tss = day_data['actual_tss']
         day_data['actual_tss'] = original_tss * load_multiplier
 
-        # Also add some daily random variation (±15%) to increase ACWR variability
-        daily_variation = random.uniform(0.85, 1.15)
+        # Also add some daily random variation to increase ACWR variability
+        daily_var_range = cfg.get('load_spikes.daily_variation_range', [0.85, 1.15])
+        daily_variation = random.uniform(daily_var_range[0], daily_var_range[1])
         day_data['actual_tss'] *= daily_variation
 
         tss_today = day_data['actual_tss']
@@ -345,14 +379,18 @@ def simulate_full_year(athlete, year=2024):
             # If there's a pending injury date and we've reached it
             if pending_injury_date and day['date'] == pending_injury_date:
                 # Only inject patterns once - right when the injury occurs
+                preinjury_cfg = cfg.get('preinjury_patterns', {})
+                lookback_days = preinjury_cfg.get('lookback_days', 14)
                 daily_data = inject_realistic_injury_patterns(
-                    athlete, 
-                    daily_data, 
-                    len(daily_data) - 1,  # Current day index 
-                    14  # Look back up to 14 days to modify
+                    athlete,
+                    daily_data,
+                    len(daily_data) - 1,  # Current day index
+                    lookback_days
                 )
                 day_data['injury'] = 1
-                recovery_days_remaining = np.random.randint(3, 10)
+                recovery_cfg = cfg.get('injury_model.recovery_days', {})
+                recovery_range = recovery_cfg.get('baseline', [3, 10])
+                recovery_days_remaining = np.random.randint(recovery_range[0], recovery_range[1])
                 pending_injury_date = None
             else:
                 # ==========================================================
@@ -363,9 +401,17 @@ def simulate_full_year(athlete, year=2024):
                 # ==========================================================
 
                 daily_load = day_data.get('actual_tss', 50)
+
+                # === GLASS-BOX: Calculate and save wellness vulnerability ===
+                wellness_vuln = _calculate_wellness_vulnerability(day_data, fatigue, form)
+                day_data['wellness_vulnerability'] = round(wellness_vuln, 3)
+
                 injury_prob, injury_type = calculate_injury_probability_asymmetric(
                     day_data, athlete, fatigue, form, acwr, daily_load
                 )
+
+                # === GLASS-BOX: Save computed injury probability for analysis ===
+                day_data['injury_probability'] = round(injury_prob, 4)
 
                 # Apply modulations (Menstrual)
                 if modulations and 'injury_risk_modifier' in modulations:
@@ -380,24 +426,34 @@ def simulate_full_year(athlete, year=2024):
                     day_data['injury'] = 1
                     day_data['injury_type'] = injury_type  # Track mechanism for analysis
 
-                    # Recovery time varies by injury type
+                    # Recovery time varies by injury type (from config)
+                    recovery_cfg = cfg.get('injury_model.recovery_days', {})
                     if injury_type == 'physiological':
                         # Physiological injuries (tissue damage) take longer to heal
-                        recovery_days_remaining = np.random.randint(5, 12)
+                        recovery_range = recovery_cfg.get('physiological', [5, 12])
+                        recovery_days_remaining = np.random.randint(recovery_range[0], recovery_range[1])
                     elif injury_type == 'exposure':
                         # Exposure injuries (accidents) vary widely
-                        recovery_days_remaining = np.random.randint(2, 10)
+                        recovery_range = recovery_cfg.get('exposure', [2, 10])
+                        recovery_days_remaining = np.random.randint(recovery_range[0], recovery_range[1])
                     else:
                         # Baseline injuries
-                        recovery_days_remaining = np.random.randint(3, 7)
+                        recovery_range = recovery_cfg.get('baseline', [3, 7])
+                        recovery_days_remaining = np.random.randint(recovery_range[0], recovery_range[1])
                 else:
                     day_data['injury'] = 0
                     day_data['injury_type'] = None
         else:
             # Still in recovery period
             day_data['injury'] = 1
+            day_data['injury_type'] = 'recovery'  # Mark as recovery period
+            day_data['wellness_vulnerability'] = None
+            day_data['injury_probability'] = None
             recovery_days_remaining -= 1
-            
+
+        # === GLASS-BOX: Always save ACWR for time-series analysis ===
+        day_data['acwr'] = round(acwr, 3) if acwr else None
+
         daily_data.append(day_data)
         
         # Update previous day data
@@ -412,11 +468,13 @@ def simulate_full_year(athlete, year=2024):
         # Handle false alarm pattern injection (patterns that look like injuries but don't result in one)
         days_to_next_false_alarm -= 1
         if days_to_next_false_alarm <= 0 and recovery_days_remaining == 0 and not pending_injury_date:
-            # Insert a false alarm pattern
-            false_alarm_days = random.randint(7, 12)
+            # Insert a false alarm pattern (from config)
+            duration_range = false_alarm_cfg.get('duration_days', [7, 12])
+            false_alarm_days = random.randint(duration_range[0], duration_range[1])
             create_false_alarm_patterns(athlete, daily_data, len(daily_data) - 1, false_alarm_days)
-            # Schedule next false alarm
-            days_to_next_false_alarm = random.randint(20, 35)
+            # Schedule next false alarm (from config)
+            interval_range = false_alarm_cfg.get('interval_days', [20, 35])
+            days_to_next_false_alarm = random.randint(interval_range[0], interval_range[1])
 
     
     result = {
@@ -502,7 +560,14 @@ def save_simulation_data(simulated_data, output_folder="simulated_data"):
                 'body_battery_evening': daily_entry['body_battery_evening'],
                 'planned_tss': daily_entry['planned_tss'],
                 'actual_tss': daily_entry['actual_tss'],
-                'injury': daily_entry['injury']
+                'injury': daily_entry['injury'],
+                # === GLASS-BOX COLUMNS (Explainability) ===
+                'injury_type': daily_entry.get('injury_type'),  # physiological, exposure, baseline, recovery
+                'acwr': daily_entry.get('acwr'),  # Acute:Chronic Workload Ratio
+                'load_scenario': daily_entry.get('load_scenario'),  # camp, return, overreach, acute, reduced, normal_training
+                'load_multiplier': daily_entry.get('load_multiplier'),  # Training load multiplier applied
+                'wellness_vulnerability': daily_entry.get('wellness_vulnerability'),  # 0-1 vulnerability score
+                'injury_probability': daily_entry.get('injury_probability')  # Computed injury probability
             })
 
         # Save activity data

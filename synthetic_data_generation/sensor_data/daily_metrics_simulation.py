@@ -1,5 +1,11 @@
 import random
 import numpy as np
+import sys
+import os
+
+# Add parent directory to path for config import
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import SimConfig as cfg
 
 # Random seed for reproducibility
 np.random.seed(42)
@@ -9,11 +15,14 @@ class AthleteMetricsSimulator:
     """Simulates morning wearable recovery data based on previous training loads and athlete metrics."""
     
     def __init__(self):
-        self.MIN_SLEEP_HOURS = 4.0
+        # Load sleep model configuration
+        sleep_cfg = cfg.get('sleep_model', {})
+        self.MIN_SLEEP_HOURS = sleep_cfg.get('min_hours', 4.0)
+        ideal_props = sleep_cfg.get('ideal_proportions', {})
         self.IDEAL_SLEEP_PROPORTIONS = {
-            'deep': 0.20,
-            'rem': 0.25,
-            'light': 0.55
+            'deep': ideal_props.get('deep', 0.20),
+            'rem': ideal_props.get('rem', 0.25),
+            'light': ideal_props.get('light', 0.55)
         }
     
     def simulate_morning_data(self, athlete, date, prev_day, recovery_days_remaining, max_daily_tss, 
@@ -557,7 +566,15 @@ class AthleteMetricsSimulator:
         """Calculate stress factors based on lifestyle, biometrics, and recovery.
 
         Distribution tuned to match PMData real-world patterns (right-skewed, mode ~25-35).
+        Configuration loaded from: config/simulation_config.yaml (stress_model section)
         """
+        # Load stress model configuration
+        stress_cfg = cfg.get('stress_model', {})
+        weights_cfg = stress_cfg.get('weights', {})
+        exp_cfg = stress_cfg.get('exponential_scaling', {})
+        dist_cfg = stress_cfg.get('distribution', {})
+        bounds = stress_cfg.get('bounds', [0, 100])
+
         factors = {
             'smoking': athlete.get('smoking_factor', 0),
             'alcohol': athlete.get('drinking_factor', 0),
@@ -569,38 +586,40 @@ class AthleteMetricsSimulator:
             'fatigue': max(0, min(1, fatigue / 100))
         }
 
-        # Exponential scaling for critical cases
-        if daily_data['hrv'] < athlete['hrv_baseline'] * 0.8:
-            factors['hrv'] **= 1.5
-        if daily_data['resting_hr'] > athlete['resting_hr'] * 1.1:
-            factors['hr'] **= 1.5
+        # Exponential scaling for critical cases (from config)
+        hrv_thresh = exp_cfg.get('hrv_threshold', 0.8)
+        rhr_thresh = exp_cfg.get('rhr_threshold', 1.1)
+        exp_power = exp_cfg.get('exponent', 1.5)
+        if daily_data['hrv'] < athlete['hrv_baseline'] * hrv_thresh:
+            factors['hrv'] **= exp_power
+        if daily_data['resting_hr'] > athlete['resting_hr'] * rhr_thresh:
+            factors['hr'] **= exp_power
 
         weights = {
-            'smoking': 15,
-            'alcohol': 15,
-            'life_stress': 20,
-            'hrv': 15,
-            'hr': 10,
-            'sleep': 10,
-            'battery': 10,
-            'fatigue': 5
+            'smoking': weights_cfg.get('smoking', 15),
+            'alcohol': weights_cfg.get('alcohol', 15),
+            'life_stress': weights_cfg.get('life_stress', 20),
+            'hrv': weights_cfg.get('hrv_deviation', 15),
+            'hr': weights_cfg.get('hr_elevation', 10),
+            'sleep': weights_cfg.get('sleep_quality', 10),
+            'battery': weights_cfg.get('battery_level', 10),
+            'fatigue': weights_cfg.get('fatigue', 5)
         }
 
-        stress_raw = sum(factors[k] * weights[k] for k in factors) + np.random.normal(0, 3)
-        stress_raw = min(max(stress_raw, 0), 100)
+        noise_std = dist_cfg.get('noise_std', 3)
+        stress_raw = sum(factors[k] * weights[k] for k in factors) + np.random.normal(0, noise_std)
+        stress_raw = min(max(stress_raw, bounds[0]), bounds[1])
 
-        # Apply right-skew transformation to match PMData distribution
-        # PMData stress tends to cluster at low-moderate levels (mode ~25-35)
-        # with a long tail toward high stress values
-        # Using a power transformation: stress_adjusted = 100 * (stress_raw/100)^0.7
-        # This compresses the lower end and expands the higher end
+        # Apply right-skew transformation to match PMData distribution (from config)
+        skew_exp = dist_cfg.get('skew_exponent', 0.7)
+        scale = dist_cfg.get('scale_factor', 0.85)
+        shift = dist_cfg.get('shift', 5)
+
         stress_normalized = stress_raw / 100.0
-        stress_skewed = 100 * (stress_normalized ** 0.7)
+        stress_skewed = 100 * (stress_normalized ** skew_exp)
+        stress_adjusted = stress_skewed * scale + shift
 
-        # Add slight shift toward the typical PMData range (mean ~30-40)
-        stress_adjusted = stress_skewed * 0.85 + 5  # Scale and shift
-
-        return min(max(stress_adjusted, 0), 100)
+        return min(max(stress_adjusted, bounds[0]), bounds[1])
     
     def _calculate_evening_body_battery(self, daily_data, stress, fatigue, current_hour):
         """Calculate evening body battery considering various drains."""

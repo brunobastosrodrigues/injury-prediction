@@ -6,41 +6,210 @@ import numpy as np
 import random
 import os
 import uuid
+import subprocess
+import json
+import shutil
 from datetime import datetime
+
+# Path to Rust binary - can be overridden by environment variable
+RUST_DATAGEN_BINARY = os.environ.get(
+    'DATAGEN_BINARY',
+    os.path.join(os.path.dirname(__file__), '..', '..', 'injury-prediction-datagen', 'target', 'release', 'datagen')
+)
+
+# Fallback to Python if Rust binary not available
+USE_RUST_DATAGEN = os.path.exists(RUST_DATAGEN_BINARY)
+
 
 @celery_app.task(name='generate_dataset')
 def generate_dataset_task(job_id: str, n_athletes: int, simulation_year: int, random_seed: int, injury_config: Optional[Dict[str, Any]]):
-    """Celery task for generating synthetic athlete data."""
+    """Celery task for generating synthetic athlete data.
+
+    Uses Rust binary for 1000x faster generation if available, otherwise falls back to Python.
+    """
     from app import create_app
     from .services.data_generation_service import DataGenerationService
     app = create_app()
     with app.app_context():
         try:
-            np.random.seed(random_seed)
-            random.seed(random_seed)
             ProgressTracker.start_job(job_id, total_steps=n_athletes)
             ProgressTracker.update_progress(job_id, 0, 'Initializing...')
 
-            from synthetic_data_generation.simulate_year import simulate_full_year
-            from synthetic_data_generation.logistics.athlete_profiles import generate_athlete_cohort
+            if USE_RUST_DATAGEN:
+                # Use fast Rust implementation
+                dataset_id = _generate_with_rust(job_id, n_athletes, simulation_year, random_seed, injury_config, app)
+            else:
+                # Fallback to Python implementation
+                dataset_id = _generate_with_python(job_id, n_athletes, simulation_year, random_seed, injury_config, app)
 
-            athletes = generate_athlete_cohort(n_athletes)
-            simulated_data = []
-            for i, athlete in enumerate(athletes):
-                if not ProgressTracker.is_running(job_id):
-                    ProgressTracker.cancel_job(job_id)
-                    return
-                progress = int((i + 1) / n_athletes * 95)
-                ProgressTracker.update_progress(job_id, progress, f'Simulating athlete {i + 1}/{n_athletes}...', current_athlete=i + 1, total_athletes=n_athletes)
-                athlete_data = simulate_full_year(athlete, year=simulation_year)
-                simulated_data.append(athlete_data)
-
-            ProgressTracker.update_progress(job_id, 96, 'Saving data...')
-            dataset_id = DataGenerationService._save_dataset(simulated_data, n_athletes, simulation_year, random_seed, injury_config)
             ProgressTracker.complete_job(job_id, result={'dataset_id': dataset_id})
         except Exception as e:
             import traceback
             ProgressTracker.fail_job(job_id, f"{str(e)}\n{traceback.format_exc()}")
+
+
+def _generate_with_rust(job_id: str, n_athletes: int, simulation_year: int, random_seed: int,
+                        injury_config: Optional[Dict[str, Any]], app) -> str:
+    """Generate dataset using fast Rust binary."""
+    dataset_id = f"dataset_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{str(uuid.uuid4())[:6]}"
+    output_dir = os.path.join(app.config['RAW_DATA_DIR'], dataset_id)
+    os.makedirs(output_dir, exist_ok=True)
+
+    ProgressTracker.update_progress(job_id, 5, 'Starting Rust data generator...')
+
+    # Build command with base arguments
+    cmd = [
+        RUST_DATAGEN_BINARY,
+        '--n-athletes', str(n_athletes),
+        '--year', str(simulation_year),
+        '--seed', str(random_seed),
+        '--output-dir', output_dir,
+        '--json-progress',
+        '--no-progress',
+    ]
+
+    # Add configuration parameters if provided
+    if injury_config:
+        # Injury model parameters
+        if 'acwr_danger_threshold' in injury_config:
+            cmd.extend(['--acwr-danger', str(injury_config['acwr_danger_threshold'])])
+        if 'acwr_caution_threshold' in injury_config:
+            cmd.extend(['--acwr-caution', str(injury_config['acwr_caution_threshold'])])
+        if 'acwr_undertrained_threshold' in injury_config:
+            cmd.extend(['--acwr-undertrained', str(injury_config['acwr_undertrained_threshold'])])
+        if 'base_injury_probability' in injury_config:
+            cmd.extend(['--base-injury-prob', str(injury_config['base_injury_probability'])])
+        if 'max_injury_probability' in injury_config:
+            cmd.extend(['--max-injury-prob', str(injury_config['max_injury_probability'])])
+
+        # Training model parameters
+        if 'ctl_time_constant' in injury_config:
+            cmd.extend(['--ctl-days', str(injury_config['ctl_time_constant'])])
+        if 'atl_time_constant' in injury_config:
+            cmd.extend(['--atl-days', str(injury_config['atl_time_constant'])])
+        if 'acwr_acute_window' in injury_config:
+            cmd.extend(['--acwr-acute-window', str(injury_config['acwr_acute_window'])])
+        if 'acwr_chronic_window' in injury_config:
+            cmd.extend(['--acwr-chronic-window', str(injury_config['acwr_chronic_window'])])
+
+        # Athlete generation parameters
+        if 'min_age' in injury_config:
+            cmd.extend(['--min-age', str(injury_config['min_age'])])
+        if 'max_age' in injury_config:
+            cmd.extend(['--max-age', str(injury_config['max_age'])])
+        if 'min_weekly_hours' in injury_config:
+            cmd.extend(['--min-hours', str(injury_config['min_weekly_hours'])])
+        if 'max_weekly_hours' in injury_config:
+            cmd.extend(['--max-hours', str(injury_config['max_weekly_hours'])])
+        if 'female_probability' in injury_config:
+            cmd.extend(['--female-prob', str(injury_config['female_probability'])])
+
+    # Run Rust binary with JSON progress output
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    # Stream progress from stderr
+    for line in process.stderr:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            progress_data = json.loads(line)
+            completed = progress_data.get('progress', 0)
+            total = progress_data.get('total', n_athletes)
+            pct = int(90 * completed / total) + 5  # 5-95% range
+            ProgressTracker.update_progress(
+                job_id, pct,
+                f'Simulating athlete {completed}/{total}...',
+                current_athlete=completed,
+                total_athletes=total
+            )
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    process.wait()
+
+    if process.returncode != 0:
+        stdout, stderr = process.communicate()
+        raise RuntimeError(f"Rust datagen failed with code {process.returncode}: {stderr}")
+
+    ProgressTracker.update_progress(job_id, 96, 'Finalizing data files...')
+
+    # Rename files to match expected naming convention
+    rust_to_python_names = {
+        'athlete_profiles.parquet': 'athletes.parquet',
+        'daily_data.parquet': 'daily_data.parquet',
+        'activity_data.parquet': 'activity_data.parquet',
+    }
+
+    for rust_name, python_name in rust_to_python_names.items():
+        rust_path = os.path.join(output_dir, rust_name)
+        python_path = os.path.join(output_dir, python_name)
+        if os.path.exists(rust_path) and rust_name != python_name:
+            shutil.move(rust_path, python_path)
+
+    # Read and update metadata
+    metadata_path = os.path.join(output_dir, 'metadata.json')
+    if os.path.exists(metadata_path):
+        with open(metadata_path, 'r') as f:
+            rust_metadata = json.load(f)
+    else:
+        rust_metadata = {}
+
+    # Merge with our metadata format
+    metadata = {
+        'n_athletes': n_athletes,
+        'simulation_year': simulation_year,
+        'random_seed': random_seed,
+        'injury_config': injury_config,
+        'created_at': datetime.utcnow().isoformat(),
+        'n_daily_records': rust_metadata.get('n_daily_records', 0),
+        'n_activities': rust_metadata.get('n_activities', 0),
+        'injury_rate': rust_metadata.get('injury_rate', 0) / 100.0,  # Convert from percentage
+        'generator': 'rust',
+    }
+    FileManager.save_dataset_metadata(dataset_id, metadata)
+
+    return dataset_id
+
+
+def _generate_with_python(job_id: str, n_athletes: int, simulation_year: int, random_seed: int,
+                          injury_config: Optional[Dict[str, Any]], app) -> str:
+    """Generate dataset using Python implementation (fallback)."""
+    from .services.data_generation_service import DataGenerationService
+
+    np.random.seed(random_seed)
+    random.seed(random_seed)
+
+    from synthetic_data_generation.simulate_year import simulate_full_year
+    from synthetic_data_generation.logistics.athlete_profiles import generate_athlete_cohort
+
+    athletes = generate_athlete_cohort(n_athletes)
+    simulated_data = []
+    for i, athlete in enumerate(athletes):
+        if not ProgressTracker.is_running(job_id):
+            ProgressTracker.cancel_job(job_id)
+            raise RuntimeError("Job cancelled")
+        progress = int((i + 1) / n_athletes * 95)
+        ProgressTracker.update_progress(
+            job_id, progress,
+            f'Simulating athlete {i + 1}/{n_athletes}...',
+            current_athlete=i + 1,
+            total_athletes=n_athletes
+        )
+        athlete_data = simulate_full_year(athlete, year=simulation_year)
+        simulated_data.append(athlete_data)
+
+    ProgressTracker.update_progress(job_id, 96, 'Saving data...')
+    dataset_id = DataGenerationService._save_dataset(
+        simulated_data, n_athletes, simulation_year, random_seed, injury_config
+    )
+
+    return dataset_id
 
 @celery_app.task(name='preprocess_dataset')
 def preprocess_dataset_task(job_id: str, dataset_id: str, split_strategy: str, split_ratio: float, prediction_window: int, random_seed: int):

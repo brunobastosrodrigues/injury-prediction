@@ -103,7 +103,14 @@ class DataGenerationService:
                     'body_battery_evening': daily_entry['body_battery_evening'],
                     'planned_tss': daily_entry['planned_tss'],
                     'actual_tss': daily_entry['actual_tss'],
-                    'injury': daily_entry['injury']
+                    'injury': daily_entry['injury'],
+                    # === GLASS-BOX COLUMNS (Explainability for Paper) ===
+                    'injury_type': daily_entry.get('injury_type'),  # physiological, exposure, baseline, recovery
+                    'acwr': daily_entry.get('acwr'),  # Acute:Chronic Workload Ratio
+                    'load_scenario': daily_entry.get('load_scenario'),  # camp, return, overreach, acute, reduced, normal_training
+                    'load_multiplier': daily_entry.get('load_multiplier'),  # Training load multiplier applied
+                    'wellness_vulnerability': daily_entry.get('wellness_vulnerability'),  # 0-1 vulnerability score
+                    'injury_probability': daily_entry.get('injury_probability')  # Computed injury probability
                 })
 
             # Activity data

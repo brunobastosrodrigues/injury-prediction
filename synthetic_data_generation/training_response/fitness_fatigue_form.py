@@ -1,7 +1,13 @@
 import numpy as np
 import pandas as pd
 import random
+import sys
+import os
 from datetime import timedelta
+
+# Add parent directory to path for config import
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import SimConfig as cfg
 
 def calculate_training_metrics(tss_history, hrv_history, baseline_hrv):
     """
@@ -24,13 +30,18 @@ def calculate_training_metrics(tss_history, hrv_history, baseline_hrv):
     # Calculate HRV scaling factor for each day
     hrv_scaling = np.array(hrv_history) / baseline_hrv
     adjusted_tss = np.array(tss_history) * hrv_scaling  # Adjust TSS by HRV
-    
+
+    # Load EWMA constants from config
+    ewma_cfg = cfg.get('training_model.ewma', {})
+    chronic_days = ewma_cfg.get('chronic_days', 28)
+    acute_days = ewma_cfg.get('acute_days', 7)
+
     # Exponentially Weighted Moving Averages (EWMA)
-    lambda_chronic = 2 / (28 + 1)  # 28-day decay rate
-    lambda_acute = 2 / (7 + 1)     # 7-day decay rate
-    
+    lambda_chronic = 2 / (chronic_days + 1)
+    lambda_acute = 2 / (acute_days + 1)
+
     fitness = pd.Series(adjusted_tss).ewm(alpha=lambda_chronic, adjust=False).mean().iloc[-1]
-    fatigue = pd.Series(adjusted_tss[-7:]).ewm(alpha=lambda_acute, adjust=False).mean().iloc[-1]
+    fatigue = pd.Series(adjusted_tss[-acute_days:]).ewm(alpha=lambda_acute, adjust=False).mean().iloc[-1]
     
     # Training Form = Fitness - Fatigue
     form = fitness - fatigue
