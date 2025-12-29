@@ -37,8 +37,7 @@ function LandingPage() {
     <div className={`min-h-screen ${isDark ? 'bg-slate-950' : 'bg-gray-50'}`}>
       {/* Simple Header */}
       <header className={`border-b ${isDark ? 'border-slate-800 bg-slate-950' : 'border-gray-200 bg-white'}`}>
-        <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
-          <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Research Platform</span>
+        <div className="max-w-4xl mx-auto px-6 py-4 flex justify-end items-center">
           <div className="flex items-center gap-4">
             <button
               onClick={toggleTheme}
