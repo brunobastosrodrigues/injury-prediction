@@ -4,50 +4,11 @@
 
 <img width="941" height="570" alt="injury-prediction-landingpage-new" src="https://github.com/user-attachments/assets/47f36be8-647d-43dc-8fb3-a1e3717a43c7" />
 
-> *Landing page with research abstract and validation results overview.*
+> *Landing page showing validation results and model performance.*
 
-This repository contains a comprehensive framework for injury prediction in endurance athletes using machine learning. The platform provides:
+ML-powered injury prediction for endurance athletes. Generates synthetic wearable data, trains predictive models (Lasso, Random Forest, XGBoost), and provides explainable AI insights for 7-day injury risk forecasting.
 
-- **Synthetic Data Generation**: Physiologically plausible training and physiological data simulation
-- **ML Pipeline**: Complete workflow from data preprocessing to model training and evaluation
-- **Scientific Validation Suite**: Publication-quality validation with Three Pillars framework
-- **Explainable AI (XAI)**: SHAP-based model interpretability with counterfactual explanations
-- **Interactive Analytics**: Risk analysis, what-if scenarios, and athlete-level dashboards
-
-While focused on triathlon, the framework is adaptable to other endurance sports facing similar data accessibility challenges.
-
-## Key Features
-
-### Data Generation & Ingestion
-- **Synthetic Athlete Profiles**: Diverse athlete characteristics based on realistic physiological parameters for competitive age-group triathletes
-- **Periodized Training Plans**: Structured training prescriptions with appropriate intensity distribution
-- **Wearable Sensor Simulation**: Heart rate, sleep, HRV, and metrics commonly collected by devices
-- **Real Data Support**: Garmin Connect data ingestion for real-world validation
-
-### Machine Learning Pipeline
-- **Preprocessing**: Feature engineering with ACWR (Acute:Chronic Workload Ratio), rolling statistics, and lag features
-- **Three Model Types**: Lasso (L1 regularized), Random Forest, and XGBoost
-- **7-Day Injury Prediction Window**: Binary classification for near-term injury risk
-- **Hyperparameter Configuration**: YAML-based settings for reproducible experiments
-
-### Scientific Validation
-- **Three Pillars Framework**: Face validity, predictive validity, and hypothesis validity
-- **Causal Mechanism Analysis**: ACWR zone injury rate verification
-- **External Validation**: Real PMData dataset support for cross-validation
-- **Publication-Ready Metrics**: AUC-ROC, sensitivity, specificity, calibration curves
-
-### Explainable AI (Federated XAI)
-- **SHAP Waterfall Plots**: Individual prediction explanations
-- **Feature Dependence**: Partial dependence and interaction effects
-- **Counterfactual Explanations**: "What-if" scenarios for risk modification
-- **Personalized Recommendations**: Actionable insights for injury prevention
-
-### Analytics & Visualization
-- **Dataset Explorer**: Distribution analysis, correlations, and pre-injury patterns
-- **Athlete Dashboard**: Individual athlete profiles with risk timeline
-- **What-If Simulator**: Interactive intervention planning
-- **Dark/Light Theme**: Full theme support across all components
-- **Mobile Responsive**: Optimized for all screen sizes
+**Features:** Synthetic data generation · ML pipeline · Scientific validation (Three Pillars) · SHAP explanations · Interactive analytics · Athlete dashboards
 
 ## Architecture
 
