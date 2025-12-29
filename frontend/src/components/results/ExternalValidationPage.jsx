@@ -150,11 +150,78 @@ function ExternalValidationPage() {
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
+    { id: 'methodology', label: 'Methodology' },
     { id: 'distributions', label: 'Distributions' },
     { id: 'sim2real', label: 'Sim2Real' },
     { id: 'causal', label: 'Causal Mechanism' },
     { id: 'pmdata', label: 'PMData Analysis' }
   ]
+
+  // Methodology validation state
+  const [methodologyResults, setMethodologyResults] = useState(null)
+  const [methodologyJob, setMethodologyJob] = useState(null)
+  const methodologyPollingRef = useRef(null)
+
+  // Load methodology results when dataset changes
+  useEffect(() => {
+    if (selectedDataset) {
+      loadMethodologyResults(selectedDataset)
+    }
+  }, [selectedDataset])
+
+  const loadMethodologyResults = async (datasetId) => {
+    try {
+      const res = await validationApi.getMethodologySummary(datasetId)
+      setMethodologyResults(res.data)
+    } catch (err) {
+      console.log('No methodology results cached yet')
+      setMethodologyResults(null)
+    }
+  }
+
+  const handleRunMethodology = async (types = ['loso', 'sensitivity', 'equivalence']) => {
+    if (!selectedDataset) return
+    try {
+      const res = await validationApi.runMethodologyValidation(selectedDataset, types)
+      setMethodologyJob({
+        id: res.data.job_id,
+        status: 'pending',
+        progress: 0,
+        current_step: 'Starting methodology validation...'
+      })
+      // Start polling
+      methodologyPollingRef.current = setInterval(async () => {
+        try {
+          const statusRes = await validationApi.getJobStatus(res.data.job_id)
+          const job = statusRes.data
+          if (job.status === 'completed') {
+            clearInterval(methodologyPollingRef.current)
+            setMethodologyJob(null)
+            loadMethodologyResults(selectedDataset)
+          } else if (job.status === 'failed') {
+            clearInterval(methodologyPollingRef.current)
+            setMethodologyJob(null)
+            setError(job.error || 'Methodology validation failed')
+          } else {
+            setMethodologyJob(job)
+          }
+        } catch (e) {
+          console.error('Polling error:', e)
+        }
+      }, 2000)
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to start methodology validation')
+    }
+  }
+
+  // Cleanup methodology polling
+  useEffect(() => {
+    return () => {
+      if (methodologyPollingRef.current) {
+        clearInterval(methodologyPollingRef.current)
+      }
+    }
+  }, [])
 
   const getPillarColor = (status) => {
     if (status === 'pass') return 'bg-green-500/20 text-green-400 border-green-500/30'
@@ -416,6 +483,281 @@ function ExternalValidationPage() {
                   </div>
                 </div>
               </Card>
+            </div>
+          )}
+
+          {/* Methodology Tab - Publication-Quality Validation */}
+          {activeTab === 'methodology' && (
+            <div className="space-y-4">
+              {/* Methodology Job Progress */}
+              {methodologyJob && (
+                <Card title="Running Methodology Validation">
+                  <div className="space-y-4">
+                    <ProgressBar progress={methodologyJob.progress || 0} />
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-slate-400">{methodologyJob.current_step || 'Processing...'}</p>
+                      <span className="text-xs text-slate-500">{methodologyJob.progress || 0}%</span>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* Run Methodology Validation Button */}
+              {!methodologyJob && (
+                <Card title="Methodology Validation Suite">
+                  <div className="p-4 bg-slate-800/50 rounded-lg mb-4">
+                    <p className="text-sm text-slate-300 mb-2">
+                      <strong>Publication-Quality Rigor:</strong> Run these validations to address common reviewer critiques.
+                    </p>
+                    <ul className="text-xs text-slate-400 space-y-1">
+                      <li>• <strong>LOSO CV</strong>: Leave-One-Subject-Out cross-validation (N=16 folds)</li>
+                      <li>• <strong>Sensitivity Analysis</strong>: Parameter perturbation study with Tornado Plot</li>
+                      <li>• <strong>Equivalence Check</strong>: Rust vs Python numerical identity (MSE &lt; 1e-6)</li>
+                    </ul>
+                  </div>
+                  <button
+                    onClick={() => handleRunMethodology()}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Run Full Methodology Suite
+                  </button>
+                </Card>
+              )}
+
+              {/* LOSO Cross-Validation Results */}
+              {methodologyResults?.loso?.status === 'complete' && (
+                <Card title="LOSO Cross-Validation Results">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                      <p className="text-2xl font-bold text-blue-400">
+                        {methodologyResults.loso.mean_auc?.toFixed(3)}
+                      </p>
+                      <p className="text-xs text-slate-500">Mean AUC</p>
+                    </div>
+                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                      <p className="text-2xl font-bold text-purple-400">
+                        ±{methodologyResults.loso.std_auc?.toFixed(3)}
+                      </p>
+                      <p className="text-xs text-slate-500">Std Dev</p>
+                    </div>
+                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                      <p className="text-2xl font-bold text-green-400">
+                        {methodologyResults.loso.n_folds}
+                      </p>
+                      <p className="text-xs text-slate-500">Folds</p>
+                    </div>
+                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                      <p className="text-lg font-bold text-orange-400">
+                        [{methodologyResults.loso.confidence_interval_95?.[0]?.toFixed(2)}, {methodologyResults.loso.confidence_interval_95?.[1]?.toFixed(2)}]
+                      </p>
+                      <p className="text-xs text-slate-500">95% CI</p>
+                    </div>
+                  </div>
+
+                  {/* Per-Fold Results Chart */}
+                  {methodologyResults.loso.fold_results && (
+                    <Plot
+                      data={[{
+                        x: methodologyResults.loso.fold_results.map(f => f.test_athlete),
+                        y: methodologyResults.loso.fold_results.map(f => f.auc),
+                        type: 'bar',
+                        marker: {
+                          color: methodologyResults.loso.fold_results.map(f =>
+                            f.auc >= 0.6 ? '#22c55e' : f.auc >= 0.55 ? '#eab308' : '#ef4444'
+                          )
+                        },
+                        text: methodologyResults.loso.fold_results.map(f => f.auc.toFixed(2)),
+                        textposition: 'outside',
+                        textfont: { size: 10, color: '#94a3b8' }
+                      },
+                      // Mean line
+                      {
+                        x: [methodologyResults.loso.fold_results[0]?.test_athlete, methodologyResults.loso.fold_results.slice(-1)[0]?.test_athlete],
+                        y: [methodologyResults.loso.mean_auc, methodologyResults.loso.mean_auc],
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: `Mean: ${methodologyResults.loso.mean_auc?.toFixed(3)}`,
+                        line: { color: '#3b82f6', width: 2, dash: 'dash' }
+                      }]}
+                      layout={{
+                        ...darkLayout,
+                        height: 300,
+                        margin: { t: 40, r: 20, b: 60, l: 50 },
+                        xaxis: { ...darkLayout.xaxis, title: 'Athlete (Held-Out)', tickangle: -45 },
+                        yaxis: { ...darkLayout.yaxis, title: 'AUC', range: [0.3, 1] },
+                        showlegend: true,
+                        legend: { ...darkLayout.legend, orientation: 'h', y: 1.15, x: 0.5, xanchor: 'center' }
+                      }}
+                      config={{ displayModeBar: false, responsive: true }}
+                      useResizeHandler
+                      style={{ width: '100%' }}
+                    />
+                  )}
+
+                  <div className={`p-4 rounded-lg mt-4 ${
+                    methodologyResults.loso.confidence_interval_95?.[0] > 0.55
+                      ? 'bg-green-500/10 border border-green-500/30'
+                      : 'bg-yellow-500/10 border border-yellow-500/30'
+                  }`}>
+                    <p className="text-sm text-slate-300">{methodologyResults.loso.interpretation}</p>
+                  </div>
+                </Card>
+              )}
+
+              {/* Sensitivity Analysis Results */}
+              {methodologyResults?.sensitivity?.status === 'complete' && (
+                <Card title="Sensitivity Analysis (Tornado Plot)">
+                  <div className="mb-4 p-3 bg-slate-800/50 rounded-lg">
+                    <p className="text-sm text-slate-400">
+                      <strong>Baseline Asymmetry Ratio:</strong>{' '}
+                      {methodologyResults.sensitivity.baseline?.undertrained_vs_optimal?.toFixed(1)}x
+                      (Undertrained / Optimal risk per load)
+                    </p>
+                  </div>
+
+                  {/* Tornado Plot */}
+                  {methodologyResults.sensitivity.tornado_data && (
+                    <Plot
+                      data={[
+                        // Low impact (left bars)
+                        {
+                          y: methodologyResults.sensitivity.tornado_data.map(d => d.parameter.replace(/_/g, ' ')),
+                          x: methodologyResults.sensitivity.tornado_data.map(d => d.low_impact),
+                          type: 'bar',
+                          orientation: 'h',
+                          name: '-20%',
+                          marker: { color: '#3b82f6' }
+                        },
+                        // High impact (right bars)
+                        {
+                          y: methodologyResults.sensitivity.tornado_data.map(d => d.parameter.replace(/_/g, ' ')),
+                          x: methodologyResults.sensitivity.tornado_data.map(d => d.high_impact),
+                          type: 'bar',
+                          orientation: 'h',
+                          name: '+20%',
+                          marker: { color: '#ef4444' }
+                        }
+                      ]}
+                      layout={{
+                        ...darkLayout,
+                        height: 350,
+                        margin: { t: 40, r: 20, b: 50, l: 150 },
+                        barmode: 'relative',
+                        xaxis: { ...darkLayout.xaxis, title: 'Change in Asymmetry Ratio', zeroline: true, zerolinewidth: 2 },
+                        yaxis: { ...darkLayout.yaxis, automargin: true },
+                        showlegend: true,
+                        legend: { ...darkLayout.legend, orientation: 'h', y: 1.1, x: 0.5, xanchor: 'center' }
+                      }}
+                      config={{ displayModeBar: false, responsive: true }}
+                      useResizeHandler
+                      style={{ width: '100%' }}
+                    />
+                  )}
+
+                  <div className={`p-4 rounded-lg mt-4 ${
+                    methodologyResults.sensitivity.robustness_assessment?.all_params_maintain_asymmetry
+                      ? 'bg-green-500/10 border border-green-500/30'
+                      : 'bg-yellow-500/10 border border-yellow-500/30'
+                  }`}>
+                    <p className="text-sm text-slate-300">
+                      {methodologyResults.sensitivity.robustness_assessment?.conclusion}
+                    </p>
+                  </div>
+                </Card>
+              )}
+
+              {/* Rust-Python Equivalence Check */}
+              {methodologyResults?.equivalence?.status === 'complete' && (
+                <Card title="Rust-Python Equivalence Check">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                      <p className={`text-2xl font-bold ${
+                        methodologyResults.equivalence.is_equivalent ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {methodologyResults.equivalence.is_equivalent ? 'PASS' : 'FAIL'}
+                      </p>
+                      <p className="text-xs text-slate-500">Status</p>
+                    </div>
+                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                      <p className="text-lg font-bold text-blue-400 font-mono">
+                        {methodologyResults.equivalence.average_mse?.toExponential(2)}
+                      </p>
+                      <p className="text-xs text-slate-500">Average MSE</p>
+                    </div>
+                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                      <p className="text-lg font-bold text-purple-400 font-mono">
+                        {methodologyResults.equivalence.mse_threshold?.toExponential(0)}
+                      </p>
+                      <p className="text-xs text-slate-500">Threshold</p>
+                    </div>
+                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                      <p className="text-lg font-bold text-orange-400">
+                        {methodologyResults.equivalence.n_samples_compared?.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-slate-500">Samples Compared</p>
+                    </div>
+                  </div>
+
+                  {/* Per-Column Errors */}
+                  {methodologyResults.equivalence.column_errors && (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-slate-800/50">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-medium text-slate-300">Column</th>
+                            <th className="px-3 py-2 text-right font-medium text-slate-300">MSE</th>
+                            <th className="px-3 py-2 text-right font-medium text-slate-300">Max Error</th>
+                            <th className="px-3 py-2 text-right font-medium text-slate-300">Correlation</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800">
+                          {Object.entries(methodologyResults.equivalence.column_errors).map(([col, err]) => (
+                            <tr key={col} className="hover:bg-slate-800/30">
+                              <td className="px-3 py-2 text-slate-300">{col}</td>
+                              <td className="px-3 py-2 text-right font-mono text-xs text-slate-400">
+                                {err.mse?.toExponential(2)}
+                              </td>
+                              <td className="px-3 py-2 text-right font-mono text-xs text-slate-400">
+                                {err.max_error?.toExponential(2)}
+                              </td>
+                              <td className={`px-3 py-2 text-right font-mono text-xs ${
+                                err.correlation > 0.99 ? 'text-green-400' : 'text-yellow-400'
+                              }`}>
+                                {err.correlation?.toFixed(4)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  <div className={`p-4 rounded-lg mt-4 ${
+                    methodologyResults.equivalence.is_equivalent
+                      ? 'bg-green-500/10 border border-green-500/30'
+                      : 'bg-red-500/10 border border-red-500/30'
+                  }`}>
+                    <p className="text-sm text-slate-300">{methodologyResults.equivalence.interpretation}</p>
+                  </div>
+                </Card>
+              )}
+
+              {/* No Results Yet */}
+              {!methodologyJob && methodologyResults?.overall_status === 'incomplete' && (
+                <Card>
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-200 mb-2">No Methodology Validation Yet</h3>
+                    <p className="text-slate-400 mb-4">
+                      Run the methodology suite to generate publication-quality validation results.
+                    </p>
+                  </div>
+                </Card>
+              )}
             </div>
           )}
 

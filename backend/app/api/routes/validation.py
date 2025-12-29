@@ -148,6 +148,113 @@ def list_validation_jobs():
 
 
 # =========================================================================
+# METHODOLOGY VALIDATION ENDPOINTS (Publication-Quality)
+# =========================================================================
+
+@validation_bp.route('/methodology/run', methods=['POST'])
+def run_methodology_validation():
+    """
+    Start methodology validation suite for a dataset.
+
+    Request Body:
+        dataset_id: str - The synthetic dataset to validate
+        validation_types: list - Types to run: ['loso', 'sensitivity', 'equivalence']
+
+    Returns:
+        JSON with job_id and status.
+    """
+    try:
+        from ...tasks import run_methodology_validation_task
+
+        data = request.get_json() or {}
+        dataset_id = data.get('dataset_id')
+        validation_types = data.get('validation_types', ['loso', 'sensitivity', 'equivalence'])
+
+        if not dataset_id:
+            return jsonify({'error': 'dataset_id is required'}), 400
+
+        # Validate types
+        valid_types = {'loso', 'sensitivity', 'equivalence'}
+        invalid = set(validation_types) - valid_types
+        if invalid:
+            return jsonify({'error': f'Invalid validation types: {invalid}'}), 400
+
+        # Create job and start async task
+        job_id = ProgressTracker.create_job('methodology_validation')
+        run_methodology_validation_task.delay(job_id, dataset_id, validation_types)
+
+        return jsonify({
+            'job_id': job_id,
+            'dataset_id': dataset_id,
+            'validation_types': validation_types,
+            'status': 'pending'
+        }), 202
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/methodology/summary/<dataset_id>', methods=['GET'])
+def get_methodology_summary(dataset_id):
+    """
+    Get methodology validation summary for a dataset.
+
+    Returns cached results for LOSO, Sensitivity Analysis, and Equivalence Check.
+    """
+    try:
+        from ...services.methodology_validation import MethodologyValidationService
+        summary = MethodologyValidationService.get_methodology_summary(dataset_id)
+        return jsonify(summary), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/methodology/loso/<dataset_id>', methods=['GET'])
+def get_loso_results(dataset_id):
+    """Get LOSO Cross-Validation results for a dataset."""
+    try:
+        from ...services.methodology_validation import MethodologyValidationService
+        summary = MethodologyValidationService.get_methodology_summary(dataset_id)
+        if summary['loso']['status'] == 'not_run':
+            return jsonify({'error': 'LOSO validation not yet run', 'status': 'not_run'}), 404
+        return jsonify(summary['loso']), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/methodology/sensitivity/<dataset_id>', methods=['GET'])
+def get_sensitivity_results(dataset_id):
+    """Get Sensitivity Analysis results for a dataset."""
+    try:
+        from ...services.methodology_validation import MethodologyValidationService
+        summary = MethodologyValidationService.get_methodology_summary(dataset_id)
+        if summary['sensitivity']['status'] == 'not_run':
+            return jsonify({'error': 'Sensitivity analysis not yet run', 'status': 'not_run'}), 404
+        return jsonify(summary['sensitivity']), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/methodology/equivalence', methods=['GET'])
+def get_equivalence_results():
+    """Get Rust-Python Equivalence Check results."""
+    try:
+        from ...services.methodology_validation import MethodologyValidationService
+        # Equivalence is not dataset-specific, check any dataset
+        import os
+        cache_base = '/home/rodrigues/injury-prediction/data/validation'
+        if os.path.exists(cache_base):
+            for ds in os.listdir(cache_base):
+                summary = MethodologyValidationService.get_methodology_summary(ds)
+                if summary['equivalence']['status'] == 'complete':
+                    return jsonify(summary['equivalence']), 200
+
+        return jsonify({'error': 'Equivalence check not yet run', 'status': 'not_run'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# =========================================================================
 # LEGACY ENDPOINTS (Keep for backward compatibility)
 # =========================================================================
 

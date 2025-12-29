@@ -110,6 +110,14 @@ export const validationApi = {
   listCachedValidations: () => api.get('/validation/results'),
   deleteCachedResults: (datasetId) => api.delete(`/validation/results/${datasetId}`),
 
+  // Methodology Validation (Publication-Quality)
+  runMethodologyValidation: (datasetId, types = ['loso', 'sensitivity', 'equivalence']) =>
+    api.post('/validation/methodology/run', { dataset_id: datasetId, validation_types: types }),
+  getMethodologySummary: (datasetId) => api.get(`/validation/methodology/summary/${datasetId}`),
+  getLosoResults: (datasetId) => api.get(`/validation/methodology/loso/${datasetId}`),
+  getSensitivityResults: (datasetId) => api.get(`/validation/methodology/sensitivity/${datasetId}`),
+  getEquivalenceResults: () => api.get('/validation/methodology/equivalence'),
+
   // Legacy endpoints (for backward compatibility)
   getSummary: () => api.get('/validation/summary'),
   getDistributions: () => api.get('/validation/distributions'),

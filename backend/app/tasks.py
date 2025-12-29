@@ -416,3 +416,97 @@ def _calculate_avg_js(distributions: dict) -> float:
         if isinstance(f, dict) and 'js_divergence' in f
     ]
     return sum(js_values) / len(js_values) if js_values else 1.0
+
+
+@celery_app.task(name='run_methodology_validation')
+def run_methodology_validation_task(job_id: str, dataset_id: str, validation_types: list):
+    """
+    Celery task for running methodology validation suite.
+
+    Supports:
+    - 'loso': Leave-One-Subject-Out Cross-Validation
+    - 'sensitivity': Sensitivity Analysis with Tornado Plot
+    - 'equivalence': Rust-Python Equivalence Check
+    """
+    from app import create_app
+    from .services.methodology_validation import MethodologyValidationService
+    app = create_app()
+    with app.app_context():
+        try:
+            total_steps = len(validation_types)
+            ProgressTracker.start_job(job_id, total_steps=total_steps * 100)
+            ProgressTracker.update_progress(job_id, 5, 'Starting methodology validation...')
+
+            results = {
+                'dataset_id': dataset_id,
+                'validation_types': validation_types,
+                'results': {}
+            }
+
+            for i, val_type in enumerate(validation_types):
+                base_progress = (i / total_steps) * 100
+
+                if val_type == 'loso':
+                    ProgressTracker.update_progress(
+                        job_id, int(base_progress + 5),
+                        'Running LOSO Cross-Validation...'
+                    )
+
+                    def loso_progress(fold, total, fold_result):
+                        pct = int(base_progress + 5 + (fold / total) * (100 / total_steps - 10))
+                        ProgressTracker.update_progress(
+                            job_id, pct,
+                            f'LOSO Fold {fold}/{total}: AUC={fold_result["auc"]:.3f}'
+                        )
+
+                    loso_result = MethodologyValidationService.run_loso_validation(
+                        dataset_id,
+                        progress_callback=loso_progress
+                    )
+                    results['results']['loso'] = loso_result
+                    MethodologyValidationService.save_validation_results(
+                        dataset_id, 'loso', loso_result
+                    )
+
+                elif val_type == 'sensitivity':
+                    ProgressTracker.update_progress(
+                        job_id, int(base_progress + 5),
+                        'Running Sensitivity Analysis...'
+                    )
+
+                    def sens_progress(param_idx, total, msg):
+                        pct = int(base_progress + 5 + (param_idx / total) * (100 / total_steps - 10))
+                        ProgressTracker.update_progress(job_id, pct, msg)
+
+                    sens_result = MethodologyValidationService.run_sensitivity_analysis(
+                        dataset_id,
+                        progress_callback=sens_progress
+                    )
+                    results['results']['sensitivity'] = sens_result
+                    MethodologyValidationService.save_validation_results(
+                        dataset_id, 'sensitivity', sens_result
+                    )
+
+                elif val_type == 'equivalence':
+                    ProgressTracker.update_progress(
+                        job_id, int(base_progress + 5),
+                        'Running Rust-Python Equivalence Check...'
+                    )
+
+                    def equiv_progress(step, total, msg):
+                        pct = int(base_progress + 5 + (step / total) * (100 / total_steps - 10))
+                        ProgressTracker.update_progress(job_id, pct, msg)
+
+                    equiv_result = MethodologyValidationService.run_rust_python_equivalence(
+                        progress_callback=equiv_progress
+                    )
+                    results['results']['equivalence'] = equiv_result
+                    MethodologyValidationService.save_validation_results(
+                        dataset_id, 'equivalence', equiv_result
+                    )
+
+            ProgressTracker.complete_job(job_id, result=results)
+
+        except Exception as e:
+            import traceback
+            ProgressTracker.fail_job(job_id, f"{str(e)}\n{traceback.format_exc()}")

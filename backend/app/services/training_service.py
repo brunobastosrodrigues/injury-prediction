@@ -1,8 +1,9 @@
 import os
 import json
 import uuid
+import logging
 from datetime import datetime
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 import pandas as pd
 import numpy as np
 
@@ -18,11 +19,23 @@ from ..utils.progress_tracker import ProgressTracker
 from ..utils.file_manager import FileManager
 from ..celery_app import celery_app
 
+logger = logging.getLogger(__name__)
+
 
 class TrainingService:
     """Service for training ML models."""
 
     _model_types = None
+
+    # Allowed model types for validation
+    ALLOWED_MODELS = {'xgboost', 'random_forest', 'lasso'}
+
+    # Default hyperparameters for Sim2Real experiments (simplified for transfer learning)
+    SIM2REAL_PARAMS = {
+        'xgboost': {'n_estimators': 100, 'max_depth': 3, 'learning_rate': 0.1, 'random_state': 42},
+        'random_forest': {'n_estimators': 100, 'max_depth': 5, 'random_state': 42},
+        'lasso': {'C': 1.0, 'random_state': 42, 'max_iter': 1000}
+    }
 
     @classmethod
     def get_model_types(cls):
@@ -39,6 +52,320 @@ class TrainingService:
                 # Fallback to empty if file is missing
                 cls._model_types = {}
         return cls._model_types
+
+    @classmethod
+    def train_sim2real_experiment(
+        cls,
+        synthetic_df: pd.DataFrame,
+        real_df: pd.DataFrame,
+        model_type: str = 'xgboost'
+    ) -> Dict[str, Any]:
+        """
+        Experiment B: Train on Synthetic, Test on Real (PMData).
+
+        Trains a model on synthetic data and evaluates zero-shot performance
+        on real-world data to assess transfer learning capabilities.
+
+        Args:
+            synthetic_df: Synthetic training data with features and target.
+            real_df: Real-world test data with same schema.
+            model_type: Model to train ('xgboost', 'random_forest', 'lasso').
+
+        Returns:
+            Dict containing:
+                - auc: ROC AUC score
+                - ap: Average precision score
+                - n_train: Number of training samples
+                - n_test: Number of test samples
+                - features_used: List of features used
+                - class_distribution: Dict with train/test class distributions
+
+        Raises:
+            ValueError: If model_type is invalid, datasets are incompatible,
+                       empty, or contain missing values.
+            ImportError: If required ML library (e.g., XGBoost) is not installed.
+        """
+        logger.info(f"Starting Sim2Real experiment with model_type='{model_type}'")
+
+        # Validate model_type
+        if model_type not in cls.ALLOWED_MODELS:
+            raise ValueError(
+                f"Invalid model_type '{model_type}'. Must be one of {cls.ALLOWED_MODELS}"
+            )
+
+        # Validate DataFrames are not empty
+        if len(synthetic_df) == 0:
+            raise ValueError("Synthetic DataFrame is empty")
+        if len(real_df) == 0:
+            raise ValueError("Real DataFrame is empty")
+
+        # Identify common features dynamically
+        potential_features = [
+            'sleep_quality_daily', 'stress_score', 'recovery_score',
+            'sleep_hours', 'resting_hr'
+        ]
+        features = [
+            f for f in potential_features
+            if f in synthetic_df.columns and f in real_df.columns
+        ]
+        target = 'will_get_injured'
+
+        if not features:
+            raise ValueError(
+                'No common features found between Synthetic and Real data. '
+                f'Expected features: {potential_features}'
+            )
+
+        if target not in synthetic_df.columns or target not in real_df.columns:
+            raise ValueError(f"Target variable '{target}' missing from one or both datasets")
+
+        logger.info(f"Common features found: {features}")
+
+        # Extract features and target
+        X_train = synthetic_df[features]
+        y_train = synthetic_df[target]
+        X_test = real_df[features]
+        y_test = real_df[target]
+
+        # Validate no missing values
+        if X_train.isnull().any().any():
+            raise ValueError("Synthetic data contains missing values (NaN)")
+        if X_test.isnull().any().any():
+            raise ValueError("Real data contains missing values (NaN)")
+
+        # Log class distribution and warn about imbalance
+        train_pos_rate = y_train.mean()
+        test_pos_rate = y_test.mean()
+        logger.info(
+            f"Training on {len(X_train)} samples (positive rate: {train_pos_rate:.2%}), "
+            f"testing on {len(X_test)} samples (positive rate: {test_pos_rate:.2%})"
+        )
+
+        if y_train.sum() < 2:
+            logger.warning("Very few positive samples in training data - metrics may be unreliable")
+        if y_test.sum() < 2:
+            logger.warning("Very few positive samples in test data - metrics may be unreliable")
+
+        # Get simplified params for Sim2Real experiment
+        params = cls.SIM2REAL_PARAMS.get(model_type, {})
+        logger.info(f"Using hyperparameters: {params}")
+
+        # Train model
+        model = cls._create_model(model_type, params)
+        model.fit(X_train, y_train)
+        logger.info("Model training completed")
+
+        # Evaluate on Real Data (Zero-shot transfer)
+        probs = model.predict_proba(X_test)[:, 1]
+
+        # Calculate metrics
+        auc_score = float(roc_auc_score(y_test, probs))
+        ap_score = float(average_precision_score(y_test, probs))
+
+        scores = {
+            'auc': auc_score,
+            'ap': ap_score,
+            'n_train': len(X_train),
+            'n_test': len(X_test),
+            'features_used': features,
+            'class_distribution': {
+                'train_positive_rate': float(train_pos_rate),
+                'test_positive_rate': float(test_pos_rate)
+            }
+        }
+
+        logger.info(f"Sim2Real experiment completed - AUC: {auc_score:.3f}, AP: {ap_score:.3f}")
+        return scores
+
+    @classmethod
+    def train_sim2real_loso(
+        cls,
+        synthetic_df: pd.DataFrame,
+        real_df: pd.DataFrame,
+        model_type: str = 'xgboost',
+        progress_callback=None
+    ) -> Dict[str, Any]:
+        """
+        Leave-One-Subject-Out (LOSO) Cross-Validation for Sim2Real.
+
+        For each of N athletes in real data:
+        - Train on synthetic data
+        - Test on the held-out athlete
+
+        This provides a more robust estimate of transfer performance
+        with proper confidence intervals.
+
+        Args:
+            synthetic_df: Synthetic training data with features and target.
+            real_df: Real-world data with athlete_id column.
+            model_type: Model to train ('xgboost', 'random_forest', 'lasso').
+            progress_callback: Optional callback(iteration, total, fold_result) for progress.
+
+        Returns:
+            Dict containing:
+                - mean_auc: Mean AUC across all folds
+                - std_auc: Standard deviation of AUC
+                - mean_ap: Mean Average Precision
+                - std_ap: Standard deviation of AP
+                - fold_results: List of per-fold results
+                - n_folds: Number of folds (subjects)
+                - confidence_interval_95: (lower, upper) bounds for AUC
+        """
+        logger.info(f"Starting LOSO Cross-Validation with model_type='{model_type}'")
+
+        # Validate model_type
+        if model_type not in cls.ALLOWED_MODELS:
+            raise ValueError(f"Invalid model_type '{model_type}'. Must be one of {cls.ALLOWED_MODELS}")
+
+        # Get unique athletes
+        if 'athlete_id' not in real_df.columns:
+            raise ValueError("Real data must have 'athlete_id' column for LOSO CV")
+
+        athletes = real_df['athlete_id'].unique()
+        n_athletes = len(athletes)
+        logger.info(f"Found {n_athletes} athletes for LOSO CV")
+
+        if n_athletes < 3:
+            raise ValueError(f"Need at least 3 athletes for LOSO CV, found {n_athletes}")
+
+        # Identify common features
+        potential_features = [
+            'sleep_quality_daily', 'stress_score', 'recovery_score',
+            'sleep_hours', 'resting_hr'
+        ]
+        features = [
+            f for f in potential_features
+            if f in synthetic_df.columns and f in real_df.columns
+        ]
+        target = 'will_get_injured'
+
+        if not features:
+            raise ValueError('No common features found between Synthetic and Real data')
+
+        if target not in synthetic_df.columns or target not in real_df.columns:
+            raise ValueError(f"Target variable '{target}' missing from one or both datasets")
+
+        # Prepare synthetic training data
+        X_train_synth = synthetic_df[features].dropna()
+        y_train_synth = synthetic_df.loc[X_train_synth.index, target]
+
+        # Run LOSO
+        fold_results = []
+        for i, test_athlete in enumerate(athletes):
+            # Test set: held-out athlete
+            test_mask = real_df['athlete_id'] == test_athlete
+            X_test = real_df.loc[test_mask, features].dropna()
+
+            if len(X_test) < 5:
+                logger.warning(f"Skipping athlete {test_athlete} - only {len(X_test)} samples")
+                continue
+
+            y_test = real_df.loc[X_test.index, target]
+
+            # Skip if no positive samples in test set
+            if y_test.sum() < 1:
+                logger.warning(f"Skipping athlete {test_athlete} - no positive samples")
+                continue
+
+            # Train on synthetic data only (pure Sim2Real transfer)
+            params = cls.SIM2REAL_PARAMS.get(model_type, {})
+            model = cls._create_model(model_type, params)
+            model.fit(X_train_synth, y_train_synth)
+
+            # Evaluate on held-out athlete
+            try:
+                probs = model.predict_proba(X_test)[:, 1]
+                auc_score = float(roc_auc_score(y_test, probs))
+                ap_score = float(average_precision_score(y_test, probs))
+            except Exception as e:
+                logger.warning(f"Evaluation failed for athlete {test_athlete}: {e}")
+                continue
+
+            fold_result = {
+                'fold': i + 1,
+                'test_athlete': str(test_athlete),
+                'auc': auc_score,
+                'ap': ap_score,
+                'n_test_samples': len(X_test),
+                'test_positive_rate': float(y_test.mean())
+            }
+            fold_results.append(fold_result)
+
+            if progress_callback:
+                progress_callback(i + 1, n_athletes, fold_result)
+
+            logger.info(f"Fold {i+1}/{n_athletes}: Athlete {test_athlete} - AUC={auc_score:.3f}, AP={ap_score:.3f}")
+
+        if len(fold_results) < 3:
+            raise ValueError(f"Only {len(fold_results)} valid folds - need at least 3")
+
+        # Calculate statistics
+        auc_scores = [r['auc'] for r in fold_results]
+        ap_scores = [r['ap'] for r in fold_results]
+
+        mean_auc = float(np.mean(auc_scores))
+        std_auc = float(np.std(auc_scores, ddof=1))  # Sample std
+        mean_ap = float(np.mean(ap_scores))
+        std_ap = float(np.std(ap_scores, ddof=1))
+
+        # 95% confidence interval using t-distribution
+        from scipy import stats as scipy_stats
+        n = len(auc_scores)
+        t_critical = scipy_stats.t.ppf(0.975, n - 1)
+        margin = t_critical * (std_auc / np.sqrt(n))
+        ci_lower = mean_auc - margin
+        ci_upper = mean_auc + margin
+
+        results = {
+            'mean_auc': round(mean_auc, 4),
+            'std_auc': round(std_auc, 4),
+            'mean_ap': round(mean_ap, 4),
+            'std_ap': round(std_ap, 4),
+            'n_folds': len(fold_results),
+            'n_athletes_total': n_athletes,
+            'confidence_interval_95': (round(ci_lower, 4), round(ci_upper, 4)),
+            'fold_results': fold_results,
+            'features_used': features,
+            'model_type': model_type,
+            # Statistical interpretation
+            'interpretation': cls._interpret_loso_results(mean_auc, std_auc, ci_lower, ci_upper)
+        }
+
+        logger.info(f"LOSO CV completed: AUC = {mean_auc:.3f} ± {std_auc:.3f} (95% CI: [{ci_lower:.3f}, {ci_upper:.3f}])")
+        return results
+
+    @staticmethod
+    def _interpret_loso_results(mean_auc, std_auc, ci_lower, ci_upper):
+        """Generate scientific interpretation of LOSO results."""
+        interpretations = []
+
+        # Mean performance
+        if mean_auc >= 0.65:
+            interpretations.append("Strong transfer - synthetic data generalizes well to real individuals.")
+        elif mean_auc >= 0.60:
+            interpretations.append("Good transfer - synthetic data captures key injury patterns.")
+        elif mean_auc >= 0.55:
+            interpretations.append("Moderate transfer - some signal, but room for improvement.")
+        else:
+            interpretations.append("Weak transfer - synthetic patterns may not match real data.")
+
+        # Variance interpretation
+        if std_auc < 0.05:
+            interpretations.append("Low variance indicates stable predictions across individuals.")
+        elif std_auc < 0.10:
+            interpretations.append("Moderate variance suggests some individual heterogeneity.")
+        else:
+            interpretations.append("High variance indicates substantial individual differences in predictability.")
+
+        # Confidence interval
+        if ci_lower > 0.55:
+            interpretations.append("The 95% CI excludes chance level (0.5), supporting statistical significance.")
+        elif ci_lower > 0.50:
+            interpretations.append("Lower bound above chance, but marginal significance.")
+        else:
+            interpretations.append("CI includes chance level - results may not be statistically significant.")
+
+        return " ".join(interpretations)
 
     @classmethod
     def train_async(
