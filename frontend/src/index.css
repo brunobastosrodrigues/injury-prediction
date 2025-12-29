@@ -22,22 +22,35 @@ code, pre, .font-mono {
   font-feature-settings: 'liga' 1;
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar - Light theme (default) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgb(15 23 42);
+  background: rgb(241 245 249);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgb(51 65 85);
+  background: rgb(148 163 184);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
+  background: rgb(100 116 139);
+}
+
+/* Custom scrollbar - Dark theme */
+.dark ::-webkit-scrollbar-track {
+  background: rgb(15 23 42);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(51 65 85);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
   background: rgb(71 85 105);
 }
 

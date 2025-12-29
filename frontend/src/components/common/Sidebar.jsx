@@ -40,9 +40,9 @@ function Sidebar({ onClose }) {
   const runningJobsCount = Object.values(activeJobs).filter(j => j.status === 'running').length
 
   return (
-    <aside className="w-64 h-full bg-slate-900 text-white flex flex-col">
+    <aside className="w-64 h-full bg-white dark:bg-slate-900 text-gray-900 dark:text-white flex flex-col border-r border-gray-200 dark:border-transparent">
       {/* Logo / Brand */}
-      <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+      <div className="p-4 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-3 group" onClick={onClose}>
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-shadow flex-shrink-0">
             <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -50,15 +50,15 @@ function Sidebar({ onClose }) {
             </svg>
           </div>
           <div className="min-w-0">
-            <h1 className="text-lg font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent truncate">Injury Prediction</h1>
-            <p className="text-xs text-slate-500">Research Platform</p>
+            <h1 className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent truncate">Injury Prediction</h1>
+            <p className="text-xs text-gray-500 dark:text-slate-500">Research Platform</p>
           </div>
         </Link>
 
         {/* Close button for mobile */}
         <button
           onClick={onClose}
-          className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="lg:hidden p-2 rounded-lg text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -71,7 +71,7 @@ function Sidebar({ onClose }) {
         {navSections.map((section, sectionIndex) => (
           <div key={section.title} className={sectionIndex > 0 ? 'mt-6' : ''}>
             <div className="mb-2 px-2">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
                 {section.title}
               </span>
             </div>
@@ -85,7 +85,7 @@ function Sidebar({ onClose }) {
                       `flex items-center px-3 py-2 rounded-lg transition-all ${
                         isActive
                           ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
-                          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                          : 'text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
                       }`
                     }
                   >
@@ -101,7 +101,7 @@ function Sidebar({ onClose }) {
 
       {/* Running Jobs Indicator */}
       {runningJobsCount > 0 && (
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-gray-200 dark:border-slate-800">
           <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg shadow-blue-500/25">
             <div className="flex items-center">
               <div className="relative mr-3 flex-shrink-0">
@@ -109,7 +109,7 @@ function Sidebar({ onClose }) {
                 <div className="absolute inset-0 animate-ping h-5 w-5 border-2 border-white border-t-transparent rounded-full opacity-25"></div>
               </div>
               <div className="min-w-0">
-                <span className="text-sm font-medium">{runningJobsCount} job{runningJobsCount > 1 ? 's' : ''} running</span>
+                <span className="text-sm font-medium text-white">{runningJobsCount} job{runningJobsCount > 1 ? 's' : ''} running</span>
                 <p className="text-xs text-blue-200">Processing...</p>
               </div>
             </div>
@@ -118,11 +118,11 @@ function Sidebar({ onClose }) {
       )}
 
       {/* Back to Landing */}
-      <div className="p-4 border-t border-slate-800">
+      <div className="p-4 border-t border-gray-200 dark:border-slate-800">
         <Link
           to="/"
           onClick={onClose}
-          className="flex items-center px-3 py-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all text-sm"
+          className="flex items-center px-3 py-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-all text-sm"
         >
           <svg className="w-5 h-5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
