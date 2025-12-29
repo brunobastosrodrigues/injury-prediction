@@ -12,8 +12,24 @@ def create_app(config_name=None):
     config_name = config_name or os.environ.get('FLASK_CONFIG', 'development')
     app.config.from_object(config[config_name])
 
-    # Enable CORS for React frontend
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    # Configure CORS with specific allowed origins (not wildcard)
+    allowed_origins = os.environ.get('CORS_ORIGINS', '').split(',')
+    if not allowed_origins or allowed_origins == ['']:
+        # Default allowed origins for development
+        allowed_origins = [
+            "http://localhost:5173",      # Vite dev server
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",      # Alternative React port
+            "http://frontend:5173",       # Docker internal
+        ]
+
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": allowed_origins,
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+        }
+    })
 
     with app.app_context():
         from .api.routes.data_generation import bp as data_generation_bp
