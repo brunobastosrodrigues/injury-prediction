@@ -2,7 +2,8 @@
 
 ## Application Preview
 
-<img width="941" height="570" alt="injury-prediction-landingpage-new" src="https://github.com/user-attachments/assets/47f36be8-647d-43dc-8fb3-a1e3717a43c7" />
+<img width="667" height="694" alt="injury-prediction-landingpage-new" src="https://github.com/user-attachments/assets/e9dfeed6-79c7-4e20-b150-07558018b5fd" />
+
 
 > *Landing page showing validation results and model performance.*
 
@@ -126,19 +127,19 @@ injury-prediction/
 
 ## Screenshots
 
-<img width="1254" height="690" alt="injury-prediction-athlete-profile" src="https://github.com/user-attachments/assets/4c0a263a-6a64-4aa6-849d-1a5b6a799018" />
+<img width="1262" height="685" alt="injury-prediction-athlete-profile2" src="https://github.com/user-attachments/assets/bf9b31db-8935-40f9-9569-1342a89a8f55" />
 
 > *Athlete profile generation with physiological parameters.*
 
-<img width="1254" height="690" alt="injury-prediction-athlete-profile2" src="https://github.com/user-attachments/assets/d93eeadf-8125-4940-b931-63586344c344" />
+<img width="1262" height="693" alt="injury-prediction-athlete-profile" src="https://github.com/user-attachments/assets/5d22af1f-35c2-4856-b830-608564ae7029" />
 
-> *Training simulation with CTL/ATL/TSB modeling.*
+> *Data validation based on the PMData dataset.
 
 ## Research Context
 
 This framework was developed as part of research on injury prediction in endurance athletes at the University of St. Gallen, Embedded Sensing Group. It addresses the challenge of limited data accessibility in sports performance research due to privacy concerns and the proprietary nature of athlete monitoring data.
 
-The platform supports both synthetic data experimentation and validation with real-world datasets (e.g., PMData from Ni et al., 2019).
+The platform supports both synthetic data experimentation and validation with real-world datasets (e.g., PMData from Ni et al., 2019, https://datasets.simula.no/pmdata/).
 
 ## Acknowledgments
 
