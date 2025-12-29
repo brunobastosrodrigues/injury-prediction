@@ -52,7 +52,27 @@ function ExternalValidationPage() {
       try {
         await refreshDatasets()
         const cachedRes = await validationApi.listCachedValidations()
-        setCachedValidations(cachedRes.data.validations || [])
+        const validations = cachedRes.data.validations || []
+        setCachedValidations(validations)
+
+        // Auto-select the first cached validation (preferably dataset_pmdata_calibrated)
+        if (validations.length > 0 && !selectedDataset) {
+          const calibratedDataset = validations.find(v => v.dataset_id === 'dataset_pmdata_calibrated')
+          const defaultDataset = calibratedDataset || validations[0]
+
+          if (defaultDataset) {
+            setSelectedDataset(defaultDataset.dataset_id)
+            // Load the cached results immediately
+            try {
+              const resultsRes = await validationApi.getCachedResults(defaultDataset.dataset_id)
+              if (resultsRes.data) {
+                setValidationResults(resultsRes.data)
+              }
+            } catch (err) {
+              console.error('Failed to load default validation results:', err)
+            }
+          }
+        }
       } catch (err) {
         console.error('Failed to load initial data:', err)
       } finally {
