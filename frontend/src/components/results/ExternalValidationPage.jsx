@@ -319,21 +319,35 @@ function ExternalValidationPage() {
   }, [])
 
   const getPillarColor = (status) => {
-    if (status === 'pass') return 'bg-green-500/20 text-green-400 border-green-500/30'
-    if (status === 'warning') return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-    return 'bg-red-500/20 text-red-400 border-red-500/30'
+    if (status === 'pass') {
+      return isDark
+        ? 'bg-green-500/20 text-green-400 border-green-500/30'
+        : 'bg-green-50 text-green-700 border-green-300'
+    }
+    if (status === 'warning') {
+      return isDark
+        ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+        : 'bg-yellow-50 text-yellow-700 border-yellow-300'
+    }
+    return isDark
+      ? 'bg-red-500/20 text-red-400 border-red-500/30'
+      : 'bg-red-50 text-red-700 border-red-300'
   }
 
   const getScoreColor = (score) => {
-    if (score >= 0.7) return 'text-green-400'
-    if (score >= 0.4) return 'text-yellow-400'
-    return 'text-red-400'
+    if (score >= 0.7) return isDark ? 'text-green-400' : 'text-green-600'
+    if (score >= 0.4) return isDark ? 'text-yellow-400' : 'text-yellow-600'
+    return isDark ? 'text-red-400' : 'text-red-600'
   }
 
   const getStatusBadge = (status) => {
-    if (status === 'PASS') return 'bg-green-500/20 text-green-400'
-    if (status === 'WARNING') return 'bg-yellow-500/20 text-yellow-400'
-    return 'bg-red-500/20 text-red-400'
+    if (status === 'PASS') {
+      return isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'
+    }
+    if (status === 'WARNING') {
+      return isDark ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-700'
+    }
+    return isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700'
   }
 
   // Check if dataset has cached validation
@@ -345,8 +359,8 @@ function ExternalValidationPage() {
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-white">External Validation</h1>
-        <p className="text-sm sm:text-base text-slate-400 mt-1">
+        <h1 className={`text-xl sm:text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>External Validation</h1>
+        <p className={`text-sm sm:text-base ${isDark ? 'text-slate-400' : 'text-gray-600'} mt-1`}>
           Compare synthetic data against real PMData (Sim2Real Transfer)
         </p>
       </div>
@@ -461,7 +475,7 @@ function ExternalValidationPage() {
       {validationResults && !activeJob && (
         <>
           {/* Tab Navigation */}
-          <div className="border-b border-slate-700 overflow-x-auto">
+          <div className={`border-b ${isDark ? 'border-slate-700' : 'border-gray-200'} overflow-x-auto`}>
             <nav className="flex space-x-4 sm:space-x-8 min-w-max px-1">
               {tabs.map(tab => (
                 <button
@@ -469,8 +483,8 @@ function ExternalValidationPage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors ${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-blue-400'
-                      : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-600'
+                      ? isDark ? 'border-blue-500 text-blue-400' : 'border-blue-500 text-blue-600'
+                      : isDark ? 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
                   {tab.label}
@@ -488,7 +502,7 @@ function ExternalValidationPage() {
                   {/* Statistical Fidelity */}
                   <div className={`p-4 rounded-lg border ${getPillarColor(validationResults.three_pillars.pillars?.statistical_fidelity?.status)}`}>
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-slate-200">Statistical Fidelity</h4>
+                      <h4 className={`font-semibold ${isDark ? 'text-slate-200' : 'text-gray-800'}`}>Statistical Fidelity</h4>
                       <span className="text-xs uppercase font-bold">
                         {validationResults.three_pillars.pillars?.statistical_fidelity?.status || 'pending'}
                       </span>
@@ -505,7 +519,7 @@ function ExternalValidationPage() {
                   {/* Causal Fidelity */}
                   <div className={`p-4 rounded-lg border ${getPillarColor(validationResults.three_pillars.pillars?.causal_fidelity?.status)}`}>
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-slate-200">Causal Fidelity</h4>
+                      <h4 className={`font-semibold ${isDark ? 'text-slate-200' : 'text-gray-800'}`}>Causal Fidelity</h4>
                       <span className="text-xs uppercase font-bold">
                         {validationResults.three_pillars.pillars?.causal_fidelity?.status || 'pending'}
                       </span>
@@ -520,7 +534,7 @@ function ExternalValidationPage() {
                   {/* Transferability */}
                   <div className={`p-4 rounded-lg border ${getPillarColor(validationResults.three_pillars.pillars?.transferability?.status)}`}>
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-slate-200">Transferability</h4>
+                      <h4 className={`font-semibold ${isDark ? 'text-slate-200' : 'text-gray-800'}`}>Transferability</h4>
                       <span className="text-xs uppercase font-bold">
                         {validationResults.three_pillars.pillars?.transferability?.status || 'pending'}
                       </span>
@@ -534,13 +548,15 @@ function ExternalValidationPage() {
                 </div>
 
                 {/* Overall Status */}
-                <div className={`p-4 rounded-lg ${validationResults.three_pillars.ready_for_publication ? 'bg-green-500/10 border border-green-500/30' : 'bg-amber-500/10 border border-amber-500/30'}`}>
+                <div className={`p-4 rounded-lg ${validationResults.three_pillars.ready_for_publication
+                  ? isDark ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200'
+                  : isDark ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-amber-50 border border-amber-200'}`}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-slate-200">
+                      <p className={`font-semibold ${isDark ? 'text-slate-200' : 'text-gray-800'}`}>
                         {validationResults.three_pillars.ready_for_publication ? 'Ready for Publication' : 'Needs Improvement'}
                       </p>
-                      <p className="text-sm opacity-75 text-slate-400">
+                      <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                         {validationResults.three_pillars.pillars_passing} pillars passing
                       </p>
                     </div>
@@ -883,10 +899,10 @@ function ExternalValidationPage() {
 
                       <div className={`p-4 rounded-lg mt-4 ${
                         scientificResults.adversarial.pass
-                          ? 'bg-green-500/10 border border-green-500/30'
-                          : 'bg-red-500/10 border border-red-500/30'
+                          ? isDark ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200'
+                          : isDark ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'
                       }`}>
-                        <p className="text-sm text-slate-300">{scientificResults.adversarial.interpretation}</p>
+                        <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{scientificResults.adversarial.interpretation}</p>
                       </div>
                     </Card>
                   )}
@@ -896,35 +912,35 @@ function ExternalValidationPage() {
                     <Card title="Table 2: Performance vs. Baselines">
                       <div className="overflow-x-auto">
                         <table className="min-w-full text-sm">
-                          <thead className="bg-slate-800/50">
+                          <thead className={isDark ? 'bg-slate-800/50' : 'bg-gray-100'}>
                             <tr>
-                              <th className="px-3 py-2 text-left font-medium text-slate-300">Model</th>
-                              <th className="px-3 py-2 text-right font-medium text-slate-300">AUC</th>
-                              <th className="px-3 py-2 text-right font-medium text-slate-300">Precision</th>
-                              <th className="px-3 py-2 text-right font-medium text-slate-300">Recall</th>
-                              <th className="px-3 py-2 text-right font-medium text-slate-300">F1</th>
+                              <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Model</th>
+                              <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>AUC</th>
+                              <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Precision</th>
+                              <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Recall</th>
+                              <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>F1</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-800">
+                          <tbody className={`divide-y ${isDark ? 'divide-slate-800' : 'divide-gray-200'}`}>
                             {scientificResults.null_models.models && Object.entries(scientificResults.null_models.models).map(([name, metrics]) => (
-                              <tr key={name} className={`hover:bg-slate-800/30 ${
-                                name === 'XGBoost (Ours)' ? 'bg-blue-500/10' : ''
+                              <tr key={name} className={`${isDark ? 'hover:bg-slate-800/30' : 'hover:bg-gray-50'} ${
+                                name === 'XGBoost (Ours)' ? isDark ? 'bg-blue-500/10' : 'bg-blue-50' : ''
                               }`}>
                                 <td className={`px-3 py-2 ${
-                                  name === 'XGBoost (Ours)' ? 'text-blue-400 font-bold' : 'text-slate-300'
+                                  name === 'XGBoost (Ours)' ? 'text-blue-500 font-bold' : isDark ? 'text-slate-300' : 'text-gray-700'
                                 }`}>
                                   {name}
                                 </td>
-                                <td className="px-3 py-2 text-right font-mono text-slate-400">
+                                <td className={`px-3 py-2 text-right font-mono ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                                   {metrics.auc?.toFixed(4)}
                                 </td>
-                                <td className="px-3 py-2 text-right font-mono text-slate-400">
+                                <td className={`px-3 py-2 text-right font-mono ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                                   {metrics.precision?.toFixed(4)}
                                 </td>
-                                <td className="px-3 py-2 text-right font-mono text-slate-400">
+                                <td className={`px-3 py-2 text-right font-mono ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                                   {metrics.recall?.toFixed(4)}
                                 </td>
-                                <td className="px-3 py-2 text-right font-mono text-slate-400">
+                                <td className={`px-3 py-2 text-right font-mono ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                                   {metrics.f1?.toFixed(4)}
                                 </td>
                               </tr>
@@ -934,36 +950,36 @@ function ExternalValidationPage() {
                       </div>
 
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-100'} rounded-lg`}>
                           <p className={`text-lg font-bold ${
-                            scientificResults.null_models.beats_all_baselines ? 'text-green-400' : 'text-red-400'
+                            scientificResults.null_models.beats_all_baselines ? 'text-green-500' : 'text-red-500'
                           }`}>
                             {scientificResults.null_models.beats_all_baselines ? 'YES' : 'NO'}
                           </p>
-                          <p className="text-xs text-slate-500">Beats All Baselines</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Beats All Baselines</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                          <p className="text-lg font-bold text-orange-400">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-100'} rounded-lg`}>
+                          <p className="text-lg font-bold text-orange-500">
                             {scientificResults.null_models.best_baseline}
                           </p>
-                          <p className="text-xs text-slate-500">Best Baseline</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Best Baseline</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-100'} rounded-lg`}>
                           <p className={`text-lg font-bold ${
-                            scientificResults.null_models.improvement_over_best > 0 ? 'text-green-400' : 'text-red-400'
+                            scientificResults.null_models.improvement_over_best > 0 ? 'text-green-500' : 'text-red-500'
                           }`}>
                             +{(scientificResults.null_models.improvement_over_best * 100)?.toFixed(1)}%
                           </p>
-                          <p className="text-xs text-slate-500">Improvement</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Improvement</p>
                         </div>
                       </div>
 
                       <div className={`p-4 rounded-lg mt-4 ${
                         scientificResults.null_models.pass
-                          ? 'bg-green-500/10 border border-green-500/30'
-                          : 'bg-red-500/10 border border-red-500/30'
+                          ? isDark ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200'
+                          : isDark ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'
                       }`}>
-                        <p className="text-sm text-slate-300">{scientificResults.null_models.interpretation}</p>
+                        <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{scientificResults.null_models.interpretation}</p>
                       </div>
                     </Card>
                   )}
@@ -973,38 +989,38 @@ function ExternalValidationPage() {
                     <Card title="Subgroup Generalization Analysis">
                       <div className="overflow-x-auto">
                         <table className="min-w-full text-sm">
-                          <thead className="bg-slate-800/50">
+                          <thead className={isDark ? 'bg-slate-800/50' : 'bg-gray-100'}>
                             <tr>
-                              <th className="px-3 py-2 text-left font-medium text-slate-300">Subgroup</th>
-                              <th className="px-3 py-2 text-right font-medium text-slate-300">N Athletes</th>
-                              <th className="px-3 py-2 text-right font-medium text-slate-300">Mean AUC</th>
-                              <th className="px-3 py-2 text-right font-medium text-slate-300">Std</th>
-                              <th className="px-3 py-2 text-right font-medium text-slate-300">95% CI</th>
+                              <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Subgroup</th>
+                              <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>N Athletes</th>
+                              <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Mean AUC</th>
+                              <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Std</th>
+                              <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>95% CI</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-800">
+                          <tbody className={`divide-y ${isDark ? 'divide-slate-800' : 'divide-gray-200'}`}>
                             {scientificResults.subgroups.subgroups && Object.entries(scientificResults.subgroups.subgroups).map(([name, data]) => (
-                              <tr key={name} className={`hover:bg-slate-800/30 ${
-                                name === 'Low Fitness' ? 'bg-purple-500/10' : ''
+                              <tr key={name} className={`${isDark ? 'hover:bg-slate-800/30' : 'hover:bg-gray-50'} ${
+                                name === 'Low Fitness' ? isDark ? 'bg-purple-500/10' : 'bg-purple-50' : ''
                               }`}>
                                 <td className={`px-3 py-2 ${
-                                  name === 'Low Fitness' ? 'text-purple-400 font-bold' : 'text-slate-300'
+                                  name === 'Low Fitness' ? 'text-purple-500 font-bold' : isDark ? 'text-slate-300' : 'text-gray-700'
                                 }`}>
                                   {name}
                                 </td>
-                                <td className="px-3 py-2 text-right text-slate-400">
+                                <td className={`px-3 py-2 text-right ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                                   {data.n_athletes}
                                 </td>
                                 <td className={`px-3 py-2 text-right font-mono ${
-                                  data.mean_auc >= 0.6 ? 'text-green-400' :
-                                  data.mean_auc >= 0.55 ? 'text-yellow-400' : 'text-red-400'
+                                  data.mean_auc >= 0.6 ? 'text-green-500' :
+                                  data.mean_auc >= 0.55 ? 'text-yellow-500' : 'text-red-500'
                                 }`}>
                                   {data.mean_auc?.toFixed(4) || 'N/A'}
                                 </td>
-                                <td className="px-3 py-2 text-right font-mono text-slate-400">
+                                <td className={`px-3 py-2 text-right font-mono ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                                   ±{data.std_auc?.toFixed(4) || 'N/A'}
                                 </td>
-                                <td className="px-3 py-2 text-right font-mono text-xs text-slate-500">
+                                <td className={`px-3 py-2 text-right font-mono text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>
                                   {data.ci_95 ? `[${data.ci_95[0]?.toFixed(2)}, ${data.ci_95[1]?.toFixed(2)}]` : 'N/A'}
                                 </td>
                               </tr>
@@ -1014,42 +1030,42 @@ function ExternalValidationPage() {
                       </div>
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                          <p className="text-lg font-bold text-green-400">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-100'} rounded-lg`}>
+                          <p className="text-lg font-bold text-green-500">
                             {scientificResults.subgroups.best_subgroup}
                           </p>
-                          <p className="text-xs text-slate-500">Best Subgroup</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Best Subgroup</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                          <p className="text-lg font-bold text-red-400">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-100'} rounded-lg`}>
+                          <p className="text-lg font-bold text-red-500">
                             {scientificResults.subgroups.worst_subgroup}
                           </p>
-                          <p className="text-xs text-slate-500">Worst Subgroup</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Worst Subgroup</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-100'} rounded-lg`}>
                           <p className={`text-lg font-bold ${
-                            scientificResults.subgroups.works_on_vulnerable ? 'text-green-400' : 'text-red-400'
+                            scientificResults.subgroups.works_on_vulnerable ? 'text-green-500' : 'text-red-500'
                           }`}>
                             {scientificResults.subgroups.works_on_vulnerable ? 'YES' : 'NO'}
                           </p>
-                          <p className="text-xs text-slate-500">Works on Vulnerable</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Works on Vulnerable</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-100'} rounded-lg`}>
                           <p className={`text-lg font-bold ${
-                            scientificResults.subgroups.clinical_relevance === 'High' ? 'text-green-400' : 'text-yellow-400'
+                            scientificResults.subgroups.clinical_relevance === 'High' ? 'text-green-500' : 'text-yellow-500'
                           }`}>
                             {scientificResults.subgroups.clinical_relevance}
                           </p>
-                          <p className="text-xs text-slate-500">Clinical Relevance</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Clinical Relevance</p>
                         </div>
                       </div>
 
                       <div className={`p-4 rounded-lg mt-4 ${
                         scientificResults.subgroups.pass
-                          ? 'bg-green-500/10 border border-green-500/30'
-                          : 'bg-yellow-500/10 border border-yellow-500/30'
+                          ? isDark ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200'
+                          : isDark ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-yellow-50 border border-yellow-200'
                       }`}>
-                        <p className="text-sm text-slate-300">{scientificResults.subgroups.interpretation}</p>
+                        <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{scientificResults.subgroups.interpretation}</p>
                       </div>
                     </Card>
                   )}
@@ -1093,10 +1109,10 @@ function ExternalValidationPage() {
 
                       <div className={`p-4 rounded-lg mt-4 ${
                         scientificResults.sensitivity.pass
-                          ? 'bg-green-500/10 border border-green-500/30'
-                          : 'bg-yellow-500/10 border border-yellow-500/30'
+                          ? isDark ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200'
+                          : isDark ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-yellow-50 border border-yellow-200'
                       }`}>
-                        <p className="text-sm text-slate-300">
+                        <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
                           <strong>Most Sensitive:</strong> {scientificResults.sensitivity.most_sensitive_parameter}
                           <br />
                           <strong>Robustness:</strong> {scientificResults.sensitivity.robustness}
@@ -1116,8 +1132,8 @@ function ExternalValidationPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-200 mb-2">No Scientific Validation Yet</h3>
-                    <p className="text-slate-400 mb-4">
+                    <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-200' : 'text-gray-800'} mb-2`}>No Scientific Validation Yet</h3>
+                    <p className={`${isDark ? 'text-slate-400' : 'text-gray-600'} mb-4`}>
                       Run the scientific validation suite to prove your results are publication-ready.
                     </p>
                   </div>
@@ -1347,21 +1363,21 @@ function ExternalValidationPage() {
                             <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Column</th>
                             <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>MSE</th>
                             <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Max Error</th>
-                            <th className="px-3 py-2 text-right font-medium text-slate-300">Correlation</th>
+                            <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Correlation</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800">
+                        <tbody className={`divide-y ${isDark ? 'divide-slate-800' : 'divide-gray-200'}`}>
                           {Object.entries(methodologyResults.equivalence.column_errors).map(([col, err]) => (
-                            <tr key={col} className="hover:bg-slate-800/30">
-                              <td className="px-3 py-2 text-slate-300">{col}</td>
-                              <td className="px-3 py-2 text-right font-mono text-xs text-slate-400">
+                            <tr key={col} className={isDark ? 'hover:bg-slate-800/30' : 'hover:bg-gray-50'}>
+                              <td className={`px-3 py-2 ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{col}</td>
+                              <td className={`px-3 py-2 text-right font-mono text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                                 {err.mse?.toExponential(2)}
                               </td>
-                              <td className="px-3 py-2 text-right font-mono text-xs text-slate-400">
+                              <td className={`px-3 py-2 text-right font-mono text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                                 {err.max_error?.toExponential(2)}
                               </td>
                               <td className={`px-3 py-2 text-right font-mono text-xs ${
-                                err.correlation > 0.99 ? 'text-green-400' : 'text-yellow-400'
+                                err.correlation > 0.99 ? 'text-green-500' : 'text-yellow-500'
                               }`}>
                                 {err.correlation?.toFixed(4)}
                               </td>
@@ -1374,10 +1390,10 @@ function ExternalValidationPage() {
 
                   <div className={`p-4 rounded-lg mt-4 ${
                     methodologyResults.equivalence.is_equivalent
-                      ? 'bg-green-500/10 border border-green-500/30'
-                      : 'bg-red-500/10 border border-red-500/30'
+                      ? isDark ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200'
+                      : isDark ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'
                   }`}>
-                    <p className="text-sm text-slate-300">{methodologyResults.equivalence.interpretation}</p>
+                    <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{methodologyResults.equivalence.interpretation}</p>
                   </div>
                 </Card>
               )}
@@ -1391,8 +1407,8 @@ function ExternalValidationPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-200 mb-2">No Methodology Validation Yet</h3>
-                    <p className="text-slate-400 mb-4">
+                    <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-200' : 'text-gray-800'} mb-2`}>No Methodology Validation Yet</h3>
+                    <p className={`${isDark ? 'text-slate-400' : 'text-gray-600'} mb-4`}>
                       Run the methodology suite to generate publication-quality validation results.
                     </p>
                   </div>
@@ -1410,8 +1426,8 @@ function ExternalValidationPage() {
                   {Object.entries(validationResults.distributions.features).map(([feat, data]) => (
                     <Card key={feat}>
                       <div className="text-center py-2">
-                        <p className="text-xs text-slate-500 truncate">{feat.replace(/_/g, ' ')}</p>
-                        <p className="text-lg font-bold text-slate-200 mt-1">
+                        <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'} truncate`}>{feat.replace(/_/g, ' ')}</p>
+                        <p className={`text-lg font-bold ${isDark ? 'text-slate-200' : 'text-gray-800'} mt-1`}>
                           {data.js_divergence?.toFixed(3) || 'N/A'}
                         </p>
                         <span className={`text-xs px-2 py-0.5 rounded ${getStatusBadge(data.status)}`}>
@@ -1496,13 +1512,13 @@ function ExternalValidationPage() {
                       style={{ width: '100%' }}
                     />
                     <div className="grid grid-cols-2 gap-4 mt-3 text-xs">
-                      <div className="bg-blue-500/10 p-3 rounded-lg border border-blue-500/20">
-                        <p className="font-medium text-blue-400">Synthetic</p>
-                        <p className="text-slate-400">Mean: {data.synthetic.mean?.toFixed(3)}, Std: {data.synthetic.std?.toFixed(3)}</p>
+                      <div className={`${isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200'} p-3 rounded-lg border`}>
+                        <p className="font-medium text-blue-500">Synthetic</p>
+                        <p className={isDark ? 'text-slate-400' : 'text-gray-600'}>Mean: {data.synthetic.mean?.toFixed(3)}, Std: {data.synthetic.std?.toFixed(3)}</p>
                       </div>
-                      <div className="bg-red-500/10 p-3 rounded-lg border border-red-500/20">
-                        <p className="font-medium text-red-400">Real (PMData)</p>
-                        <p className="text-slate-400">Mean: {data.real.mean?.toFixed(3)}, Std: {data.real.std?.toFixed(3)}</p>
+                      <div className={`${isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200'} p-3 rounded-lg border`}>
+                        <p className="font-medium text-red-500">Real (PMData)</p>
+                        <p className={isDark ? 'text-slate-400' : 'text-gray-600'}>Mean: {data.real.mean?.toFixed(3)}, Std: {data.real.std?.toFixed(3)}</p>
                       </div>
                     </div>
                   </Card>
@@ -1516,46 +1532,46 @@ function ExternalValidationPage() {
             <div className="space-y-4">
               <Card title="Sim2Real Transfer Learning Results">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-2xl font-bold text-blue-400">
+                  <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-blue-50 border border-blue-100'} rounded-lg`}>
+                    <p className="text-2xl font-bold text-blue-500">
                       {validationResults.sim2real.auc?.toFixed(4)}
                     </p>
-                    <p className="text-xs text-slate-500">AUC Score</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>AUC Score</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-400">
+                  <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-green-50 border border-green-100'} rounded-lg`}>
+                    <p className="text-2xl font-bold text-green-500">
                       {validationResults.sim2real.ap?.toFixed(4)}
                     </p>
-                    <p className="text-xs text-slate-500">Avg Precision</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Avg Precision</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-2xl font-bold text-purple-400">
+                  <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-purple-50 border border-purple-100'} rounded-lg`}>
+                    <p className="text-2xl font-bold text-purple-500">
                       {validationResults.sim2real.n_train?.toLocaleString()}
                     </p>
-                    <p className="text-xs text-slate-500">Train Samples</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Train Samples</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-2xl font-bold text-orange-400">
+                  <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-orange-50 border border-orange-100'} rounded-lg`}>
+                    <p className="text-2xl font-bold text-orange-500">
                       {validationResults.sim2real.n_test?.toLocaleString()}
                     </p>
-                    <p className="text-xs text-slate-500">Test Samples</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Test Samples</p>
                   </div>
                 </div>
 
                 <div className={`p-4 rounded-lg ${
-                  validationResults.sim2real.status === 'success' ? 'bg-green-500/10 border border-green-500/30' :
-                  validationResults.sim2real.status === 'warning' ? 'bg-yellow-500/10 border border-yellow-500/30' :
-                  'bg-red-500/10 border border-red-500/30'
+                  validationResults.sim2real.status === 'success' ? isDark ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200' :
+                  validationResults.sim2real.status === 'warning' ? isDark ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-yellow-50 border border-yellow-200' :
+                  isDark ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'
                 }`}>
-                  <p className="font-medium text-slate-200">{validationResults.sim2real.interpretation}</p>
+                  <p className={`font-medium ${isDark ? 'text-slate-200' : 'text-gray-800'}`}>{validationResults.sim2real.interpretation}</p>
                 </div>
 
                 {validationResults.sim2real.features_used && (
                   <div className="mt-4">
-                    <p className="text-sm font-medium text-slate-300 mb-2">Features Used:</p>
+                    <p className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'} mb-2`}>Features Used:</p>
                     <div className="flex flex-wrap gap-2">
                       {validationResults.sim2real.features_used.map(feat => (
-                        <span key={feat} className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-slate-400">
+                        <span key={feat} className={`px-2 py-1 ${isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-gray-100 border-gray-300 text-gray-600'} border rounded text-xs`}>
                           {feat}
                         </span>
                       ))}
@@ -1567,17 +1583,17 @@ function ExternalValidationPage() {
               {/* AUC Interpretation Guide */}
               <Card title="AUC Interpretation Guide">
                 <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                    <span className="font-mono font-bold text-green-400 w-12">0.60+</span>
-                    <span className="text-slate-300">Good - Synthetic data captures real injury patterns</span>
+                  <div className={`flex items-center gap-3 p-3 rounded-lg ${isDark ? 'bg-green-500/10 border-green-500/20' : 'bg-green-50 border-green-200'} border`}>
+                    <span className="font-mono font-bold text-green-500 w-12">0.60+</span>
+                    <span className={isDark ? 'text-slate-300' : 'text-gray-700'}>Good - Synthetic data captures real injury patterns</span>
                   </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-                    <span className="font-mono font-bold text-yellow-400 w-12">0.55</span>
-                    <span className="text-slate-300">Moderate - Some signal transfers, more tuning needed</span>
+                  <div className={`flex items-center gap-3 p-3 rounded-lg ${isDark ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-yellow-50 border-yellow-200'} border`}>
+                    <span className="font-mono font-bold text-yellow-500 w-12">0.55</span>
+                    <span className={isDark ? 'text-slate-300' : 'text-gray-700'}>Moderate - Some signal transfers, more tuning needed</span>
                   </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                    <span className="font-mono font-bold text-red-400 w-12">0.50</span>
-                    <span className="text-slate-300">Poor - No better than random, distributions misaligned</span>
+                  <div className={`flex items-center gap-3 p-3 rounded-lg ${isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200'} border`}>
+                    <span className="font-mono font-bold text-red-500 w-12">0.50</span>
+                    <span className={isDark ? 'text-slate-300' : 'text-gray-700'}>Poor - No better than random, distributions misaligned</span>
                   </div>
                 </div>
               </Card>
@@ -1638,17 +1654,17 @@ function ExternalValidationPage() {
                   />
                   {/* Interpretation text below plot */}
                   {validationResults.causal_mechanism.causal_asymmetry.summary?.interpretation && (
-                    <p className="text-sm text-slate-400 mt-4 text-center italic">
+                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'} mt-4 text-center italic`}>
                       {validationResults.causal_mechanism.causal_asymmetry.summary.interpretation}
                     </p>
                   )}
                   {/* Zone stats grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
                     {validationResults.causal_mechanism.causal_asymmetry.zones.map(zone => (
-                      <div key={zone.zone} className="text-center p-3 bg-slate-800/50 rounded-lg">
-                        <p className="font-medium text-slate-300 text-sm">{zone.zone}</p>
-                        <p className="text-slate-400 text-xs mt-1">{zone.total_injuries} injuries / {zone.total_days} days</p>
-                        <p className="text-slate-500 text-xs">{zone.injury_rate_pct}% daily rate</p>
+                      <div key={zone.zone} className={`text-center p-3 ${isDark ? 'bg-slate-800/50' : 'bg-gray-100'} rounded-lg`}>
+                        <p className={`font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'} text-sm`}>{zone.zone}</p>
+                        <p className={`${isDark ? 'text-slate-400' : 'text-gray-600'} text-xs mt-1`}>{zone.total_injuries} injuries / {zone.total_days} days</p>
+                        <p className={`${isDark ? 'text-slate-500' : 'text-gray-500'} text-xs`}>{zone.injury_rate_pct}% daily rate</p>
                       </div>
                     ))}
                   </div>
@@ -1734,8 +1750,8 @@ function ExternalValidationPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-200 mb-2">Glass-Box Data Required</h3>
-                    <p className="text-slate-400 mb-4">
+                    <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-200' : 'text-gray-800'} mb-2`}>Glass-Box Data Required</h3>
+                    <p className={`${isDark ? 'text-slate-400' : 'text-gray-600'} mb-4`}>
                       Regenerate synthetic data to include causal mechanism columns (ACWR, injury_type, wellness_vulnerability).
                     </p>
                   </div>
@@ -1750,21 +1766,21 @@ function ExternalValidationPage() {
               {/* PMData Stats */}
               <Card title="PMData Overview">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-xl font-bold text-slate-200">{validationResults.pmdata_analysis.samples?.toLocaleString()}</p>
-                    <p className="text-xs text-slate-500">Total Samples</p>
+                  <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-100'} rounded-lg`}>
+                    <p className={`text-xl font-bold ${isDark ? 'text-slate-200' : 'text-gray-800'}`}>{validationResults.pmdata_analysis.samples?.toLocaleString()}</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Total Samples</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-xl font-bold text-green-400">{validationResults.pmdata_analysis.safe_days?.toLocaleString()}</p>
-                    <p className="text-xs text-slate-500">Safe Days</p>
+                  <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-green-50 border border-green-100'} rounded-lg`}>
+                    <p className="text-xl font-bold text-green-500">{validationResults.pmdata_analysis.safe_days?.toLocaleString()}</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Safe Days</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-xl font-bold text-orange-400">{validationResults.pmdata_analysis.preinjury_days?.toLocaleString()}</p>
-                    <p className="text-xs text-slate-500">Pre-Injury Days</p>
+                  <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-orange-50 border border-orange-100'} rounded-lg`}>
+                    <p className="text-xl font-bold text-orange-500">{validationResults.pmdata_analysis.preinjury_days?.toLocaleString()}</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Pre-Injury Days</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-xl font-bold text-red-400">{((validationResults.pmdata_analysis.injury_rate || 0) * 100).toFixed(1)}%</p>
-                    <p className="text-xs text-slate-500">Injury Rate</p>
+                  <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-red-50 border border-red-100'} rounded-lg`}>
+                    <p className="text-xl font-bold text-red-500">{((validationResults.pmdata_analysis.injury_rate || 0) * 100).toFixed(1)}%</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Injury Rate</p>
                   </div>
                 </div>
               </Card>
@@ -1795,7 +1811,7 @@ function ExternalValidationPage() {
                     useResizeHandler
                     style={{ width: '100%' }}
                   />
-                  <p className="text-xs text-slate-500 mt-2">
+                  <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'} mt-2`}>
                     Features ranked by Random Forest importance trained on real PMData
                   </p>
                 </Card>
@@ -1806,31 +1822,31 @@ function ExternalValidationPage() {
                 <Card title="Feature Correlations with Injury">
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-800/50">
+                      <thead className={isDark ? 'bg-slate-800/50' : 'bg-gray-100'}>
                         <tr>
-                          <th className="px-3 py-2 text-left font-medium text-slate-300">Feature</th>
-                          <th className="px-3 py-2 text-right font-medium text-slate-300">Correlation</th>
-                          <th className="px-3 py-2 text-center font-medium text-slate-300">Significant</th>
-                          <th className="px-3 py-2 text-left font-medium text-slate-300">Direction</th>
+                          <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Feature</th>
+                          <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Correlation</th>
+                          <th className={`px-3 py-2 text-center font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Significant</th>
+                          <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Direction</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800">
+                      <tbody className={`divide-y ${isDark ? 'divide-slate-800' : 'divide-gray-200'}`}>
                         {validationResults.pmdata_analysis.correlations.slice(0, 10).map(c => (
-                          <tr key={c.feature} className="hover:bg-slate-800/30">
-                            <td className="px-3 py-2 text-slate-300">{c.feature.replace(/_/g, ' ')}</td>
+                          <tr key={c.feature} className={isDark ? 'hover:bg-slate-800/30' : 'hover:bg-gray-50'}>
+                            <td className={`px-3 py-2 ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{c.feature.replace(/_/g, ' ')}</td>
                             <td className={`px-3 py-2 text-right font-mono ${
-                              c.correlation > 0 ? 'text-red-400' : 'text-green-400'
+                              c.correlation > 0 ? 'text-red-500' : 'text-green-500'
                             }`}>
                               {c.correlation > 0 ? '+' : ''}{c.correlation?.toFixed(4)}
                             </td>
                             <td className="px-3 py-2 text-center">
                               {c.significant ? (
-                                <span className="text-green-400">Yes</span>
+                                <span className="text-green-500">Yes</span>
                               ) : (
-                                <span className="text-slate-500">No</span>
+                                <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>No</span>
                               )}
                             </td>
-                            <td className="px-3 py-2 text-xs text-slate-400">{c.direction}</td>
+                            <td className={`px-3 py-2 text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{c.direction}</td>
                           </tr>
                         ))}
                       </tbody>
