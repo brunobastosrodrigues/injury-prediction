@@ -8,7 +8,7 @@ view distribution alignment, and run transfer learning experiments.
 from flask import Blueprint, jsonify, request
 
 from ...services.validation_service import ValidationService
-from ...utils.progress_tracker import ProgressTracker
+from ...utils.progress_tracker import ProgressTracker, numpy_to_python
 from ...tasks import run_validation_task
 
 validation_bp = Blueprint('validation', __name__)
@@ -285,8 +285,8 @@ def get_distributions():
     try:
         result = ValidationService.get_distribution_comparison()
         if 'error' in result and not result.get('has_synthetic') or not result.get('has_pmdata'):
-            return jsonify(result), 404
-        return jsonify(result), 200
+            return jsonify(numpy_to_python(result)), 404
+        return jsonify(numpy_to_python(result)), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -304,8 +304,8 @@ def run_sim2real():
     try:
         result = ValidationService.run_sim2real_experiment()
         if 'error' in result:
-            return jsonify(result), 400
-        return jsonify(result), 200
+            return jsonify(numpy_to_python(result)), 400
+        return jsonify(numpy_to_python(result)), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -321,8 +321,8 @@ def get_pmdata_analysis():
     try:
         result = ValidationService.get_pmdata_analysis()
         if 'error' in result:
-            return jsonify(result), 404
-        return jsonify(result), 200
+            return jsonify(numpy_to_python(result)), 404
+        return jsonify(numpy_to_python(result)), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -340,8 +340,8 @@ def get_model_evaluation():
     try:
         result = ValidationService.evaluate_pmdata_model()
         if 'error' in result:
-            return jsonify(result), 400
-        return jsonify(result), 200
+            return jsonify(numpy_to_python(result)), 400
+        return jsonify(numpy_to_python(result)), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -390,8 +390,8 @@ def get_causal_mechanism():
     try:
         result = ValidationService.get_causal_mechanism_analysis()
         if 'error' in result:
-            return jsonify(result), 404
-        return jsonify(result), 200
+            return jsonify(numpy_to_python(result)), 404
+        return jsonify(numpy_to_python(result)), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -410,7 +410,7 @@ def get_three_pillars():
     """
     try:
         result = ValidationService.get_three_pillars_summary()
-        return jsonify(result), 200
+        return jsonify(numpy_to_python(result)), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -429,8 +429,8 @@ def get_raincloud_data(feature):
     try:
         result = ValidationService.get_raincloud_data(feature)
         if 'error' in result:
-            return jsonify(result), 404
-        return jsonify(result), 200
+            return jsonify(numpy_to_python(result)), 404
+        return jsonify(numpy_to_python(result)), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

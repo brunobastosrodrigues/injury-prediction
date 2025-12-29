@@ -95,13 +95,33 @@ class ScientificValidationService:
     Provides rigorous hypothesis testing beyond software QA.
     """
 
-    # Cache directory for results
-    CACHE_BASE = '/home/rodrigues/injury-prediction/data/validation/scientific'
+    # Cache directory candidates (Docker first, then local)
+    CACHE_PATHS = [
+        '/data/validation/scientific',  # Docker volume mount
+        '/home/rodrigues/injury-prediction/data/validation/scientific',
+    ]
+
+    @classmethod
+    def _get_cache_base(cls) -> str:
+        """Get the appropriate cache base directory."""
+        for path in cls.CACHE_PATHS:
+            # Check if parent exists and is writable
+            parent = os.path.dirname(path)
+            if os.path.exists(parent):
+                os.makedirs(path, exist_ok=True)
+                return path
+        # Fallback to first path
+        os.makedirs(cls.CACHE_PATHS[0], exist_ok=True)
+        return cls.CACHE_PATHS[0]
+
+    # For backwards compatibility
+    CACHE_BASE = property(lambda self: self._get_cache_base())
 
     @classmethod
     def get_cache_dir(cls, dataset_id: str) -> str:
         """Get cache directory for a dataset's scientific validation results."""
-        cache_dir = os.path.join(cls.CACHE_BASE, dataset_id)
+        cache_base = cls._get_cache_base()
+        cache_dir = os.path.join(cache_base, dataset_id)
         os.makedirs(cache_dir, exist_ok=True)
         return cache_dir
 

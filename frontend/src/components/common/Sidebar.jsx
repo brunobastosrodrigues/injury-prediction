@@ -9,6 +9,7 @@ const navSections = [
       { path: '/pipeline', label: 'Study Overview', icon: '📋' },
       { path: '/data-generation', label: 'Synthetic Cohort', icon: '🧬' },
       { path: '/ingestion', label: 'Real Data', icon: '📤' },
+      { path: '/validation', label: 'Data Validation', icon: '🔬' },
     ]
   },
   {
@@ -22,7 +23,6 @@ const navSections = [
     title: 'Results',
     items: [
       { path: '/results', label: 'Model Performance', icon: '📈' },
-      { path: '/external-validation', label: 'External Validation', icon: '🔬' },
       { path: '/interpretability', label: 'Feature Attribution', icon: '🔍' },
     ]
   },

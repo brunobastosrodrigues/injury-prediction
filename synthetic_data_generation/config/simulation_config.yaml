@@ -4,8 +4,8 @@
 # All configurable parameters for the injury prediction simulation.
 # Organized by module and function for easy navigation.
 #
-# CALIBRATION NOTES:
-# - Parameters marked [PMData] are calibrated against real PMData distributions
+# VALIDATION NOTES:
+# - Parameters marked [PMData] are validated against real PMData distributions
 # - Parameters marked [Literature] are based on sports science research
 # - Parameters marked [Empirical] are tuned through simulation experiments
 # =============================================================================
@@ -497,7 +497,7 @@ body_battery:
     max_reduction: 40              # Max reduction from morning
 
 # -----------------------------------------------------------------------------
-# STRESS SIMULATION PARAMETERS [PMData calibrated]
+# STRESS SIMULATION PARAMETERS [PMData validated]
 # -----------------------------------------------------------------------------
 stress_model:
   # Component Weights

@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/common/Layout'
 import LandingPage from './components/landing/LandingPage'
 import Dashboard from './components/dashboard/Dashboard'
@@ -22,14 +22,17 @@ function App() {
       <Route path="/pipeline" element={<Layout><Dashboard /></Layout>} />
       <Route path="/data-generation" element={<Layout><DataGenerationPage /></Layout>} />
       <Route path="/ingestion" element={<Layout><IngestionPage /></Layout>} />
+      <Route path="/validation" element={<Layout><ExternalValidationPage /></Layout>} />
       <Route path="/preprocessing" element={<Layout><PreprocessingPage /></Layout>} />
       <Route path="/training" element={<Layout><TrainingPage /></Layout>} />
       <Route path="/results" element={<Layout><ResultsPage /></Layout>} />
-      <Route path="/external-validation" element={<Layout><ExternalValidationPage /></Layout>} />
       <Route path="/analytics" element={<Layout><AnalyticsPage /></Layout>} />
       <Route path="/interpretability" element={<Layout><ModelInterpretability /></Layout>} />
       <Route path="/athletes" element={<Layout><AthleteDashboardPage /></Layout>} />
       <Route path="/athletes/:athleteId" element={<Layout><AthleteDashboardPage /></Layout>} />
+
+      {/* Redirect old route for backward compatibility */}
+      <Route path="/external-validation" element={<Navigate to="/validation" replace />} />
     </Routes>
   )
 }

@@ -60,13 +60,13 @@ def main():
     
     # 2. Load Synthetic Data
     print("\n--- 2. Loading Synthetic Data ---")
-    # Try to find the PMData-calibrated dataset first, otherwise use latest
+    # Try to find the reference dataset first (used in publication), otherwise use latest
     import glob
     raw_path = 'data/raw'
-    calibrated_path = os.path.join(raw_path, 'dataset_pmdata_calibrated')
-    if os.path.exists(calibrated_path):
-        datasets = [calibrated_path]
-        print("Using PMData-calibrated synthetic dataset!")
+    reference_path = os.path.join(raw_path, 'dataset_reference')
+    if os.path.exists(reference_path):
+        datasets = [reference_path]
+        print("Using reference synthetic dataset (publication version)!")
     else:
         datasets = sorted(glob.glob(os.path.join(raw_path, 'dataset_*')))
     if datasets:

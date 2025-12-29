@@ -14,20 +14,36 @@ def numpy_to_python(obj: Any) -> Any:
     """
     Recursively convert NumPy types to native Python types for JSON serialization.
 
-    Handles: numpy.bool_, numpy.integer, numpy.floating, numpy.ndarray, and nested structures.
+    Handles: numpy.bool_, numpy.integer, numpy.floating, numpy.ndarray,
+    numpy.str_, and nested structures (dicts, lists, tuples).
     """
-    if isinstance(obj, np.bool_):
-        return bool(obj)
-    elif isinstance(obj, np.integer):
-        return int(obj)
-    elif isinstance(obj, np.floating):
-        return float(obj)
+    # Handle numpy scalar types first (check generic before specific)
+    if isinstance(obj, (np.bool_, np.generic)):
+        if isinstance(obj, np.bool_):
+            return bool(obj)
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.str_):
+            return str(obj)
+        elif isinstance(obj, np.complexfloating):
+            return complex(obj)
+        else:
+            # Fallback for any other numpy scalar
+            return obj.item()
     elif isinstance(obj, np.ndarray):
-        return obj.tolist()
+        return [numpy_to_python(item) for item in obj.tolist()]
     elif isinstance(obj, dict):
-        return {key: numpy_to_python(value) for key, value in obj.items()}
+        return {str(key): numpy_to_python(value) for key, value in obj.items()}
     elif isinstance(obj, (list, tuple)):
         return [numpy_to_python(item) for item in obj]
+    elif hasattr(obj, 'tolist'):
+        # Fallback for any object with tolist method (pandas Series, etc.)
+        return numpy_to_python(obj.tolist())
+    elif hasattr(obj, 'item'):
+        # Fallback for any numpy-like scalar
+        return obj.item()
     return obj
 
 

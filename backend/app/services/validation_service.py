@@ -55,10 +55,10 @@ class ValidationService:
         if not raw_path:
             return None
 
-        # Prefer calibrated dataset
-        calibrated = os.path.join(raw_path, 'dataset_pmdata_calibrated')
-        if os.path.exists(calibrated):
-            return calibrated
+        # Prefer reference dataset (used in publication)
+        reference = os.path.join(raw_path, 'dataset_reference')
+        if os.path.exists(reference):
+            return reference
 
         # Otherwise use latest
         datasets = sorted(glob.glob(os.path.join(raw_path, 'dataset_*')))
@@ -876,9 +876,9 @@ class ValidationService:
             }
             df = df.rename(columns=rename_map)
 
-            # Skip normalization for calibrated datasets (already matched to PMData range)
-            if 'calibrated' not in dataset_id:
-                # Normalize to 0-1 for non-calibrated datasets
+            # Skip normalization for reference dataset (already matched to PMData range)
+            if 'reference' not in dataset_id:
+                # Normalize to 0-1 for non-reference datasets
                 for col in ['sleep_quality_daily', 'stress_score', 'recovery_score', 'sleep_hours']:
                     if col in df.columns:
                         col_min, col_max = df[col].min(), df[col].max()
