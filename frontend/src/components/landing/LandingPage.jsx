@@ -176,32 +176,14 @@ function LandingPage() {
           <h2 className={`text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-gray-700'} uppercase tracking-wide mb-4`}>Abstract</h2>
           <div className={`${isDark ? 'text-slate-400' : 'text-gray-600'} leading-relaxed space-y-4 text-justify`}>
             <p>
-              <strong className={isDark ? 'text-slate-300' : 'text-gray-800'}>Background:</strong> Training-related injuries represent a critical challenge in endurance sports,
-              with incidence rates of 37-56% reported among triathletes. Despite widespread adoption of wearable sensor
-              technology, prospective injury prediction remains constrained by limited access to large-scale, labeled
-              datasets and the complex, multifactorial nature of injury etiology.
+              Training injuries affect 37-56% of triathletes, yet prospective prediction remains limited by data scarcity.
+              We address this through synthetic cohort generation—simulating year-long training for 100-5000 athletes with
+              physiological adaptation (CTL/ATL) and load-dependent injury mechanisms.
             </p>
             <p>
-              <strong className={isDark ? 'text-slate-300' : 'text-gray-800'}>Methods:</strong> We present a computational framework addressing data scarcity through synthetic
-              cohort generation. Our stochastic simulation engine models year-long training trajectories for 100-5000
-              athletes, incorporating periodization theory, physiological adaptation dynamics (CTL/ATL via impulse-response
-              models), and load-dependent injury mechanisms. Feature engineering implements established sports science
-              constructs including Acute:Chronic Workload Ratio (ACWR) and Training Stress Balance (TSB). Three supervised
-              learning algorithms (L1-regularized logistic regression, Random Forest, XGBoost) are benchmarked for 7-day
-              prospective injury classification.
-            </p>
-            <p>
-              <strong className={isDark ? 'text-slate-300' : 'text-gray-800'}>Results:</strong> The framework enables reproducible model development with comprehensive evaluation
-              metrics (ROC-AUC, PR-AUC, calibration), interpretability via SHAP-based feature attribution, and counterfactual
-              analysis for intervention validation. Validation demonstrates the asymmetric ACWR-injury relationship:
-              undertrained athletes (ACWR &lt; 0.8) exhibit {stats?.acwr_zones?.[0]?.relative_risk?.toFixed(1) || '2.7'}× higher injury risk per training load unit compared to
-              optimally trained athletes, while overloaded athletes show elevated risk primarily through increased exposure.
-            </p>
-            <p>
-              <strong className={isDark ? 'text-slate-300' : 'text-gray-800'}>Conclusion:</strong> This platform demonstrates a methodology for synthetic data-driven research in
-              sports medicine, providing infrastructure for algorithm development while preserving athlete privacy. The
-              modular architecture supports extension to other endurance disciplines and integration with real-world
-              wearable data streams.
+              Three ML models (Lasso, Random Forest, XGBoost) predict 7-day injury risk using ACWR and TSB features.
+              Validation confirms the asymmetric ACWR-injury relationship: undertrained athletes (ACWR &lt; 0.8) show {stats?.acwr_zones?.[0]?.relative_risk?.toFixed(1) || '2.7'}× higher
+              injury risk per training unit than optimally trained athletes, supporting the "fitness protects" hypothesis.
             </p>
           </div>
         </section>
