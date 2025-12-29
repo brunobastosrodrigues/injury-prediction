@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTheme } from '../../context/ThemeContext'
 
 /**
  * MethodologyTooltip - Academic documentation tooltip
@@ -13,11 +14,12 @@ function MethodologyTooltip({
   className = ''
 }) {
   const [isOpen, setIsOpen] = useState(false)
+  const { isDark } = useTheme()
 
   return (
     <span className={`relative inline-flex items-center ${className}`}>
       <span
-        className="cursor-help border-b border-dotted border-slate-500 hover:border-blue-400 transition-colors"
+        className={`cursor-help border-b border-dotted ${isDark ? 'border-slate-500 hover:border-blue-400' : 'border-gray-400 hover:border-blue-500'} transition-colors`}
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}
         onClick={() => setIsOpen(!isOpen)}
@@ -26,23 +28,23 @@ function MethodologyTooltip({
       </span>
 
       {isOpen && (
-        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 bg-slate-800 border border-slate-700 rounded-lg shadow-xl text-left">
-          <div className="text-sm font-semibold text-white mb-1">{term}</div>
-          <div className="text-xs text-slate-300 leading-relaxed">{definition}</div>
+        <div className={`absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200 shadow-lg'} border rounded-lg shadow-xl text-left`}>
+          <div className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'} mb-1`}>{term}</div>
+          <div className={`text-xs ${isDark ? 'text-slate-300' : 'text-gray-600'} leading-relaxed`}>{definition}</div>
 
           {formula && (
-            <div className="mt-2 p-2 bg-slate-900 rounded font-mono text-xs text-blue-300 overflow-x-auto">
+            <div className={`mt-2 p-2 ${isDark ? 'bg-slate-900 text-blue-300' : 'bg-blue-50 text-blue-700'} rounded font-mono text-xs overflow-x-auto`}>
               {formula}
             </div>
           )}
 
           {reference && (
-            <div className="mt-2 pt-2 border-t border-slate-700 text-xs text-slate-500">
+            <div className={`mt-2 pt-2 border-t ${isDark ? 'border-slate-700 text-slate-500' : 'border-gray-200 text-gray-500'} text-xs`}>
               <span className="italic">{reference}</span>
             </div>
           )}
 
-          <div className="absolute left-1/2 -translate-x-1/2 -bottom-1.5 w-3 h-3 bg-slate-800 border-r border-b border-slate-700 transform rotate-45" />
+          <div className={`absolute left-1/2 -translate-x-1/2 -bottom-1.5 w-3 h-3 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} border-r border-b transform rotate-45`} />
         </div>
       )}
     </span>

@@ -1,4 +1,8 @@
+import { useTheme } from '../../context/ThemeContext'
+
 function ProgressBar({ progress, status, label, showPercentage = true }) {
+  const { isDark } = useTheme()
+
   const getStatusColor = () => {
     switch (status) {
       case 'completed':
@@ -20,16 +24,16 @@ function ProgressBar({ progress, status, label, showPercentage = true }) {
     <div className="w-full">
       {label && (
         <div className="flex justify-between mb-2">
-          <span className="text-sm font-medium text-slate-300">{label}</span>
+          <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{label}</span>
           {showPercentage && !isIndeterminate && (
-            <span className="text-sm font-medium text-slate-400">{Math.round(progress)}%</span>
+            <span className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>{Math.round(progress)}%</span>
           )}
           {isIndeterminate && (
-            <span className="text-sm font-medium text-slate-400">Initializing...</span>
+            <span className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Initializing...</span>
           )}
         </div>
       )}
-      <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+      <div className={`w-full ${isDark ? 'bg-slate-800' : 'bg-gray-200'} rounded-full h-2.5 overflow-hidden`}>
         {isIndeterminate ? (
           <div className="h-2.5 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 animate-pulse w-full opacity-60"></div>
         ) : (

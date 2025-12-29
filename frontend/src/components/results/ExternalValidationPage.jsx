@@ -359,13 +359,13 @@ function ExternalValidationPage() {
           </div>
         ) : datasets.length === 0 ? (
           <div className="text-center py-8">
-            <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className={`w-16 h-16 rounded-full ${isDark ? 'bg-slate-800' : 'bg-gray-100'} flex items-center justify-center mx-auto mb-4`}>
+              <svg className={`w-8 h-8 ${isDark ? 'text-slate-600' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
               </svg>
             </div>
-            <p className="text-slate-400">No synthetic datasets available</p>
-            <p className="text-slate-500 text-sm mt-1">Generate a synthetic cohort first</p>
+            <p className={isDark ? 'text-slate-400' : 'text-gray-600'}>No synthetic datasets available</p>
+            <p className={`${isDark ? 'text-slate-500' : 'text-gray-500'} text-sm mt-1`}>Generate a synthetic cohort first</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -376,16 +376,18 @@ function ExternalValidationPage() {
                 className={`p-3 sm:p-4 border rounded-xl text-left transition-all ${
                   selectedDataset === ds.id
                     ? 'border-blue-500 bg-blue-500/10 ring-1 ring-blue-500/50'
-                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800'
+                    : isDark
+                      ? 'border-slate-700 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800'
+                      : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 shadow-sm'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-xs text-slate-400 truncate max-w-[180px]">{ds.id}</span>
+                  <span className={`font-mono text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'} truncate max-w-[180px]`}>{ds.id}</span>
                   {hasCachedValidation(ds.id) && (
-                    <span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 rounded">Cached</span>
+                    <span className={`text-xs px-2 py-0.5 ${isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'} rounded`}>Cached</span>
                   )}
                 </div>
-                <div className="flex justify-between text-xs text-slate-500">
+                <div className={`flex justify-between text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>
                   <span>{ds.n_athletes || '?'} athletes</span>
                   <span>{ds.created_at ? new Date(ds.created_at).toLocaleDateString() : ''}</span>
                 </div>
@@ -400,11 +402,11 @@ function ExternalValidationPage() {
         <Card>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
-              <p className="text-slate-300">
-                Selected: <span className="font-mono text-blue-400">{selectedDataset}</span>
+              <p className={isDark ? 'text-slate-300' : 'text-gray-700'}>
+                Selected: <span className="font-mono text-blue-500">{selectedDataset}</span>
               </p>
               {validationResults && (
-                <p className="text-xs text-slate-500 mt-1">
+                <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'} mt-1`}>
                   Last computed: {new Date(validationResults.summary?.computed_at).toLocaleString()}
                 </p>
               )}
@@ -420,7 +422,7 @@ function ExternalValidationPage() {
               ) : (
                 <button
                   onClick={handleRecompute}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                  className={`px-4 py-2 ${isDark ? 'bg-slate-700 hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'} text-white rounded-lg font-medium transition-colors flex items-center gap-2`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -439,8 +441,8 @@ function ExternalValidationPage() {
           <div className="space-y-4">
             <ProgressBar progress={activeJob.progress || 0} />
             <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-400">{activeJob.current_step || 'Processing...'}</p>
-              <span className="text-xs text-slate-500">{activeJob.progress || 0}%</span>
+              <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{activeJob.current_step || 'Processing...'}</p>
+              <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>{activeJob.progress || 0}%</span>
             </div>
           </div>
         </Card>
@@ -552,29 +554,29 @@ function ExternalValidationPage() {
               {/* Quick Summary */}
               <Card title="Validation Summary">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-2xl font-bold text-blue-400">
+                  <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-blue-50 border border-blue-100'} rounded-lg`}>
+                    <p className="text-2xl font-bold text-blue-500">
                       {validationResults.distributions?.synthetic_samples?.toLocaleString() || 'N/A'}
                     </p>
-                    <p className="text-xs text-slate-500">Synthetic Samples</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Synthetic Samples</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-2xl font-bold text-purple-400">
+                  <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-purple-50 border border-purple-100'} rounded-lg`}>
+                    <p className="text-2xl font-bold text-purple-500">
                       {validationResults.distributions?.real_samples?.toLocaleString() || 'N/A'}
                     </p>
-                    <p className="text-xs text-slate-500">Real PMData Samples</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Real PMData Samples</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-400">
+                  <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-green-50 border border-green-100'} rounded-lg`}>
+                    <p className="text-2xl font-bold text-green-500">
                       {validationResults.sim2real?.auc?.toFixed(4) || 'N/A'}
                     </p>
-                    <p className="text-xs text-slate-500">Sim2Real AUC</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Sim2Real AUC</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-2xl font-bold text-orange-400">
+                  <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-orange-50 border border-orange-100'} rounded-lg`}>
+                    <p className="text-2xl font-bold text-orange-500">
                       {validationResults.summary?.avg_js_divergence?.toFixed(4) || 'N/A'}
                     </p>
-                    <p className="text-xs text-slate-500">Avg JS Divergence</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Avg JS Divergence</p>
                   </div>
                 </div>
               </Card>
@@ -590,10 +592,10 @@ function ExternalValidationPage() {
                   <div className="space-y-4">
                     <ProgressBar progress={scientificJob.progress || 0} />
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-slate-400">{scientificJob.current_step || 'Processing...'}</p>
-                      <span className="text-xs text-slate-500">{scientificJob.progress || 0}%</span>
+                      <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{scientificJob.current_step || 'Processing...'}</p>
+                      <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>{scientificJob.progress || 0}%</span>
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>
                       Estimated time: 15-30 minutes for full suite
                     </p>
                   </div>
@@ -603,33 +605,33 @@ function ExternalValidationPage() {
               {/* Run Scientific Validation Button */}
               {!scientificJob && (
                 <Card title="Scientific Validation Suite for Nature Digital Medicine">
-                  <div className="p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg mb-4">
-                    <p className="text-sm text-slate-300 mb-3">
+                  <div className={`p-4 ${isDark ? 'bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/20' : 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200'} border rounded-lg mb-4`}>
+                    <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'} mb-3`}>
                       <strong>Publication-Quality Hypothesis Validation:</strong> These 6 tests prove your results are not artifacts.
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-400">
-                      <div className="p-2 bg-slate-800/50 rounded">
-                        <strong className="text-blue-400">1. Reproducibility Audit</strong>
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
+                      <div className={`p-2 ${isDark ? 'bg-slate-800/50' : 'bg-white border border-gray-200'} rounded`}>
+                        <strong className="text-blue-500">1. Reproducibility Audit</strong>
                         <p>5-seed Mean ± SD (proves stability)</p>
                       </div>
-                      <div className="p-2 bg-slate-800/50 rounded">
-                        <strong className="text-green-400">2. Permutation Test</strong>
+                      <div className={`p-2 ${isDark ? 'bg-slate-800/50' : 'bg-white border border-gray-200'} rounded`}>
+                        <strong className="text-green-500">2. Permutation Test</strong>
                         <p>Shuffled labels → AUC ~0.50 (proves signal)</p>
                       </div>
-                      <div className="p-2 bg-slate-800/50 rounded">
-                        <strong className="text-yellow-400">3. Sensitivity Analysis</strong>
+                      <div className={`p-2 ${isDark ? 'bg-slate-800/50' : 'bg-white border border-gray-200'} rounded`}>
+                        <strong className="text-yellow-600">3. Sensitivity Analysis</strong>
                         <p>±20% parameters → Tornado Plot</p>
                       </div>
-                      <div className="p-2 bg-slate-800/50 rounded">
-                        <strong className="text-purple-400">4. Adversarial Check</strong>
+                      <div className={`p-2 ${isDark ? 'bg-slate-800/50' : 'bg-white border border-gray-200'} rounded`}>
+                        <strong className="text-purple-500">4. Adversarial Check</strong>
                         <p>Real vs Synthetic classifier (Turing test)</p>
                       </div>
-                      <div className="p-2 bg-slate-800/50 rounded">
-                        <strong className="text-orange-400">5. Null Model Challenge</strong>
+                      <div className={`p-2 ${isDark ? 'bg-slate-800/50' : 'bg-white border border-gray-200'} rounded`}>
+                        <strong className="text-orange-500">5. Null Model Challenge</strong>
                         <p>Beat naive baselines</p>
                       </div>
-                      <div className="p-2 bg-slate-800/50 rounded">
-                        <strong className="text-red-400">6. Subgroup Generalization</strong>
+                      <div className={`p-2 ${isDark ? 'bg-slate-800/50' : 'bg-white border border-gray-200'} rounded`}>
+                        <strong className="text-red-500">6. Subgroup Generalization</strong>
                         <p>Works on undertrained athletes</p>
                       </div>
                     </div>
@@ -650,40 +652,40 @@ function ExternalValidationPage() {
                   {scientificResults.summary && (
                     <Card title="Scientific Validation Summary">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                          <p className="text-3xl font-bold text-blue-400">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-blue-50 border border-blue-100'} rounded-lg`}>
+                          <p className="text-3xl font-bold text-blue-500">
                             {scientificResults.summary.pass_count}/{scientificResults.summary.total_tasks}
                           </p>
-                          <p className="text-xs text-slate-500">Tests Passed</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Tests Passed</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                          <p className="text-3xl font-bold text-green-400">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-green-50 border border-green-100'} rounded-lg`}>
+                          <p className="text-3xl font-bold text-green-500">
                             {((scientificResults.summary.pass_rate || 0) * 100).toFixed(0)}%
                           </p>
-                          <p className="text-xs text-slate-500">Pass Rate</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Pass Rate</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-50 border border-gray-200'} rounded-lg`}>
                           <p className={`text-2xl font-bold ${
-                            scientificResults.summary.publication_ready ? 'text-green-400' : 'text-yellow-400'
+                            scientificResults.summary.publication_ready ? 'text-green-500' : 'text-yellow-500'
                           }`}>
                             {scientificResults.summary.publication_ready ? 'READY' : 'NEEDS WORK'}
                           </p>
-                          <p className="text-xs text-slate-500">Publication Status</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Publication Status</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                          <p className="text-sm font-mono text-slate-400">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-50 border border-gray-200'} rounded-lg`}>
+                          <p className={`text-sm font-mono ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                             {scientificResults.summary.computed_at ?
                               new Date(scientificResults.summary.computed_at).toLocaleDateString() : 'N/A'}
                           </p>
-                          <p className="text-xs text-slate-500">Computed At</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Computed At</p>
                         </div>
                       </div>
                       <div className={`p-4 rounded-lg ${
                         scientificResults.summary.publication_ready
-                          ? 'bg-green-500/10 border border-green-500/30'
-                          : 'bg-yellow-500/10 border border-yellow-500/30'
+                          ? isDark ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200'
+                          : isDark ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-yellow-50 border border-yellow-200'
                       }`}>
-                        <p className="text-sm text-slate-300">{scientificResults.summary.interpretation}</p>
+                        <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{scientificResults.summary.interpretation}</p>
                       </div>
                     </Card>
                   )}
@@ -692,38 +694,38 @@ function ExternalValidationPage() {
                   {scientificResults.reproducibility?.status === 'complete' && (
                     <Card title="Table 1: Reproducibility Across Seeds">
                       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-4">
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                          <p className="text-2xl font-bold text-blue-400">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-blue-50 border border-blue-100'} rounded-lg`}>
+                          <p className="text-2xl font-bold text-blue-500">
                             {scientificResults.reproducibility.mean_auc?.toFixed(4)}
                           </p>
-                          <p className="text-xs text-slate-500">Mean AUC</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Mean AUC</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                          <p className="text-2xl font-bold text-purple-400">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-purple-50 border border-purple-100'} rounded-lg`}>
+                          <p className="text-2xl font-bold text-purple-500">
                             ±{scientificResults.reproducibility.std_auc?.toFixed(4)}
                           </p>
-                          <p className="text-xs text-slate-500">Std Dev</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Std Dev</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                          <p className="text-lg font-bold text-orange-400">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-orange-50 border border-orange-100'} rounded-lg`}>
+                          <p className="text-lg font-bold text-orange-500">
                             [{scientificResults.reproducibility.confidence_interval_95?.[0]?.toFixed(3)},
                             {scientificResults.reproducibility.confidence_interval_95?.[1]?.toFixed(3)}]
                           </p>
-                          <p className="text-xs text-slate-500">95% CI</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>95% CI</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                          <p className="text-2xl font-bold text-green-400">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-green-50 border border-green-100'} rounded-lg`}>
+                          <p className="text-2xl font-bold text-green-500">
                             {scientificResults.reproducibility.n_seeds}
                           </p>
-                          <p className="text-xs text-slate-500">Seeds</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Seeds</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-50 border border-gray-200'} rounded-lg`}>
                           <p className={`text-lg font-bold ${
-                            scientificResults.reproducibility.pass ? 'text-green-400' : 'text-red-400'
+                            scientificResults.reproducibility.pass ? 'text-green-500' : 'text-red-500'
                           }`}>
                             {scientificResults.reproducibility.stability}
                           </p>
-                          <p className="text-xs text-slate-500">Stability</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Stability</p>
                         </div>
                       </div>
 
@@ -731,25 +733,25 @@ function ExternalValidationPage() {
                       {scientificResults.reproducibility.per_seed_results && (
                         <div className="overflow-x-auto">
                           <table className="min-w-full text-sm">
-                            <thead className="bg-slate-800/50">
+                            <thead className={isDark ? 'bg-slate-800/50' : 'bg-gray-100'}>
                               <tr>
-                                <th className="px-3 py-2 text-left font-medium text-slate-300">Seed</th>
-                                <th className="px-3 py-2 text-right font-medium text-slate-300">AUC</th>
-                                <th className="px-3 py-2 text-right font-medium text-slate-300">AP</th>
-                                <th className="px-3 py-2 text-left font-medium text-slate-300">Dataset</th>
+                                <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Seed</th>
+                                <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>AUC</th>
+                                <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>AP</th>
+                                <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Dataset</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-800">
+                            <tbody className={`divide-y ${isDark ? 'divide-slate-800' : 'divide-gray-200'}`}>
                               {scientificResults.reproducibility.per_seed_results.map((r, i) => (
-                                <tr key={i} className="hover:bg-slate-800/30">
-                                  <td className="px-3 py-2 text-slate-300 font-mono">{r.seed}</td>
-                                  <td className="px-3 py-2 text-right font-mono text-blue-400">
+                                <tr key={i} className={isDark ? 'hover:bg-slate-800/30' : 'hover:bg-gray-50'}>
+                                  <td className={`px-3 py-2 ${isDark ? 'text-slate-300' : 'text-gray-700'} font-mono`}>{r.seed}</td>
+                                  <td className="px-3 py-2 text-right font-mono text-blue-500">
                                     {r.auc?.toFixed(4) || 'N/A'}
                                   </td>
-                                  <td className="px-3 py-2 text-right font-mono text-green-400">
+                                  <td className="px-3 py-2 text-right font-mono text-green-500">
                                     {r.ap?.toFixed(4) || 'N/A'}
                                   </td>
-                                  <td className="px-3 py-2 text-slate-400 font-mono text-xs truncate max-w-[200px]">
+                                  <td className={`px-3 py-2 ${isDark ? 'text-slate-400' : 'text-gray-500'} font-mono text-xs truncate max-w-[200px]`}>
                                     {r.dataset_id || r.error || 'N/A'}
                                   </td>
                                 </tr>
@@ -761,10 +763,10 @@ function ExternalValidationPage() {
 
                       <div className={`p-4 rounded-lg mt-4 ${
                         scientificResults.reproducibility.pass
-                          ? 'bg-green-500/10 border border-green-500/30'
-                          : 'bg-red-500/10 border border-red-500/30'
+                          ? isDark ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200'
+                          : isDark ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'
                       }`}>
-                        <p className="text-sm text-slate-300">{scientificResults.reproducibility.interpretation}</p>
+                        <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{scientificResults.reproducibility.interpretation}</p>
                       </div>
                     </Card>
                   )}
@@ -773,42 +775,42 @@ function ExternalValidationPage() {
                   {scientificResults.permutation?.status === 'complete' && (
                     <Card title="Placebo Control (Permutation Test)">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                          <p className="text-2xl font-bold text-blue-400">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-blue-50 border border-blue-100'} rounded-lg`}>
+                          <p className="text-2xl font-bold text-blue-500">
                             {scientificResults.permutation.actual_auc?.toFixed(4)}
                           </p>
-                          <p className="text-xs text-slate-500">Actual AUC</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Actual AUC</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                          <p className="text-2xl font-bold text-slate-400">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-50 border border-gray-200'} rounded-lg`}>
+                          <p className={`text-2xl font-bold ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                             {scientificResults.permutation.permuted_mean_auc?.toFixed(4)}
                           </p>
-                          <p className="text-xs text-slate-500">Permuted Mean</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Permuted Mean</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-50 border border-gray-200'} rounded-lg`}>
                           <p className={`text-2xl font-bold ${
-                            scientificResults.permutation.p_value < 0.05 ? 'text-green-400' : 'text-red-400'
+                            scientificResults.permutation.p_value < 0.05 ? 'text-green-500' : 'text-red-500'
                           }`}>
                             {scientificResults.permutation.p_value?.toFixed(4)}
                           </p>
-                          <p className="text-xs text-slate-500">p-value</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>p-value</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-50 border border-gray-200'} rounded-lg`}>
                           <p className={`text-lg font-bold ${
-                            scientificResults.permutation.pass ? 'text-green-400' : 'text-red-400'
+                            scientificResults.permutation.pass ? 'text-green-500' : 'text-red-500'
                           }`}>
                             {scientificResults.permutation.significance}
                           </p>
-                          <p className="text-xs text-slate-500">Significance</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Significance</p>
                         </div>
                       </div>
 
                       <div className={`p-4 rounded-lg ${
                         scientificResults.permutation.pass
-                          ? 'bg-green-500/10 border border-green-500/30'
-                          : 'bg-red-500/10 border border-red-500/30'
+                          ? isDark ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200'
+                          : isDark ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'
                       }`}>
-                        <p className="text-sm text-slate-300">{scientificResults.permutation.interpretation}</p>
+                        <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{scientificResults.permutation.interpretation}</p>
                       </div>
                     </Card>
                   )}
@@ -817,35 +819,35 @@ function ExternalValidationPage() {
                   {scientificResults.adversarial?.status === 'complete' && (
                     <Card title="Figure 1: Adversarial Classifier Feature Importance">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-50 border border-gray-200'} rounded-lg`}>
                           <p className={`text-2xl font-bold ${
-                            scientificResults.adversarial.discriminator_auc < 0.65 ? 'text-green-400' : 'text-red-400'
+                            scientificResults.adversarial.discriminator_auc < 0.65 ? 'text-green-500' : 'text-red-500'
                           }`}>
                             {scientificResults.adversarial.discriminator_auc?.toFixed(4)}
                           </p>
-                          <p className="text-xs text-slate-500">Discriminator AUC</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Discriminator AUC</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                          <p className="text-lg font-bold text-slate-400">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-50 border border-gray-200'} rounded-lg`}>
+                          <p className={`text-lg font-bold ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                             ±{scientificResults.adversarial.cv_std?.toFixed(4)}
                           </p>
-                          <p className="text-xs text-slate-500">CV Std</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>CV Std</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-50 border border-gray-200'} rounded-lg`}>
                           <p className={`text-lg font-bold ${
-                            scientificResults.adversarial.pass ? 'text-green-400' : 'text-red-400'
+                            scientificResults.adversarial.pass ? 'text-green-500' : 'text-red-500'
                           }`}>
                             {scientificResults.adversarial.fidelity}
                           </p>
-                          <p className="text-xs text-slate-500">Fidelity</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Fidelity</p>
                         </div>
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-50 border border-gray-200'} rounded-lg`}>
                           <p className={`text-lg font-bold ${
-                            scientificResults.adversarial.pass ? 'text-green-400' : 'text-red-400'
+                            scientificResults.adversarial.pass ? 'text-green-500' : 'text-red-500'
                           }`}>
                             {scientificResults.adversarial.pass ? 'PASS' : 'FAIL'}
                           </p>
-                          <p className="text-xs text-slate-500">Status</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Status</p>
                         </div>
                       </div>
 
@@ -1133,8 +1135,8 @@ function ExternalValidationPage() {
                   <div className="space-y-4">
                     <ProgressBar progress={methodologyJob.progress || 0} />
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-slate-400">{methodologyJob.current_step || 'Processing...'}</p>
-                      <span className="text-xs text-slate-500">{methodologyJob.progress || 0}%</span>
+                      <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{methodologyJob.current_step || 'Processing...'}</p>
+                      <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>{methodologyJob.progress || 0}%</span>
                     </div>
                   </div>
                 </Card>
@@ -1143,11 +1145,11 @@ function ExternalValidationPage() {
               {/* Run Methodology Validation Button */}
               {!methodologyJob && (
                 <Card title="Methodology Validation Suite">
-                  <div className="p-4 bg-slate-800/50 rounded-lg mb-4">
-                    <p className="text-sm text-slate-300 mb-2">
+                  <div className={`p-4 ${isDark ? 'bg-slate-800/50' : 'bg-purple-50 border border-purple-100'} rounded-lg mb-4`}>
+                    <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'} mb-2`}>
                       <strong>Publication-Quality Rigor:</strong> Run these validations to address common reviewer critiques.
                     </p>
-                    <ul className="text-xs text-slate-400 space-y-1">
+                    <ul className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'} space-y-1`}>
                       <li>• <strong>LOSO CV</strong>: Leave-One-Subject-Out cross-validation (N=16 folds)</li>
                       <li>• <strong>Sensitivity Analysis</strong>: Parameter perturbation study with Tornado Plot</li>
                       <li>• <strong>Equivalence Check</strong>: Rust vs Python numerical identity (MSE &lt; 1e-6)</li>
@@ -1166,29 +1168,29 @@ function ExternalValidationPage() {
               {methodologyResults?.loso?.status === 'complete' && (
                 <Card title="LOSO Cross-Validation Results">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                      <p className="text-2xl font-bold text-blue-400">
+                    <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-blue-50 border border-blue-100'} rounded-lg`}>
+                      <p className="text-2xl font-bold text-blue-500">
                         {methodologyResults.loso.mean_auc?.toFixed(3)}
                       </p>
-                      <p className="text-xs text-slate-500">Mean AUC</p>
+                      <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Mean AUC</p>
                     </div>
-                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                      <p className="text-2xl font-bold text-purple-400">
+                    <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-purple-50 border border-purple-100'} rounded-lg`}>
+                      <p className="text-2xl font-bold text-purple-500">
                         ±{methodologyResults.loso.std_auc?.toFixed(3)}
                       </p>
-                      <p className="text-xs text-slate-500">Std Dev</p>
+                      <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Std Dev</p>
                     </div>
-                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                      <p className="text-2xl font-bold text-green-400">
+                    <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-green-50 border border-green-100'} rounded-lg`}>
+                      <p className="text-2xl font-bold text-green-500">
                         {methodologyResults.loso.n_folds}
                       </p>
-                      <p className="text-xs text-slate-500">Folds</p>
+                      <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Folds</p>
                     </div>
-                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                      <p className="text-lg font-bold text-orange-400">
+                    <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-orange-50 border border-orange-100'} rounded-lg`}>
+                      <p className="text-lg font-bold text-orange-500">
                         [{methodologyResults.loso.confidence_interval_95?.[0]?.toFixed(2)}, {methodologyResults.loso.confidence_interval_95?.[1]?.toFixed(2)}]
                       </p>
-                      <p className="text-xs text-slate-500">95% CI</p>
+                      <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>95% CI</p>
                     </div>
                   </div>
 
@@ -1234,10 +1236,10 @@ function ExternalValidationPage() {
 
                   <div className={`p-4 rounded-lg mt-4 ${
                     methodologyResults.loso.confidence_interval_95?.[0] > 0.55
-                      ? 'bg-green-500/10 border border-green-500/30'
-                      : 'bg-yellow-500/10 border border-yellow-500/30'
+                      ? isDark ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200'
+                      : isDark ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-yellow-50 border border-yellow-200'
                   }`}>
-                    <p className="text-sm text-slate-300">{methodologyResults.loso.interpretation}</p>
+                    <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{methodologyResults.loso.interpretation}</p>
                   </div>
                 </Card>
               )}
@@ -1245,8 +1247,8 @@ function ExternalValidationPage() {
               {/* Sensitivity Analysis Results */}
               {methodologyResults?.sensitivity?.status === 'complete' && (
                 <Card title="Sensitivity Analysis (Tornado Plot)">
-                  <div className="mb-4 p-3 bg-slate-800/50 rounded-lg">
-                    <p className="text-sm text-slate-400">
+                  <div className={`mb-4 p-3 ${isDark ? 'bg-slate-800/50' : 'bg-gray-50 border border-gray-200'} rounded-lg`}>
+                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                       <strong>Baseline Asymmetry Ratio:</strong>{' '}
                       {methodologyResults.sensitivity.baseline?.undertrained_vs_optimal?.toFixed(1)}x
                       (Undertrained / Optimal risk per load)
@@ -1294,10 +1296,10 @@ function ExternalValidationPage() {
 
                   <div className={`p-4 rounded-lg mt-4 ${
                     methodologyResults.sensitivity.robustness_assessment?.all_params_maintain_asymmetry
-                      ? 'bg-green-500/10 border border-green-500/30'
-                      : 'bg-yellow-500/10 border border-yellow-500/30'
+                      ? isDark ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200'
+                      : isDark ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-yellow-50 border border-yellow-200'
                   }`}>
-                    <p className="text-sm text-slate-300">
+                    <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
                       {methodologyResults.sensitivity.robustness_assessment?.conclusion}
                     </p>
                   </div>
@@ -1308,31 +1310,31 @@ function ExternalValidationPage() {
               {methodologyResults?.equivalence?.status === 'complete' && (
                 <Card title="Rust-Python Equivalence Check">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                    <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-gray-50 border border-gray-200'} rounded-lg`}>
                       <p className={`text-2xl font-bold ${
-                        methodologyResults.equivalence.is_equivalent ? 'text-green-400' : 'text-red-400'
+                        methodologyResults.equivalence.is_equivalent ? 'text-green-500' : 'text-red-500'
                       }`}>
                         {methodologyResults.equivalence.is_equivalent ? 'PASS' : 'FAIL'}
                       </p>
-                      <p className="text-xs text-slate-500">Status</p>
+                      <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Status</p>
                     </div>
-                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                      <p className="text-lg font-bold text-blue-400 font-mono">
+                    <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-blue-50 border border-blue-100'} rounded-lg`}>
+                      <p className="text-lg font-bold text-blue-500 font-mono">
                         {methodologyResults.equivalence.average_mse?.toExponential(2)}
                       </p>
-                      <p className="text-xs text-slate-500">Average MSE</p>
+                      <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Average MSE</p>
                     </div>
-                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                      <p className="text-lg font-bold text-purple-400 font-mono">
+                    <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-purple-50 border border-purple-100'} rounded-lg`}>
+                      <p className="text-lg font-bold text-purple-500 font-mono">
                         {methodologyResults.equivalence.mse_threshold?.toExponential(0)}
                       </p>
-                      <p className="text-xs text-slate-500">Threshold</p>
+                      <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Threshold</p>
                     </div>
-                    <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                      <p className="text-lg font-bold text-orange-400">
+                    <div className={`text-center p-4 ${isDark ? 'bg-slate-800/50' : 'bg-orange-50 border border-orange-100'} rounded-lg`}>
+                      <p className="text-lg font-bold text-orange-500">
                         {methodologyResults.equivalence.n_samples_compared?.toLocaleString()}
                       </p>
-                      <p className="text-xs text-slate-500">Samples Compared</p>
+                      <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-600'}`}>Samples Compared</p>
                     </div>
                   </div>
 
@@ -1340,11 +1342,11 @@ function ExternalValidationPage() {
                   {methodologyResults.equivalence.column_errors && (
                     <div className="overflow-x-auto">
                       <table className="min-w-full text-sm">
-                        <thead className="bg-slate-800/50">
+                        <thead className={isDark ? 'bg-slate-800/50' : 'bg-gray-100'}>
                           <tr>
-                            <th className="px-3 py-2 text-left font-medium text-slate-300">Column</th>
-                            <th className="px-3 py-2 text-right font-medium text-slate-300">MSE</th>
-                            <th className="px-3 py-2 text-right font-medium text-slate-300">Max Error</th>
+                            <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Column</th>
+                            <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>MSE</th>
+                            <th className={`px-3 py-2 text-right font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Max Error</th>
                             <th className="px-3 py-2 text-right font-medium text-slate-300">Correlation</th>
                           </tr>
                         </thead>

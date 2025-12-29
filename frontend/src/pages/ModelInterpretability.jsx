@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePipeline } from '../context/PipelineContext';
+import { useTheme } from '../context/ThemeContext';
 import api from '../api';
 import Card from '../components/common/Card';
 import {
@@ -31,6 +32,7 @@ import {
  */
 const ModelInterpretability = () => {
   const { models, refreshModels } = usePipeline();
+  const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState('local');
   const [selectedModelId, setSelectedModelId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -73,7 +75,10 @@ const ModelInterpretability = () => {
 
   // Load sample athlete data for demo
   const loadSampleAthleteData = async () => {
-    if (!selectedModel) return;
+    if (!selectedModel) {
+      setError('Please select a trained model first.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -84,10 +89,13 @@ const ModelInterpretability = () => {
 
       if (response.data && response.data.sample) {
         setAthleteData(response.data.sample);
+      } else {
+        setError('No sample data available. Make sure the model has processed test data.');
       }
     } catch (err) {
       console.error('Error loading sample data:', err);
-      setError('Failed to load sample athlete data. Make sure a model is trained.');
+      const errorMsg = err.response?.data?.error || 'Failed to load sample athlete data. Make sure a model is trained and preprocessing is complete.';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -254,22 +262,22 @@ const ModelInterpretability = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+          <h1 className={`text-2xl sm:text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>
             Model Interpretability (XAI)
           </h1>
-          <p className="text-sm sm:text-base text-slate-400">
+          <p className={`text-sm sm:text-base ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
             Understand model predictions using SHAP, interaction analysis, and counterfactuals.
           </p>
         </div>
 
         {/* Controls */}
-        <div className="mb-6 bg-slate-800/50 rounded-xl border border-slate-700 p-4">
+        <div className={`mb-6 ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-gray-200 shadow-sm'} rounded-xl border p-4`}>
           {initialLoading ? (
-            <div className="text-center py-4 text-slate-400">Loading trained models...</div>
+            <div className={`text-center py-4 ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Loading trained models...</div>
           ) : models.length === 0 ? (
             <div className="text-center py-4">
-              <p className="text-slate-400 mb-2">No trained models found.</p>
-              <p className="text-sm text-slate-500">
+              <p className={`${isDark ? 'text-slate-400' : 'text-gray-600'} mb-2`}>No trained models found.</p>
+              <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>
                 Please train a model first using the Training page.
               </p>
             </div>
@@ -277,13 +285,13 @@ const ModelInterpretability = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Model Selector */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className={`block text-sm font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'} mb-2`}>
                   Trained Model
                 </label>
                 <select
                   value={selectedModelId}
                   onChange={(e) => setSelectedModelId(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={`w-full px-3 py-2 ${isDark ? 'bg-slate-900 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                 >
                   <option value="">Select a trained model...</option>
                   {models.map(model => (
@@ -306,7 +314,7 @@ const ModelInterpretability = () => {
                     setRecommendations(null);
                     loadSampleAthleteData();
                   }}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors disabled:bg-slate-700 disabled:text-slate-500"
+                  className={`w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors ${isDark ? 'disabled:bg-slate-700 disabled:text-slate-500' : 'disabled:bg-gray-300 disabled:text-gray-500'}`}
                   disabled={!selectedModelId || loading}
                 >
                   {loading ? 'Loading...' : 'Load Explanations'}
@@ -317,23 +325,23 @@ const ModelInterpretability = () => {
 
           {/* Model Info */}
           {selectedModel && (
-            <div className="mt-4 pt-4 border-t border-slate-700">
+            <div className={`mt-4 pt-4 border-t ${isDark ? 'border-slate-700' : 'border-gray-200'}`}>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <span className="text-slate-500">Type:</span>{' '}
-                  <span className="font-medium text-slate-300">{selectedModel.model_type}</span>
+                  <span className={isDark ? 'text-slate-500' : 'text-gray-500'}>Type:</span>{' '}
+                  <span className={`font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{selectedModel.model_type}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500">AUC:</span>{' '}
-                  <span className="font-medium text-green-400">{selectedModel.metrics?.roc_auc?.toFixed(3) || 'N/A'}</span>
+                  <span className={isDark ? 'text-slate-500' : 'text-gray-500'}>AUC:</span>{' '}
+                  <span className="font-medium text-green-500">{selectedModel.metrics?.roc_auc?.toFixed(3) || 'N/A'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500">Precision:</span>{' '}
-                  <span className="font-medium text-slate-300">{selectedModel.metrics?.precision?.toFixed(3) || 'N/A'}</span>
+                  <span className={isDark ? 'text-slate-500' : 'text-gray-500'}>Precision:</span>{' '}
+                  <span className={`font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{selectedModel.metrics?.precision?.toFixed(3) || 'N/A'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500">Recall:</span>{' '}
-                  <span className="font-medium text-slate-300">{selectedModel.metrics?.recall?.toFixed(3) || 'N/A'}</span>
+                  <span className={isDark ? 'text-slate-500' : 'text-gray-500'}>Recall:</span>{' '}
+                  <span className={`font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{selectedModel.metrics?.recall?.toFixed(3) || 'N/A'}</span>
                 </div>
               </div>
             </div>
@@ -342,14 +350,14 @@ const ModelInterpretability = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400">
+          <div className={`mb-6 p-4 ${isDark ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50 border-red-200'} border rounded-xl text-red-500`}>
             {error}
           </div>
         )}
 
         {/* Tabs */}
         <div className="mb-6 overflow-x-auto">
-          <div className="flex space-x-1 border-b border-slate-700 min-w-max">
+          <div className={`flex space-x-1 border-b ${isDark ? 'border-slate-700' : 'border-gray-200'} min-w-max`}>
             {tabs.map(tab => {
               const Icon = tab.icon;
               return (
@@ -358,8 +366,10 @@ const ModelInterpretability = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center space-x-2 px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-blue-400 font-semibold'
-                      : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                      ? 'border-blue-500 text-blue-500 font-semibold'
+                      : isDark
+                        ? 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -374,44 +384,44 @@ const ModelInterpretability = () => {
         <div className="space-y-6">
           {activeTab === 'local' && (
             <div>
-              <h2 className="text-lg font-semibold text-white mb-4">
+              <h2 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'} mb-4`}>
                 Local Explanation - Why this prediction?
               </h2>
-              {loading && <p className="text-slate-400">Loading explanation...</p>}
+              {loading && <p className={isDark ? 'text-slate-400' : 'text-gray-600'}>Loading explanation...</p>}
               {!loading && localExplanation && (
                 <WaterfallPlot explanation={localExplanation} height={450} />
               )}
               {!loading && !localExplanation && athleteData && (
-                <p className="text-slate-500">Click "Load Explanations" to generate</p>
+                <p className={isDark ? 'text-slate-500' : 'text-gray-500'}>Click "Load Explanations" to generate</p>
               )}
             </div>
           )}
 
           {activeTab === 'global' && (
             <div>
-              <h2 className="text-lg font-semibold text-white mb-4">
+              <h2 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'} mb-4`}>
                 Global Feature Importance
               </h2>
-              {loading && <p className="text-slate-400">Loading explanation...</p>}
+              {loading && <p className={isDark ? 'text-slate-400' : 'text-gray-600'}>Loading explanation...</p>}
               {!loading && globalExplanation && (
                 <GlobalSHAPPlot globalExplanation={globalExplanation} height={450} />
               )}
               {!loading && !globalExplanation && (
-                <p className="text-slate-500">Click "Load Explanations" to generate</p>
+                <p className={isDark ? 'text-slate-500' : 'text-gray-500'}>Click "Load Explanations" to generate</p>
               )}
             </div>
           )}
 
           {activeTab === 'interactions' && (
             <div>
-              <h2 className="text-lg font-semibold text-white mb-4">
+              <h2 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'} mb-4`}>
                 Interaction Analysis
               </h2>
 
               {/* Feature Selectors */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label className={`block text-sm font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'} mb-2`}>
                     Primary Feature
                   </label>
                   <input
@@ -419,12 +429,12 @@ const ModelInterpretability = () => {
                     value={feature1}
                     onChange={(e) => setFeature1(e.target.value)}
                     placeholder="e.g., stress"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    className={`w-full px-3 py-2 ${isDark ? 'bg-slate-900 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-lg focus:ring-2 focus:ring-purple-500`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label className={`block text-sm font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'} mb-2`}>
                     Interaction Feature (optional)
                   </label>
                   <input
@@ -432,14 +442,14 @@ const ModelInterpretability = () => {
                     value={feature2}
                     onChange={(e) => setFeature2(e.target.value)}
                     placeholder="Auto-detect if empty"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    className={`w-full px-3 py-2 ${isDark ? 'bg-slate-900 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-lg focus:ring-2 focus:ring-purple-500`}
                   />
                 </div>
               </div>
 
               <button
                 onClick={loadInteractionExplanation}
-                className="mb-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 disabled:bg-slate-700 disabled:text-slate-500"
+                className={`mb-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 ${isDark ? 'disabled:bg-slate-700 disabled:text-slate-500' : 'disabled:bg-gray-300 disabled:text-gray-500'}`}
                 disabled={loading || !selectedModelId}
               >
                 {loading ? 'Loading...' : 'Analyze Interaction'}
@@ -449,55 +459,55 @@ const ModelInterpretability = () => {
                 <DependencePlot interaction={interactionExplanation} height={400} />
               )}
               {!loading && !interactionExplanation && (
-                <p className="text-slate-500">Enter a feature name and click "Analyze Interaction"</p>
+                <p className={isDark ? 'text-slate-500' : 'text-gray-500'}>Enter a feature name and click "Analyze Interaction"</p>
               )}
             </div>
           )}
 
           {activeTab === 'counterfactuals' && (
             <div>
-              <h2 className="text-lg font-semibold text-white mb-4">
+              <h2 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'} mb-4`}>
                 What-If Scenarios
               </h2>
-              {loading && <p className="text-slate-400">Generating scenarios...</p>}
+              {loading && <p className={isDark ? 'text-slate-400' : 'text-gray-600'}>Generating scenarios...</p>}
               {!loading && counterfactuals && (
                 <CounterfactualScenarios counterfactuals={counterfactuals} />
               )}
               {!loading && !counterfactuals && athleteData && (
-                <p className="text-slate-500">Click "Load Explanations" to generate scenarios</p>
+                <p className={isDark ? 'text-slate-500' : 'text-gray-500'}>Click "Load Explanations" to generate scenarios</p>
               )}
             </div>
           )}
 
           {activeTab === 'recommendations' && (
             <div>
-              <h2 className="text-lg font-semibold text-white mb-4">
+              <h2 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'} mb-4`}>
                 Actionable Recommendations
               </h2>
-              {loading && <p className="text-slate-400">Generating recommendations...</p>}
+              {loading && <p className={isDark ? 'text-slate-400' : 'text-gray-600'}>Generating recommendations...</p>}
               {!loading && recommendations && (
                 <RecommendationsPanel recommendations={recommendations} />
               )}
               {!loading && !recommendations && athleteData && (
-                <p className="text-slate-500">Click "Load Explanations" to generate recommendations</p>
+                <p className={isDark ? 'text-slate-500' : 'text-gray-500'}>Click "Load Explanations" to generate recommendations</p>
               )}
             </div>
           )}
         </div>
 
         {/* Privacy Note */}
-        <div className="mt-6 bg-purple-500/10 border border-purple-500/20 rounded-xl p-4">
+        <div className={`mt-6 ${isDark ? 'bg-purple-500/10 border-purple-500/20' : 'bg-purple-50 border-purple-200'} border rounded-xl p-4`}>
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
-              <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
             <div>
-              <h4 className="text-sm font-medium text-purple-300 mb-1">
+              <h4 className={`text-sm font-medium ${isDark ? 'text-purple-300' : 'text-purple-700'} mb-1`}>
                 Privacy-Preserving Federated XAI
               </h4>
-              <p className="text-xs text-slate-400">
+              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                 In Federated Learning: Local explanations stay on-device, only aggregated insights are shared.
               </p>
             </div>

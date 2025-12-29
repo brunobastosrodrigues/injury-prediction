@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTheme } from '../../context/ThemeContext'
 
 /**
  * ExportButton - Academic-focused export functionality
@@ -13,6 +14,7 @@ function ExportButton({
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const { isDark } = useTheme()
 
   const exportCSV = () => {
     if (!data || !Array.isArray(data)) return
@@ -90,7 +92,7 @@ function ExportButton({
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={exporting}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50"
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium ${isDark ? 'text-slate-300 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white' : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-100 hover:text-gray-900'} border rounded-lg transition-colors disabled:opacity-50`}
       >
         {exporting ? (
           <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -111,7 +113,7 @@ function ExportButton({
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 mt-1 w-44 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-20 py-1">
+          <div className={`absolute right-0 mt-1 w-44 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200 shadow-lg'} border rounded-lg shadow-xl z-20 py-1`}>
             {availableFormats.map(format => {
               const opt = formatOptions[format]
               return (
@@ -121,12 +123,12 @@ function ExportButton({
                     opt.action()
                     setIsOpen(false)
                   }}
-                  className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
+                  className={`w-full px-3 py-2 text-left text-sm ${isDark ? 'text-slate-300 hover:bg-slate-700 hover:text-white' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'} flex items-center gap-2`}
                 >
                   <span className="w-5 text-center text-xs">{opt.icon}</span>
                   <div>
                     <div className="font-medium">{opt.label}</div>
-                    <div className="text-xs text-slate-500">{opt.description}</div>
+                    <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>{opt.description}</div>
                   </div>
                 </button>
               )
