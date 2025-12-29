@@ -510,3 +510,51 @@ def run_methodology_validation_task(job_id: str, dataset_id: str, validation_typ
         except Exception as e:
             import traceback
             ProgressTracker.fail_job(job_id, f"{str(e)}\n{traceback.format_exc()}")
+
+
+@celery_app.task(name='run_scientific_validation')
+def run_scientific_validation_task(job_id: str, dataset_id: str, tasks: List[str]):
+    """
+    Celery task for running scientific validation suite.
+
+    Publication-quality hypothesis validation for Nature Digital Medicine:
+    - 'reproducibility': Multi-seed reproducibility audit (5 seeds)
+    - 'permutation': Placebo control permutation test
+    - 'sensitivity': Enhanced sensitivity analysis with data regeneration
+    - 'adversarial': Adversarial fidelity check (Turing test)
+    - 'null_models': Null model baseline comparison
+    - 'subgroups': Subgroup generalization analysis
+
+    Expected runtime: 15-30 minutes for full suite.
+    """
+    from app import create_app
+    from .services.scientific_validation import ScientificValidationService
+    app = create_app()
+    with app.app_context():
+        try:
+            total_tasks = len(tasks)
+            ProgressTracker.start_job(job_id, total_steps=total_tasks * 100)
+            ProgressTracker.update_progress(
+                job_id, 2,
+                'Starting scientific validation suite...',
+                dataset_id=dataset_id,
+                tasks=tasks
+            )
+
+            def progress_callback(pct, msg):
+                ProgressTracker.update_progress(job_id, int(pct), msg)
+
+            results = ScientificValidationService.run_full_validation(
+                dataset_id=dataset_id,
+                tasks=tasks,
+                progress_callback=progress_callback
+            )
+
+            ProgressTracker.complete_job(job_id, result={
+                'dataset_id': dataset_id,
+                'results': results
+            })
+
+        except Exception as e:
+            import traceback
+            ProgressTracker.fail_job(job_id, f"{str(e)}\n{traceback.format_exc()}")

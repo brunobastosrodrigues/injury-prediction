@@ -150,6 +150,7 @@ function ExternalValidationPage() {
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
+    { id: 'scientific', label: 'Scientific Rigor' },
     { id: 'methodology', label: 'Methodology' },
     { id: 'distributions', label: 'Distributions' },
     { id: 'sim2real', label: 'Sim2Real' },
@@ -162,10 +163,16 @@ function ExternalValidationPage() {
   const [methodologyJob, setMethodologyJob] = useState(null)
   const methodologyPollingRef = useRef(null)
 
-  // Load methodology results when dataset changes
+  // Scientific validation state
+  const [scientificResults, setScientificResults] = useState(null)
+  const [scientificJob, setScientificJob] = useState(null)
+  const scientificPollingRef = useRef(null)
+
+  // Load methodology and scientific results when dataset changes
   useEffect(() => {
     if (selectedDataset) {
       loadMethodologyResults(selectedDataset)
+      loadScientificResults(selectedDataset)
     }
   }, [selectedDataset])
 
@@ -219,6 +226,61 @@ function ExternalValidationPage() {
     return () => {
       if (methodologyPollingRef.current) {
         clearInterval(methodologyPollingRef.current)
+      }
+    }
+  }, [])
+
+  // Scientific validation functions
+  const loadScientificResults = async (datasetId) => {
+    try {
+      const res = await validationApi.getScientificResults(datasetId)
+      setScientificResults(res.data)
+    } catch (err) {
+      console.log('No scientific validation results cached yet')
+      setScientificResults(null)
+    }
+  }
+
+  const handleRunScientificValidation = async (tasks = null) => {
+    if (!selectedDataset) return
+    try {
+      const res = await validationApi.runScientificValidation(selectedDataset, tasks)
+      setScientificJob({
+        id: res.data.job_id,
+        status: 'pending',
+        progress: 0,
+        current_step: 'Starting scientific validation suite...'
+      })
+      // Start polling
+      scientificPollingRef.current = setInterval(async () => {
+        try {
+          const statusRes = await validationApi.getScientificJobStatus(res.data.job_id)
+          const job = statusRes.data
+          if (job.status === 'completed') {
+            clearInterval(scientificPollingRef.current)
+            setScientificJob(null)
+            loadScientificResults(selectedDataset)
+          } else if (job.status === 'failed') {
+            clearInterval(scientificPollingRef.current)
+            setScientificJob(null)
+            setError(job.error || 'Scientific validation failed')
+          } else {
+            setScientificJob(job)
+          }
+        } catch (e) {
+          console.error('Scientific polling error:', e)
+        }
+      }, 3000)  // Poll every 3 seconds (longer tasks)
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to start scientific validation')
+    }
+  }
+
+  // Cleanup scientific polling
+  useEffect(() => {
+    return () => {
+      if (scientificPollingRef.current) {
+        clearInterval(scientificPollingRef.current)
       }
     }
   }, [])
@@ -483,6 +545,549 @@ function ExternalValidationPage() {
                   </div>
                 </div>
               </Card>
+            </div>
+          )}
+
+          {/* Scientific Rigor Tab - Publication-Quality Hypothesis Validation */}
+          {activeTab === 'scientific' && (
+            <div className="space-y-4">
+              {/* Scientific Job Progress */}
+              {scientificJob && (
+                <Card title="Running Scientific Validation Suite">
+                  <div className="space-y-4">
+                    <ProgressBar progress={scientificJob.progress || 0} />
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-slate-400">{scientificJob.current_step || 'Processing...'}</p>
+                      <span className="text-xs text-slate-500">{scientificJob.progress || 0}%</span>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Estimated time: 15-30 minutes for full suite
+                    </p>
+                  </div>
+                </Card>
+              )}
+
+              {/* Run Scientific Validation Button */}
+              {!scientificJob && (
+                <Card title="Scientific Validation Suite for Nature Digital Medicine">
+                  <div className="p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg mb-4">
+                    <p className="text-sm text-slate-300 mb-3">
+                      <strong>Publication-Quality Hypothesis Validation:</strong> These 6 tests prove your results are not artifacts.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-400">
+                      <div className="p-2 bg-slate-800/50 rounded">
+                        <strong className="text-blue-400">1. Reproducibility Audit</strong>
+                        <p>5-seed Mean ± SD (proves stability)</p>
+                      </div>
+                      <div className="p-2 bg-slate-800/50 rounded">
+                        <strong className="text-green-400">2. Permutation Test</strong>
+                        <p>Shuffled labels → AUC ~0.50 (proves signal)</p>
+                      </div>
+                      <div className="p-2 bg-slate-800/50 rounded">
+                        <strong className="text-yellow-400">3. Sensitivity Analysis</strong>
+                        <p>±20% parameters → Tornado Plot</p>
+                      </div>
+                      <div className="p-2 bg-slate-800/50 rounded">
+                        <strong className="text-purple-400">4. Adversarial Check</strong>
+                        <p>Real vs Synthetic classifier (Turing test)</p>
+                      </div>
+                      <div className="p-2 bg-slate-800/50 rounded">
+                        <strong className="text-orange-400">5. Null Model Challenge</strong>
+                        <p>Beat naive baselines</p>
+                      </div>
+                      <div className="p-2 bg-slate-800/50 rounded">
+                        <strong className="text-red-400">6. Subgroup Generalization</strong>
+                        <p>Works on undertrained athletes</p>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRunScientificValidation()}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-medium transition-all"
+                  >
+                    Run Full Scientific Validation Suite
+                  </button>
+                </Card>
+              )}
+
+              {/* Scientific Results */}
+              {scientificResults && (
+                <>
+                  {/* Summary Card */}
+                  {scientificResults.summary && (
+                    <Card title="Scientific Validation Summary">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className="text-3xl font-bold text-blue-400">
+                            {scientificResults.summary.pass_count}/{scientificResults.summary.total_tasks}
+                          </p>
+                          <p className="text-xs text-slate-500">Tests Passed</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className="text-3xl font-bold text-green-400">
+                            {((scientificResults.summary.pass_rate || 0) * 100).toFixed(0)}%
+                          </p>
+                          <p className="text-xs text-slate-500">Pass Rate</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className={`text-2xl font-bold ${
+                            scientificResults.summary.publication_ready ? 'text-green-400' : 'text-yellow-400'
+                          }`}>
+                            {scientificResults.summary.publication_ready ? 'READY' : 'NEEDS WORK'}
+                          </p>
+                          <p className="text-xs text-slate-500">Publication Status</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className="text-sm font-mono text-slate-400">
+                            {scientificResults.summary.computed_at ?
+                              new Date(scientificResults.summary.computed_at).toLocaleDateString() : 'N/A'}
+                          </p>
+                          <p className="text-xs text-slate-500">Computed At</p>
+                        </div>
+                      </div>
+                      <div className={`p-4 rounded-lg ${
+                        scientificResults.summary.publication_ready
+                          ? 'bg-green-500/10 border border-green-500/30'
+                          : 'bg-yellow-500/10 border border-yellow-500/30'
+                      }`}>
+                        <p className="text-sm text-slate-300">{scientificResults.summary.interpretation}</p>
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Table 1: Reproducibility Results */}
+                  {scientificResults.reproducibility?.status === 'complete' && (
+                    <Card title="Table 1: Reproducibility Across Seeds">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-4">
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className="text-2xl font-bold text-blue-400">
+                            {scientificResults.reproducibility.mean_auc?.toFixed(4)}
+                          </p>
+                          <p className="text-xs text-slate-500">Mean AUC</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className="text-2xl font-bold text-purple-400">
+                            ±{scientificResults.reproducibility.std_auc?.toFixed(4)}
+                          </p>
+                          <p className="text-xs text-slate-500">Std Dev</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className="text-lg font-bold text-orange-400">
+                            [{scientificResults.reproducibility.confidence_interval_95?.[0]?.toFixed(3)},
+                            {scientificResults.reproducibility.confidence_interval_95?.[1]?.toFixed(3)}]
+                          </p>
+                          <p className="text-xs text-slate-500">95% CI</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className="text-2xl font-bold text-green-400">
+                            {scientificResults.reproducibility.n_seeds}
+                          </p>
+                          <p className="text-xs text-slate-500">Seeds</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className={`text-lg font-bold ${
+                            scientificResults.reproducibility.pass ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {scientificResults.reproducibility.stability}
+                          </p>
+                          <p className="text-xs text-slate-500">Stability</p>
+                        </div>
+                      </div>
+
+                      {/* Per-seed results table */}
+                      {scientificResults.reproducibility.per_seed_results && (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-sm">
+                            <thead className="bg-slate-800/50">
+                              <tr>
+                                <th className="px-3 py-2 text-left font-medium text-slate-300">Seed</th>
+                                <th className="px-3 py-2 text-right font-medium text-slate-300">AUC</th>
+                                <th className="px-3 py-2 text-right font-medium text-slate-300">AP</th>
+                                <th className="px-3 py-2 text-left font-medium text-slate-300">Dataset</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800">
+                              {scientificResults.reproducibility.per_seed_results.map((r, i) => (
+                                <tr key={i} className="hover:bg-slate-800/30">
+                                  <td className="px-3 py-2 text-slate-300 font-mono">{r.seed}</td>
+                                  <td className="px-3 py-2 text-right font-mono text-blue-400">
+                                    {r.auc?.toFixed(4) || 'N/A'}
+                                  </td>
+                                  <td className="px-3 py-2 text-right font-mono text-green-400">
+                                    {r.ap?.toFixed(4) || 'N/A'}
+                                  </td>
+                                  <td className="px-3 py-2 text-slate-400 font-mono text-xs truncate max-w-[200px]">
+                                    {r.dataset_id || r.error || 'N/A'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      <div className={`p-4 rounded-lg mt-4 ${
+                        scientificResults.reproducibility.pass
+                          ? 'bg-green-500/10 border border-green-500/30'
+                          : 'bg-red-500/10 border border-red-500/30'
+                      }`}>
+                        <p className="text-sm text-slate-300">{scientificResults.reproducibility.interpretation}</p>
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Permutation Test Results */}
+                  {scientificResults.permutation?.status === 'complete' && (
+                    <Card title="Placebo Control (Permutation Test)">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className="text-2xl font-bold text-blue-400">
+                            {scientificResults.permutation.actual_auc?.toFixed(4)}
+                          </p>
+                          <p className="text-xs text-slate-500">Actual AUC</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className="text-2xl font-bold text-slate-400">
+                            {scientificResults.permutation.permuted_mean_auc?.toFixed(4)}
+                          </p>
+                          <p className="text-xs text-slate-500">Permuted Mean</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className={`text-2xl font-bold ${
+                            scientificResults.permutation.p_value < 0.05 ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {scientificResults.permutation.p_value?.toFixed(4)}
+                          </p>
+                          <p className="text-xs text-slate-500">p-value</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className={`text-lg font-bold ${
+                            scientificResults.permutation.pass ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {scientificResults.permutation.significance}
+                          </p>
+                          <p className="text-xs text-slate-500">Significance</p>
+                        </div>
+                      </div>
+
+                      <div className={`p-4 rounded-lg ${
+                        scientificResults.permutation.pass
+                          ? 'bg-green-500/10 border border-green-500/30'
+                          : 'bg-red-500/10 border border-red-500/30'
+                      }`}>
+                        <p className="text-sm text-slate-300">{scientificResults.permutation.interpretation}</p>
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Figure 1: Adversarial Feature Importance */}
+                  {scientificResults.adversarial?.status === 'complete' && (
+                    <Card title="Figure 1: Adversarial Classifier Feature Importance">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className={`text-2xl font-bold ${
+                            scientificResults.adversarial.discriminator_auc < 0.65 ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {scientificResults.adversarial.discriminator_auc?.toFixed(4)}
+                          </p>
+                          <p className="text-xs text-slate-500">Discriminator AUC</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className="text-lg font-bold text-slate-400">
+                            ±{scientificResults.adversarial.cv_std?.toFixed(4)}
+                          </p>
+                          <p className="text-xs text-slate-500">CV Std</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className={`text-lg font-bold ${
+                            scientificResults.adversarial.pass ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {scientificResults.adversarial.fidelity}
+                          </p>
+                          <p className="text-xs text-slate-500">Fidelity</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className={`text-lg font-bold ${
+                            scientificResults.adversarial.pass ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {scientificResults.adversarial.pass ? 'PASS' : 'FAIL'}
+                          </p>
+                          <p className="text-xs text-slate-500">Status</p>
+                        </div>
+                      </div>
+
+                      {/* Feature Importance Chart */}
+                      {scientificResults.adversarial.feature_importance && (
+                        <Plot
+                          data={[{
+                            x: scientificResults.adversarial.feature_importance.slice(0, 10).map(f => f.importance),
+                            y: scientificResults.adversarial.feature_importance.slice(0, 10).map(f => f.feature.replace(/_/g, ' ')),
+                            type: 'bar',
+                            orientation: 'h',
+                            marker: {
+                              color: scientificResults.adversarial.feature_importance.slice(0, 10).map((f, i) =>
+                                i < 3 ? '#ef4444' : '#6366f1'  // Top 3 are "most distinguishing"
+                              )
+                            },
+                            text: scientificResults.adversarial.feature_importance.slice(0, 10).map(f => f.importance.toFixed(3)),
+                            textposition: 'outside',
+                            textfont: { size: 10, color: '#94a3b8' }
+                          }]}
+                          layout={{
+                            ...darkLayout,
+                            height: 300,
+                            margin: { t: 20, r: 60, b: 50, l: 150 },
+                            xaxis: { ...darkLayout.xaxis, title: 'Importance (Higher = More Distinguishing)' },
+                            yaxis: { ...darkLayout.yaxis, automargin: true, tickfont: { size: 10, color: '#94a3b8' } }
+                          }}
+                          config={{ displayModeBar: false, responsive: true }}
+                          useResizeHandler
+                          style={{ width: '100%' }}
+                        />
+                      )}
+
+                      <div className={`p-4 rounded-lg mt-4 ${
+                        scientificResults.adversarial.pass
+                          ? 'bg-green-500/10 border border-green-500/30'
+                          : 'bg-red-500/10 border border-red-500/30'
+                      }`}>
+                        <p className="text-sm text-slate-300">{scientificResults.adversarial.interpretation}</p>
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Table 2: Null Model Comparison */}
+                  {scientificResults.null_models?.status === 'complete' && (
+                    <Card title="Table 2: Performance vs. Baselines">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                          <thead className="bg-slate-800/50">
+                            <tr>
+                              <th className="px-3 py-2 text-left font-medium text-slate-300">Model</th>
+                              <th className="px-3 py-2 text-right font-medium text-slate-300">AUC</th>
+                              <th className="px-3 py-2 text-right font-medium text-slate-300">Precision</th>
+                              <th className="px-3 py-2 text-right font-medium text-slate-300">Recall</th>
+                              <th className="px-3 py-2 text-right font-medium text-slate-300">F1</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800">
+                            {scientificResults.null_models.models && Object.entries(scientificResults.null_models.models).map(([name, metrics]) => (
+                              <tr key={name} className={`hover:bg-slate-800/30 ${
+                                name === 'XGBoost (Ours)' ? 'bg-blue-500/10' : ''
+                              }`}>
+                                <td className={`px-3 py-2 ${
+                                  name === 'XGBoost (Ours)' ? 'text-blue-400 font-bold' : 'text-slate-300'
+                                }`}>
+                                  {name}
+                                </td>
+                                <td className="px-3 py-2 text-right font-mono text-slate-400">
+                                  {metrics.auc?.toFixed(4)}
+                                </td>
+                                <td className="px-3 py-2 text-right font-mono text-slate-400">
+                                  {metrics.precision?.toFixed(4)}
+                                </td>
+                                <td className="px-3 py-2 text-right font-mono text-slate-400">
+                                  {metrics.recall?.toFixed(4)}
+                                </td>
+                                <td className="px-3 py-2 text-right font-mono text-slate-400">
+                                  {metrics.f1?.toFixed(4)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className={`text-lg font-bold ${
+                            scientificResults.null_models.beats_all_baselines ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {scientificResults.null_models.beats_all_baselines ? 'YES' : 'NO'}
+                          </p>
+                          <p className="text-xs text-slate-500">Beats All Baselines</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className="text-lg font-bold text-orange-400">
+                            {scientificResults.null_models.best_baseline}
+                          </p>
+                          <p className="text-xs text-slate-500">Best Baseline</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className={`text-lg font-bold ${
+                            scientificResults.null_models.improvement_over_best > 0 ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            +{(scientificResults.null_models.improvement_over_best * 100)?.toFixed(1)}%
+                          </p>
+                          <p className="text-xs text-slate-500">Improvement</p>
+                        </div>
+                      </div>
+
+                      <div className={`p-4 rounded-lg mt-4 ${
+                        scientificResults.null_models.pass
+                          ? 'bg-green-500/10 border border-green-500/30'
+                          : 'bg-red-500/10 border border-red-500/30'
+                      }`}>
+                        <p className="text-sm text-slate-300">{scientificResults.null_models.interpretation}</p>
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Subgroup Analysis */}
+                  {scientificResults.subgroups?.status === 'complete' && (
+                    <Card title="Subgroup Generalization Analysis">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                          <thead className="bg-slate-800/50">
+                            <tr>
+                              <th className="px-3 py-2 text-left font-medium text-slate-300">Subgroup</th>
+                              <th className="px-3 py-2 text-right font-medium text-slate-300">N Athletes</th>
+                              <th className="px-3 py-2 text-right font-medium text-slate-300">Mean AUC</th>
+                              <th className="px-3 py-2 text-right font-medium text-slate-300">Std</th>
+                              <th className="px-3 py-2 text-right font-medium text-slate-300">95% CI</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800">
+                            {scientificResults.subgroups.subgroups && Object.entries(scientificResults.subgroups.subgroups).map(([name, data]) => (
+                              <tr key={name} className={`hover:bg-slate-800/30 ${
+                                name === 'Low Fitness' ? 'bg-purple-500/10' : ''
+                              }`}>
+                                <td className={`px-3 py-2 ${
+                                  name === 'Low Fitness' ? 'text-purple-400 font-bold' : 'text-slate-300'
+                                }`}>
+                                  {name}
+                                </td>
+                                <td className="px-3 py-2 text-right text-slate-400">
+                                  {data.n_athletes}
+                                </td>
+                                <td className={`px-3 py-2 text-right font-mono ${
+                                  data.mean_auc >= 0.6 ? 'text-green-400' :
+                                  data.mean_auc >= 0.55 ? 'text-yellow-400' : 'text-red-400'
+                                }`}>
+                                  {data.mean_auc?.toFixed(4) || 'N/A'}
+                                </td>
+                                <td className="px-3 py-2 text-right font-mono text-slate-400">
+                                  ±{data.std_auc?.toFixed(4) || 'N/A'}
+                                </td>
+                                <td className="px-3 py-2 text-right font-mono text-xs text-slate-500">
+                                  {data.ci_95 ? `[${data.ci_95[0]?.toFixed(2)}, ${data.ci_95[1]?.toFixed(2)}]` : 'N/A'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className="text-lg font-bold text-green-400">
+                            {scientificResults.subgroups.best_subgroup}
+                          </p>
+                          <p className="text-xs text-slate-500">Best Subgroup</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className="text-lg font-bold text-red-400">
+                            {scientificResults.subgroups.worst_subgroup}
+                          </p>
+                          <p className="text-xs text-slate-500">Worst Subgroup</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className={`text-lg font-bold ${
+                            scientificResults.subgroups.works_on_vulnerable ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {scientificResults.subgroups.works_on_vulnerable ? 'YES' : 'NO'}
+                          </p>
+                          <p className="text-xs text-slate-500">Works on Vulnerable</p>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                          <p className={`text-lg font-bold ${
+                            scientificResults.subgroups.clinical_relevance === 'High' ? 'text-green-400' : 'text-yellow-400'
+                          }`}>
+                            {scientificResults.subgroups.clinical_relevance}
+                          </p>
+                          <p className="text-xs text-slate-500">Clinical Relevance</p>
+                        </div>
+                      </div>
+
+                      <div className={`p-4 rounded-lg mt-4 ${
+                        scientificResults.subgroups.pass
+                          ? 'bg-green-500/10 border border-green-500/30'
+                          : 'bg-yellow-500/10 border border-yellow-500/30'
+                      }`}>
+                        <p className="text-sm text-slate-300">{scientificResults.subgroups.interpretation}</p>
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Sensitivity Analysis (if available) */}
+                  {scientificResults.sensitivity?.status === 'complete' && (
+                    <Card title="Figure 2: Sensitivity Tornado Plot">
+                      <Plot
+                        data={[
+                          {
+                            y: scientificResults.sensitivity.tornado_data?.map(d => d.parameter.replace(/_/g, ' ')) || [],
+                            x: scientificResults.sensitivity.tornado_data?.map(d => d.low_auc_delta) || [],
+                            type: 'bar',
+                            orientation: 'h',
+                            name: '-20%',
+                            marker: { color: '#3b82f6' }
+                          },
+                          {
+                            y: scientificResults.sensitivity.tornado_data?.map(d => d.parameter.replace(/_/g, ' ')) || [],
+                            x: scientificResults.sensitivity.tornado_data?.map(d => d.high_auc_delta) || [],
+                            type: 'bar',
+                            orientation: 'h',
+                            name: '+20%',
+                            marker: { color: '#ef4444' }
+                          }
+                        ]}
+                        layout={{
+                          ...darkLayout,
+                          height: 350,
+                          margin: { t: 40, r: 20, b: 50, l: 180 },
+                          barmode: 'relative',
+                          xaxis: { ...darkLayout.xaxis, title: 'Change in AUC', zeroline: true, zerolinewidth: 2 },
+                          yaxis: { ...darkLayout.yaxis, automargin: true },
+                          showlegend: true,
+                          legend: { ...darkLayout.legend, orientation: 'h', y: 1.1, x: 0.5, xanchor: 'center' }
+                        }}
+                        config={{ displayModeBar: false, responsive: true }}
+                        useResizeHandler
+                        style={{ width: '100%' }}
+                      />
+
+                      <div className={`p-4 rounded-lg mt-4 ${
+                        scientificResults.sensitivity.pass
+                          ? 'bg-green-500/10 border border-green-500/30'
+                          : 'bg-yellow-500/10 border border-yellow-500/30'
+                      }`}>
+                        <p className="text-sm text-slate-300">
+                          <strong>Most Sensitive:</strong> {scientificResults.sensitivity.most_sensitive_parameter}
+                          <br />
+                          <strong>Robustness:</strong> {scientificResults.sensitivity.robustness}
+                        </p>
+                      </div>
+                    </Card>
+                  )}
+                </>
+              )}
+
+              {/* No Results Yet */}
+              {!scientificJob && !scientificResults && (
+                <Card>
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-200 mb-2">No Scientific Validation Yet</h3>
+                    <p className="text-slate-400 mb-4">
+                      Run the scientific validation suite to prove your results are publication-ready.
+                    </p>
+                  </div>
+                </Card>
+              )}
             </div>
           )}
 

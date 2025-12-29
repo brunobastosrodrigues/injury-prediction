@@ -127,7 +127,19 @@ export const validationApi = {
   // Causal Mechanism Analysis (Publication-quality)
   getCausalMechanism: () => api.get('/validation/causal-mechanism'),
   getThreePillars: () => api.get('/validation/three-pillars'),
-  getRaincloudData: (feature) => api.get(`/validation/raincloud/${feature}`)
+  getRaincloudData: (feature) => api.get(`/validation/raincloud/${feature}`),
+
+  // Scientific Validation (Publication-Quality Rigor)
+  runScientificValidation: (datasetId, tasks = null) =>
+    api.post('/validation/scientific/run', {
+      dataset_id: datasetId,
+      tasks: tasks || ['reproducibility', 'permutation', 'sensitivity', 'adversarial', 'null_models', 'subgroups']
+    }),
+  getScientificJobStatus: (jobId) => api.get(`/validation/scientific/jobs/${jobId}/status`),
+  listScientificJobs: () => api.get('/validation/scientific/jobs'),
+  getScientificResults: (datasetId) => api.get(`/validation/scientific/results/${datasetId}`),
+  listScientificValidations: () => api.get('/validation/scientific/results'),
+  deleteScientificResults: (datasetId) => api.delete(`/validation/scientific/results/${datasetId}`)
 }
 
 export default api

@@ -433,3 +433,197 @@ def get_raincloud_data(feature):
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# =========================================================================
+# SCIENTIFIC VALIDATION ENDPOINTS (Publication-Quality Rigor)
+# =========================================================================
+
+@validation_bp.route('/scientific/run', methods=['POST'])
+def run_scientific_validation():
+    """
+    Start the scientific validation suite for a dataset.
+
+    This runs hypothesis validation tests required for Nature Digital Medicine:
+    - reproducibility: Multi-seed reproducibility audit (5 seeds)
+    - permutation: Placebo control permutation test
+    - sensitivity: Enhanced sensitivity analysis
+    - adversarial: Adversarial fidelity check (Turing test)
+    - null_models: Null model baseline comparison
+    - subgroups: Subgroup generalization analysis
+
+    Request Body:
+        dataset_id: str - The synthetic dataset to validate
+        tasks: list - Which tasks to run (optional, defaults to all)
+
+    Returns:
+        JSON with job_id and status.
+    """
+    try:
+        from ...tasks import run_scientific_validation_task
+
+        data = request.get_json() or {}
+        dataset_id = data.get('dataset_id')
+        tasks = data.get('tasks', [
+            'reproducibility', 'permutation', 'sensitivity',
+            'adversarial', 'null_models', 'subgroups'
+        ])
+
+        if not dataset_id:
+            return jsonify({'error': 'dataset_id is required'}), 400
+
+        # Validate task names
+        valid_tasks = {
+            'reproducibility', 'permutation', 'sensitivity',
+            'adversarial', 'null_models', 'subgroups'
+        }
+        invalid = set(tasks) - valid_tasks
+        if invalid:
+            return jsonify({'error': f'Invalid tasks: {invalid}'}), 400
+
+        # Create job and start async task
+        job_id = ProgressTracker.create_job('scientific_validation')
+        run_scientific_validation_task.delay(job_id, dataset_id, tasks)
+
+        return jsonify({
+            'job_id': job_id,
+            'dataset_id': dataset_id,
+            'tasks': tasks,
+            'status': 'pending',
+            'estimated_runtime': '15-30 minutes for full suite'
+        }), 202
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/scientific/jobs/<job_id>/status', methods=['GET'])
+def get_scientific_job_status(job_id):
+    """
+    Get status of a scientific validation job.
+
+    Returns:
+        JSON with job status, progress, current task, and results if completed.
+    """
+    try:
+        job = ProgressTracker.get_job(job_id)
+        if not job:
+            return jsonify({'error': 'Job not found'}), 404
+
+        return jsonify(job), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/scientific/results/<dataset_id>', methods=['GET'])
+def get_scientific_results(dataset_id):
+    """
+    Get cached scientific validation results for a dataset.
+
+    Returns:
+        JSON with full scientific validation results or 404 if not cached.
+    """
+    try:
+        from ...services.scientific_validation import ScientificValidationService
+
+        results = ScientificValidationService.get_cached_results(dataset_id)
+        if not results:
+            return jsonify({
+                'error': 'No cached results found',
+                'dataset_id': dataset_id,
+                'cached': False
+            }), 404
+
+        results['cached'] = True
+        return jsonify(results), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/scientific/results', methods=['GET'])
+def list_scientific_validations():
+    """
+    List all datasets with cached scientific validation results.
+
+    Returns:
+        JSON with list of validation summaries.
+    """
+    try:
+        import os
+        from ...services.scientific_validation import ScientificValidationService
+
+        cache_base = ScientificValidationService.CACHE_BASE
+        validations = []
+
+        if os.path.exists(cache_base):
+            for dataset_id in os.listdir(cache_base):
+                dataset_dir = os.path.join(cache_base, dataset_id)
+                summary_path = os.path.join(dataset_dir, 'summary.json')
+
+                if os.path.isdir(dataset_dir) and os.path.exists(summary_path):
+                    try:
+                        import json
+                        with open(summary_path, 'r') as f:
+                            summary = json.load(f)
+                        validations.append({
+                            'dataset_id': dataset_id,
+                            'computed_at': summary.get('computed_at'),
+                            'pass_rate': summary.get('pass_rate', 0),
+                            'publication_ready': summary.get('publication_ready', False)
+                        })
+                    except Exception:
+                        pass
+
+        return jsonify({'validations': validations}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/scientific/results/<dataset_id>', methods=['DELETE'])
+def delete_scientific_results(dataset_id):
+    """
+    Delete cached scientific validation results (for recompute).
+
+    Returns:
+        JSON with success status.
+    """
+    try:
+        import os
+        import shutil
+        from ...services.scientific_validation import ScientificValidationService
+
+        cache_dir = ScientificValidationService.get_cache_dir(dataset_id)
+
+        if os.path.exists(cache_dir):
+            shutil.rmtree(cache_dir)
+            return jsonify({
+                'deleted': True,
+                'dataset_id': dataset_id
+            }), 200
+        else:
+            return jsonify({
+                'deleted': False,
+                'dataset_id': dataset_id,
+                'message': 'No cached results found'
+            }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/scientific/jobs', methods=['GET'])
+def list_scientific_jobs():
+    """
+    List all scientific validation jobs.
+
+    Returns:
+        JSON with list of jobs.
+    """
+    try:
+        jobs = ProgressTracker.get_all_jobs('scientific_validation')
+        return jsonify({'jobs': jobs}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
