@@ -1,11 +1,44 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import CitationBlock from '../common/CitationBlock'
 import MethodologyTooltip, { METHODOLOGY_TERMS } from '../common/MethodologyTooltip'
 
 function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showCitation, setShowCitation] = useState(false)
+
+  // Refs for focus management
+  const citationButtonRef = useRef(null)
+  const modalRef = useRef(null)
+  const closeButtonRef = useRef(null)
+
+  // Handle modal focus management
+  useEffect(() => {
+    if (showCitation && closeButtonRef.current) {
+      closeButtonRef.current.focus()
+    }
+  }, [showCitation])
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showCitation) {
+        setShowCitation(false)
+        citationButtonRef.current?.focus()
+      }
+    }
+
+    if (showCitation) {
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [showCitation])
+
+  // Close modal and return focus to trigger button
+  const closeCitationModal = useCallback(() => {
+    setShowCitation(false)
+    citationButtonRef.current?.focus()
+  }, [])
 
   const pipelineSteps = [
     {
@@ -155,7 +188,7 @@ function LandingPage() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg aria-hidden="true" className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
@@ -168,19 +201,28 @@ function LandingPage() {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-4">
               <button
+                ref={citationButtonRef}
                 onClick={() => setShowCitation(!showCitation)}
                 className="px-3 py-2 text-sm text-slate-300 hover:text-white transition-colors flex items-center gap-1.5"
+                aria-expanded={showCitation}
+                aria-haspopup="dialog"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                 </svg>
                 Cite
               </button>
               <Link
-                to="/pipeline"
+                to="/dashboard"
                 className="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors"
               >
-                Study Overview
+                Dashboard
+              </Link>
+              <Link
+                to="/athletes"
+                className="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors"
+              >
+                Individual Profiles
               </Link>
               <Link
                 to="/pipeline"
@@ -194,13 +236,15 @@ function LandingPage() {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              aria-expanded={mobileMenuOpen}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             >
               {mobileMenuOpen ? (
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg aria-hidden="true" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               ) : (
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg aria-hidden="true" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               )}
@@ -218,11 +262,11 @@ function LandingPage() {
                   Cite This Work
                 </button>
                 <Link
-                  to="/pipeline"
+                  to="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
                   className="block px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
                 >
-                  Study Overview
+                  Dashboard
                 </Link>
                 <Link
                   to="/athletes"
@@ -246,12 +290,22 @@ function LandingPage() {
 
       {/* Citation Modal */}
       {showCitation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm" onClick={() => setShowCitation(false)}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="citation-modal-title"
+          ref={modalRef}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+          onClick={closeCitationModal}
+        >
           <div className="max-w-lg w-full" onClick={e => e.stopPropagation()}>
+            <div id="citation-modal-title" className="sr-only">Citation Information</div>
             <CitationBlock />
             <button
-              onClick={() => setShowCitation(false)}
+              ref={closeButtonRef}
+              onClick={closeCitationModal}
               className="mt-4 w-full py-2 text-sm text-slate-400 hover:text-white transition-colors"
+              aria-label="Close citation dialog"
             >
               Close
             </button>

@@ -1,10 +1,13 @@
 import uuid
 import json
 import os
+import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 import redis
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 def numpy_to_python(obj: Any) -> Any:
@@ -29,15 +32,69 @@ def numpy_to_python(obj: Any) -> Any:
 
 
 class ProgressTracker:
-    """Redis-backed job progress tracking."""
+    """Redis-backed job progress tracking with atomic operations."""
 
     _redis_client = None
+    _scripts = {}
+
+    # Lua scripts for atomic operations
+    _LUA_UPDATE_PROGRESS = """
+    local key = KEYS[1]
+    local data = redis.call('GET', key)
+    if not data then
+        return nil
+    end
+    local job = cjson.decode(data)
+    job.progress = math.min(tonumber(ARGV[1]), 100)
+    job.current_step = ARGV[2]
+    if ARGV[3] and ARGV[3] ~= '{}' then
+        local extra = cjson.decode(ARGV[3])
+        for k, v in pairs(extra) do
+            job.data[k] = v
+        end
+    end
+    redis.call('SETEX', key, 86400, cjson.encode(job))
+    return 1
+    """
+
+    _LUA_UPDATE_STATUS = """
+    local key = KEYS[1]
+    local data = redis.call('GET', key)
+    if not data then
+        return nil
+    end
+    local job = cjson.decode(data)
+    job.status = ARGV[1]
+    if ARGV[2] and ARGV[2] ~= '' then
+        job.started_at = ARGV[2]
+    end
+    if ARGV[3] and ARGV[3] ~= '' then
+        job.completed_at = ARGV[3]
+    end
+    if ARGV[4] and ARGV[4] ~= '' then
+        job.total_steps = tonumber(ARGV[4])
+    end
+    if ARGV[5] and ARGV[5] ~= '' then
+        job.progress = tonumber(ARGV[5])
+    end
+    if ARGV[6] and ARGV[6] ~= '' then
+        job.error = ARGV[6]
+    end
+    if ARGV[7] and ARGV[7] ~= 'null' then
+        job.result = cjson.decode(ARGV[7])
+    end
+    redis.call('SETEX', key, 86400, cjson.encode(job))
+    return 1
+    """
 
     @classmethod
     def _get_client(cls):
         if cls._redis_client is None:
             redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
             cls._redis_client = redis.from_url(redis_url, decode_responses=True)
+            # Register Lua scripts
+            cls._scripts['update_progress'] = cls._redis_client.register_script(cls._LUA_UPDATE_PROGRESS)
+            cls._scripts['update_status'] = cls._redis_client.register_script(cls._LUA_UPDATE_STATUS)
         return cls._redis_client
 
     @classmethod
@@ -62,66 +119,105 @@ class ProgressTracker:
         return job_id
 
     @classmethod
-    def start_job(cls, job_id: str, total_steps: int = 100):
-        """Mark a job as started."""
-        client = cls._get_client()
-        data = client.get(f"job:{job_id}")
-        if data:
-            job_data = json.loads(data)
-            job_data['status'] = 'running'
-            job_data['started_at'] = datetime.utcnow().isoformat()
-            job_data['total_steps'] = total_steps
-            client.set(f"job:{job_id}", json.dumps(job_data), ex=86400)
+    def start_job(cls, job_id: str, total_steps: int = 100) -> bool:
+        """Mark a job as started. Returns True if successful, False if job not found."""
+        cls._get_client()  # Ensure scripts are registered
+        result = cls._scripts['update_status'](
+            keys=[f"job:{job_id}"],
+            args=[
+                'running',                          # status
+                datetime.utcnow().isoformat(),      # started_at
+                '',                                 # completed_at
+                str(total_steps),                   # total_steps
+                '',                                 # progress
+                '',                                 # error
+                'null'                              # result
+            ]
+        )
+        if result is None:
+            logger.warning(f"Attempted to start non-existent job: {job_id}")
+            return False
+        return True
 
     @classmethod
-    def update_progress(cls, job_id: str, progress: int, current_step: str = '', **kwargs):
-        """Update job progress."""
-        client = cls._get_client()
-        data = client.get(f"job:{job_id}")
-        if data:
-            job_data = json.loads(data)
-            job_data['progress'] = min(progress, 100)
-            job_data['current_step'] = current_step
-            # Convert NumPy types to native Python types for JSON serialization
-            job_data['data'].update(numpy_to_python(kwargs))
-            client.set(f"job:{job_id}", json.dumps(job_data), ex=86400)
+    def update_progress(cls, job_id: str, progress: int, current_step: str = '', **kwargs) -> bool:
+        """Update job progress atomically. Returns True if successful, False if job not found."""
+        cls._get_client()  # Ensure scripts are registered
+        # Convert NumPy types to native Python types for JSON serialization
+        extra_data = json.dumps(numpy_to_python(kwargs)) if kwargs else '{}'
+        result = cls._scripts['update_progress'](
+            keys=[f"job:{job_id}"],
+            args=[str(progress), current_step, extra_data]
+        )
+        if result is None:
+            logger.warning(f"Attempted to update progress for non-existent job: {job_id}")
+            return False
+        return True
 
     @classmethod
-    def complete_job(cls, job_id: str, result: Any = None):
-        """Mark a job as completed."""
-        client = cls._get_client()
-        data = client.get(f"job:{job_id}")
-        if data:
-            job_data = json.loads(data)
-            job_data['status'] = 'completed'
-            job_data['progress'] = 100
-            job_data['completed_at'] = datetime.utcnow().isoformat()
-            # Convert NumPy types to native Python types for JSON serialization
-            job_data['result'] = numpy_to_python(result)
-            client.set(f"job:{job_id}", json.dumps(job_data), ex=86400)
+    def complete_job(cls, job_id: str, result: Any = None) -> bool:
+        """Mark a job as completed atomically. Returns True if successful, False if job not found."""
+        cls._get_client()  # Ensure scripts are registered
+        # Convert NumPy types to native Python types for JSON serialization
+        result_json = json.dumps(numpy_to_python(result)) if result is not None else 'null'
+        script_result = cls._scripts['update_status'](
+            keys=[f"job:{job_id}"],
+            args=[
+                'completed',                        # status
+                '',                                 # started_at
+                datetime.utcnow().isoformat(),      # completed_at
+                '',                                 # total_steps
+                '100',                              # progress
+                '',                                 # error
+                result_json                         # result
+            ]
+        )
+        if script_result is None:
+            logger.warning(f"Attempted to complete non-existent job: {job_id}")
+            return False
+        return True
 
     @classmethod
-    def fail_job(cls, job_id: str, error: str):
-        """Mark a job as failed."""
-        client = cls._get_client()
-        data = client.get(f"job:{job_id}")
-        if data:
-            job_data = json.loads(data)
-            job_data['status'] = 'failed'
-            job_data['completed_at'] = datetime.utcnow().isoformat()
-            job_data['error'] = error
-            client.set(f"job:{job_id}", json.dumps(job_data), ex=86400)
+    def fail_job(cls, job_id: str, error: str) -> bool:
+        """Mark a job as failed atomically. Returns True if successful, False if job not found."""
+        cls._get_client()  # Ensure scripts are registered
+        result = cls._scripts['update_status'](
+            keys=[f"job:{job_id}"],
+            args=[
+                'failed',                           # status
+                '',                                 # started_at
+                datetime.utcnow().isoformat(),      # completed_at
+                '',                                 # total_steps
+                '',                                 # progress
+                error,                              # error
+                'null'                              # result
+            ]
+        )
+        if result is None:
+            logger.warning(f"Attempted to fail non-existent job: {job_id}")
+            return False
+        return True
 
     @classmethod
-    def cancel_job(cls, job_id: str):
-        """Mark a job as cancelled."""
-        client = cls._get_client()
-        data = client.get(f"job:{job_id}")
-        if data:
-            job_data = json.loads(data)
-            job_data['status'] = 'cancelled'
-            job_data['completed_at'] = datetime.utcnow().isoformat()
-            client.set(f"job:{job_id}", json.dumps(job_data), ex=86400)
+    def cancel_job(cls, job_id: str) -> bool:
+        """Mark a job as cancelled atomically. Returns True if successful, False if job not found."""
+        cls._get_client()  # Ensure scripts are registered
+        result = cls._scripts['update_status'](
+            keys=[f"job:{job_id}"],
+            args=[
+                'cancelled',                        # status
+                '',                                 # started_at
+                datetime.utcnow().isoformat(),      # completed_at
+                '',                                 # total_steps
+                '',                                 # progress
+                '',                                 # error
+                'null'                              # result
+            ]
+        )
+        if result is None:
+            logger.warning(f"Attempted to cancel non-existent job: {job_id}")
+            return False
+        return True
 
     @classmethod
     def get_job(cls, job_id: str) -> Optional[Dict[str, Any]]:

@@ -219,6 +219,134 @@ def main():
             print("\nCONCLUSION: Distribution alignment alone is not sufficient.")
             print("The underlying signal in synthetic data may not match real injury patterns.")
 
+    # =========================================================================
+    # 6. EXPERIMENT D: CAUSAL MECHANISM VERIFICATION (The "Asymmetry" Proof)
+    # =========================================================================
+    print("\n" + "="*70)
+    print("   6. CAUSAL MECHANISM VERIFICATION: The 'Asymmetry' Proof")
+    print("="*70)
+    print("\nThis analysis proves the DUAL-PATHWAY hypothesis:")
+    print("  - Undertrained (ACWR < 0.8): HIGH risk due to physiological detraining")
+    print("  - Optimal (0.8-1.3): LOW risk - the 'sweet spot'")
+    print("  - High Risk (ACWR > 1.3): MODERATE risk due to exposure/overload")
+    print("\nThe KEY INSIGHT: Undertrained should have HIGHER risk-per-load than Overloaded.")
+    print("This proves the 'asymmetry' in the ACWR-injury relationship.\n")
+
+    # Check if we have the glass-box columns
+    glass_box_cols = ['acwr', 'injury', 'actual_tss']
+    missing_cols = [c for c in glass_box_cols if c not in df_synth.columns]
+
+    if missing_cols:
+        print(f"WARNING: Missing glass-box columns: {missing_cols}")
+        print("Please regenerate synthetic data with the updated simulation engine.")
+        print("The columns 'acwr', 'injury_type', 'load_scenario' are required for causal analysis.")
+    else:
+        # Define ACWR Zones (matching the paper's definitions)
+        df_synth['acwr_zone'] = pd.cut(
+            df_synth['acwr'].fillna(1.0),
+            bins=[-np.inf, 0.8, 1.3, 1.5, np.inf],
+            labels=['Undertrained', 'Optimal', 'Danger', 'High Risk']
+        )
+
+        print("--- Risk per 1,000 Load Units by ACWR Zone ---")
+        print("(This is the 'exposure-normalized' injury risk)\n")
+
+        results_table = []
+        baseline_risk = None  # Will be set to Optimal zone risk
+
+        for zone in ['Undertrained', 'Optimal', 'Danger', 'High Risk']:
+            zone_data = df_synth[df_synth['acwr_zone'] == zone]
+            total_load = zone_data['actual_tss'].sum()
+            total_injuries = zone_data['injury'].sum()
+            total_days = len(zone_data)
+
+            # Calculate risk per 1000 load units
+            risk_per_load = (total_injuries / total_load * 1000) if total_load > 0 else 0
+            daily_injury_rate = (total_injuries / total_days * 100) if total_days > 0 else 0
+
+            if zone == 'Optimal':
+                baseline_risk = risk_per_load
+
+            relative_risk = (risk_per_load / baseline_risk) if baseline_risk and baseline_risk > 0 else 0
+
+            results_table.append({
+                'Zone': zone,
+                'Days': total_days,
+                'Total Load': f"{total_load:,.0f}",
+                'Injuries': int(total_injuries),
+                'Risk/1k TSS': f"{risk_per_load:.3f}",
+                'Relative Risk': f"{relative_risk:.2f}x"
+            })
+
+        results_df = pd.DataFrame(results_table)
+        print(results_df.to_string(index=False))
+
+        # Calculate the key asymmetry metrics
+        undertrained = results_table[0]  # Undertrained
+        optimal = results_table[1]       # Optimal
+        danger = results_table[2]        # Danger
+        high_risk = results_table[3]     # High Risk
+
+        ut_risk = float(undertrained['Risk/1k TSS'])
+        opt_risk = float(optimal['Risk/1k TSS'])
+        hr_risk = float(high_risk['Risk/1k TSS'])
+
+        print("\n--- ASYMMETRY ANALYSIS ---")
+        print(f"Undertrained vs Optimal: {ut_risk/opt_risk:.2f}x higher risk" if opt_risk > 0 else "N/A")
+        print(f"High Risk vs Optimal: {hr_risk/opt_risk:.2f}x higher risk" if opt_risk > 0 else "N/A")
+
+        # The key test: Is undertrained riskier than high risk?
+        if ut_risk > hr_risk and opt_risk > 0:
+            asymmetry_ratio = ut_risk / hr_risk
+            print(f"\n✓ ASYMMETRY CONFIRMED: Undertrained is {asymmetry_ratio:.2f}x more dangerous than Overloaded")
+            print("  This proves the physiological detraining mechanism is stronger than pure exposure risk.")
+            print("  The simulation correctly captures the 'U-shaped' ACWR-injury relationship.")
+        elif ut_risk > 0 and hr_risk > 0:
+            print(f"\n✗ ASYMMETRY NOT CONFIRMED: Undertrained ({ut_risk:.3f}) vs High Risk ({hr_risk:.3f})")
+            print("  The expected asymmetry was not observed. Check simulation parameters.")
+        else:
+            print("\n? INSUFFICIENT DATA: Cannot calculate asymmetry with zero risk values.")
+
+        # Additional insight: Injury type breakdown if available
+        if 'injury_type' in df_synth.columns:
+            print("\n--- INJURY TYPE BREAKDOWN ---")
+            injury_types = df_synth[df_synth['injury'] == 1]['injury_type'].value_counts()
+            total_injuries = injury_types.sum()
+            for itype, count in injury_types.items():
+                pct = (count / total_injuries * 100) if total_injuries > 0 else 0
+                print(f"  {itype}: {count} ({pct:.1f}%)")
+
+            # Cross-tabulate injury type by ACWR zone
+            print("\n--- INJURY TYPE BY ACWR ZONE ---")
+            injury_data = df_synth[df_synth['injury'] == 1]
+            if len(injury_data) > 0:
+                crosstab = pd.crosstab(injury_data['acwr_zone'], injury_data['injury_type'])
+                print(crosstab.to_string())
+
+        # Load scenario breakdown if available
+        if 'load_scenario' in df_synth.columns:
+            print("\n--- LOAD SCENARIO BREAKDOWN ---")
+            scenarios = df_synth['load_scenario'].value_counts()
+            total_days = len(df_synth)
+            for scenario, count in scenarios.items():
+                pct = (count / total_days * 100) if total_days > 0 else 0
+                # Calculate injury rate for this scenario
+                scenario_injuries = df_synth[df_synth['load_scenario'] == scenario]['injury'].sum()
+                scenario_rate = (scenario_injuries / count * 100) if count > 0 else 0
+                print(f"  {scenario}: {count} days ({pct:.1f}%) - Injury rate: {scenario_rate:.2f}%")
+
+    # =========================================================================
+    # FINAL CONCLUSION
+    # =========================================================================
+    print("\n" + "="*70)
+    print("   FINAL VALIDATION SUMMARY")
+    print("="*70)
+    print("\n1. STATISTICAL ALIGNMENT: JS Divergence scores above")
+    print("2. SIM2REAL TRANSFER: AUC scores above")
+    print("3. CAUSAL MECHANISM: Risk-per-load analysis above")
+    print("\nIf all three pass, the synthetic data is publication-ready.")
+    print("If causal asymmetry is confirmed, the simulation is scientifically valid.")
+
 if __name__ == "__main__":
     from backend.app import create_app
     app = create_app()

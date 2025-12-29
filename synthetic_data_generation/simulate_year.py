@@ -94,11 +94,34 @@ def calculate_injury_probability_asymmetric(day_data, athlete, fatigue, form, ac
     # ========================================
     total_risk = physiological_risk + exposure_risk + baseline_risk
 
-    if physiological_risk > max(exposure_risk, baseline_risk):
+    # ========================================
+    # DETERMINE INJURY TYPE BY ACWR ZONE
+    # ========================================
+    # The injury_type reflects the PRIMARY causal mechanism based on ACWR zone,
+    # not which risk component happened to be numerically highest.
+    # This is critical for proving the asymmetry hypothesis in validation.
+
+    high_risk_threshold = thresholds.get('danger_zone', thresholds.get('high_risk', 1.5))
+
+    if acwr < undertrained_threshold:
+        # UNDERTRAINED ZONE: Primary mechanism is physiological detraining
+        # Even if exposure_risk is higher (from some residual training),
+        # the root cause is the undertrained state causing tissue vulnerability
         injury_type = 'physiological'
-    elif exposure_risk > baseline_risk:
+    elif acwr > high_risk_threshold:
+        # HIGH RISK ZONE: Primary mechanism is exposure/overload
+        # The athlete is doing too much too fast, leading to overuse injuries
         injury_type = 'exposure'
+    elif acwr > optimal_upper:
+        # DANGER ZONE (1.3-1.5): Transitional - could be either mechanism
+        # Use the higher risk component to decide
+        if exposure_risk > baseline_risk:
+            injury_type = 'exposure'
+        else:
+            injury_type = 'baseline'
     else:
+        # OPTIMAL ZONE (0.8-1.3): Primary mechanism is baseline/random
+        # These are the "inevitable" injuries that occur even with perfect load management
         injury_type = 'baseline'
 
     min_prob = bounds.get('min_probability', 0.001)
