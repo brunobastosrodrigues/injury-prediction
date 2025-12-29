@@ -20,6 +20,7 @@ function DataGenerationPage() {
   const [currentJobId, setCurrentJobId] = useState(null)
   const [jobStatus, setJobStatus] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
 
   // Polling for job status
   const { data: statusData } = usePolling(
@@ -51,15 +52,21 @@ function DataGenerationPage() {
 
   const handleGenerate = async () => {
     setIsSubmitting(true)
+    setSubmitError(null)
+    // Show immediate feedback in the progress panel
+    setJobStatus({ status: 'starting', progress: 0, current_step: 'Initializing generation...' })
+
     try {
       const response = await dataApi.generate(config)
       const jobId = response.data.job_id
       setCurrentJobId(jobId)
-      setJobStatus({ status: 'running', progress: 0 })
+      setJobStatus({ status: 'running', progress: 0, current_step: 'Starting athlete simulation...' })
       addJob(jobId, 'data_generation', `Generating ${config.n_athletes} athletes`)
     } catch (error) {
       console.error('Failed to start generation:', error)
-      alert('Failed to start generation. Please check the console for details.')
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to start generation'
+      setSubmitError(errorMessage)
+      setJobStatus({ status: 'failed', progress: 0, error: errorMessage })
     } finally {
       setIsSubmitting(false)
     }
@@ -88,7 +95,7 @@ function DataGenerationPage() {
     }
   }
 
-  const isRunning = jobStatus?.status === 'running' || isSubmitting
+  const isRunning = jobStatus?.status === 'running' || jobStatus?.status === 'starting' || isSubmitting
 
   return (
     <div className="space-y-6">
@@ -150,8 +157,14 @@ function DataGenerationPage() {
               <button
                 onClick={handleGenerate}
                 disabled={isRunning}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2.5 px-4 rounded-xl hover:from-blue-500 hover:to-blue-600 disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed transition-all font-medium shadow-lg shadow-blue-500/25 disabled:shadow-none"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2.5 px-4 rounded-xl hover:from-blue-500 hover:to-blue-600 disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed transition-all font-medium shadow-lg shadow-blue-500/25 disabled:shadow-none flex items-center justify-center gap-2"
               >
+                {(isSubmitting || isRunning) && (
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
                 {isSubmitting ? 'Starting...' : isRunning ? 'Generating...' : 'Generate Dataset'}
               </button>
               {isRunning && (
@@ -199,10 +212,34 @@ function DataGenerationPage() {
                 </div>
               )}
 
-              {jobStatus.status === 'failed' && jobStatus.error && (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-                  <p className="text-red-400">Error: {jobStatus.error}</p>
+              {jobStatus.status === 'failed' && (
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl space-y-3">
+                  <p className="text-red-400">
+                    <span className="font-medium">Error:</span> {jobStatus.error || 'Generation failed'}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setJobStatus(null)
+                      setSubmitError(null)
+                      setCurrentJobId(null)
+                    }}
+                    className="text-sm text-red-400 hover:text-red-300 underline"
+                  >
+                    Try again
+                  </button>
                 </div>
+              )}
+
+              {(jobStatus.status === 'completed' || jobStatus.status === 'cancelled') && (
+                <button
+                  onClick={() => {
+                    setJobStatus(null)
+                    setCurrentJobId(null)
+                  }}
+                  className="w-full py-2 text-sm text-slate-400 hover:text-slate-300 border border-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
+                >
+                  Start New Generation
+                </button>
               )}
             </div>
           ) : (
