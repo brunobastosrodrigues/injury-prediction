@@ -1551,7 +1551,7 @@ function ExternalValidationPage() {
 
           {/* Causal Mechanism Tab */}
           {activeTab === 'causal' && validationResults.causal_mechanism && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {/* Causal Asymmetry Chart */}
               {validationResults.causal_mechanism.causal_asymmetry?.zones && (
                 <Card
@@ -1579,36 +1579,41 @@ function ExternalValidationPage() {
                       },
                       text: validationResults.causal_mechanism.causal_asymmetry.zones.map(z => `${z.relative_risk}x`),
                       textposition: 'outside',
-                      textfont: { size: 12, color: '#cbd5e1' }
+                      textfont: { size: 14, color: '#cbd5e1' }
                     }]}
                     layout={{
                       ...darkLayout,
-                      height: 350,
-                      margin: { t: 40, r: 20, b: 80, l: 60 },
-                      xaxis: { ...darkLayout.xaxis, title: 'ACWR Zone', tickangle: -30 },
-                      yaxis: { ...darkLayout.yaxis, title: 'Injuries per 10,000 TSS Units' },
-                      showlegend: false,
-                      annotations: validationResults.causal_mechanism.causal_asymmetry.summary?.interpretation ? [{
-                        x: 0.5,
-                        y: -0.25,
-                        xref: 'paper',
-                        yref: 'paper',
-                        text: validationResults.causal_mechanism.causal_asymmetry.summary.interpretation,
-                        showarrow: false,
-                        font: { size: 10, color: '#94a3b8' },
-                        align: 'center'
-                      }] : []
+                      height: 320,
+                      margin: { t: 50, r: 30, b: 70, l: 70 },
+                      xaxis: {
+                        ...darkLayout.xaxis,
+                        title: { text: 'ACWR Zone', font: { size: 12, color: '#94a3b8' }, standoff: 15 },
+                        tickfont: { size: 11, color: '#94a3b8' }
+                      },
+                      yaxis: {
+                        ...darkLayout.yaxis,
+                        title: { text: 'Injuries per 10,000 TSS', font: { size: 12, color: '#94a3b8' }, standoff: 10 },
+                        tickfont: { size: 11, color: '#94a3b8' }
+                      },
+                      showlegend: false
                     }}
                     config={{ displayModeBar: false, responsive: true }}
                     useResizeHandler
                     style={{ width: '100%' }}
                   />
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                  {/* Interpretation text below plot */}
+                  {validationResults.causal_mechanism.causal_asymmetry.summary?.interpretation && (
+                    <p className="text-sm text-slate-400 mt-4 text-center italic">
+                      {validationResults.causal_mechanism.causal_asymmetry.summary.interpretation}
+                    </p>
+                  )}
+                  {/* Zone stats grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
                     {validationResults.causal_mechanism.causal_asymmetry.zones.map(zone => (
-                      <div key={zone.zone} className="text-center p-3 bg-slate-800/50 rounded-lg text-xs">
-                        <p className="font-medium text-slate-300">{zone.zone}</p>
-                        <p className="text-slate-400">{zone.total_injuries} injuries / {zone.total_days} days</p>
-                        <p className="text-slate-500">{zone.injury_rate_pct}% daily rate</p>
+                      <div key={zone.zone} className="text-center p-3 bg-slate-800/50 rounded-lg">
+                        <p className="font-medium text-slate-300 text-sm">{zone.zone}</p>
+                        <p className="text-slate-400 text-xs mt-1">{zone.total_injuries} injuries / {zone.total_days} days</p>
+                        <p className="text-slate-500 text-xs">{zone.injury_rate_pct}% daily rate</p>
                       </div>
                     ))}
                   </div>
@@ -1628,7 +1633,11 @@ function ExternalValidationPage() {
                       colorscale: 'RdYlGn',
                       reversescale: true,
                       contours: { showlabels: true, labelfont: { size: 10, color: '#fff' } },
-                      colorbar: { title: 'Injury Prob', titleside: 'right', tickfont: { color: '#94a3b8' } }
+                      colorbar: {
+                        title: { text: 'Injury Prob', side: 'right', font: { size: 11, color: '#94a3b8' } },
+                        tickfont: { size: 10, color: '#94a3b8' },
+                        len: 0.8
+                      }
                     },
                     // ACWR reference lines
                     {
@@ -1649,24 +1658,33 @@ function ExternalValidationPage() {
                     }]}
                     layout={{
                       ...darkLayout,
-                      height: 400,
-                      margin: { t: 30, r: 120, b: 60, l: 60 },
-                      xaxis: { ...darkLayout.xaxis, title: 'Chronic Load (Fitness)' },
-                      yaxis: { ...darkLayout.yaxis, title: 'Acute Load (Fatigue)' },
+                      height: 380,
+                      margin: { t: 40, r: 100, b: 60, l: 70 },
+                      xaxis: {
+                        ...darkLayout.xaxis,
+                        title: { text: 'Chronic Load (Fitness)', font: { size: 12, color: '#94a3b8' }, standoff: 10 },
+                        tickfont: { size: 10, color: '#94a3b8' }
+                      },
+                      yaxis: {
+                        ...darkLayout.yaxis,
+                        title: { text: 'Acute Load (Fatigue)', font: { size: 12, color: '#94a3b8' }, standoff: 10 },
+                        tickfont: { size: 10, color: '#94a3b8' }
+                      },
                       showlegend: true,
                       legend: {
                         ...darkLayout.legend,
                         orientation: 'h',
-                        y: 1.1,
+                        y: -0.2,
                         x: 0.5,
-                        xanchor: 'center'
+                        xanchor: 'center',
+                        font: { size: 11, color: '#94a3b8' }
                       }
                     }}
                     config={{ displayModeBar: false, responsive: true }}
                     useResizeHandler
                     style={{ width: '100%' }}
                   />
-                  <p className="text-xs text-slate-500 mt-2 text-center">
+                  <p className="text-sm text-slate-500 mt-4 text-center">
                     The "Sweet Spot" (green) is where ACWR is 0.8-1.3. Red zones indicate elevated risk.
                   </p>
                 </Card>
