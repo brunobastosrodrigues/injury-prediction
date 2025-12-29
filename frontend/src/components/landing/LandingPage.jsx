@@ -37,21 +37,9 @@ function LandingPage() {
       <header className="border-b border-slate-800 bg-slate-950">
         <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
           <span className="text-slate-400 text-sm">Research Platform</span>
-          <nav className="flex items-center gap-6 text-sm">
-            <button
-              ref={citationButtonRef}
-              onClick={() => setShowCitation(true)}
-              className="text-slate-400 hover:text-white"
-            >
-              Cite
-            </button>
-            <Link to="/dashboard" className="text-slate-400 hover:text-white">
-              Dashboard
-            </Link>
-            <Link to="/pipeline" className="text-blue-400 hover:text-blue-300 font-medium">
-              Open Platform
-            </Link>
-          </nav>
+          <Link to="/pipeline" className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+            Open Platform
+          </Link>
         </div>
       </header>
 
