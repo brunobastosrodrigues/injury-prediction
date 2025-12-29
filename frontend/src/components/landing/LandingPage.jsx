@@ -2,12 +2,49 @@ import { Link } from 'react-router-dom'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTheme } from '../../context/ThemeContext'
 import CitationBlock from '../common/CitationBlock'
+import api from '../../api'
 
 function LandingPage() {
   const { isDark, toggleTheme, theme } = useTheme()
   const [showCitation, setShowCitation] = useState(false)
+  const [stats, setStats] = useState(null)
   const citationButtonRef = useRef(null)
   const closeButtonRef = useRef(null)
+
+  // Fetch landing page stats on mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/validation/landing-stats')
+        setStats(response.data)
+      } catch (err) {
+        console.error('Failed to load landing stats:', err)
+        // Use fallback values if API fails
+        setStats({
+          cohort: { athletes: 1000, samples: 366000 },
+          acwr_zones: [
+            { zone: 'Undertrained', risk_per_load: 2.82, relative_risk: 2.69 },
+            { zone: 'Optimal', risk_per_load: 1.05, relative_risk: 1.0 },
+            { zone: 'Elevated', risk_per_load: 1.03, relative_risk: 0.98 },
+            { zone: 'High Risk', risk_per_load: 2.23, relative_risk: 2.12 }
+          ],
+          model_performance: [
+            { name: 'XGBoost', auc: 0.613, color: 'blue' },
+            { name: 'Random Forest', auc: 0.609, color: 'emerald' },
+            { name: 'Lasso (L1)', auc: 0.586, color: 'purple' }
+          ],
+          three_pillars: {
+            statistical_fidelity: { score: 0.93, status: 'pass' },
+            causal_fidelity: { score: 0.90, status: 'pass' },
+            transferability: { score: 0, status: 'fail', sim2real_auc: 0.49 },
+            overall_score: 0.61,
+            pillars_passing: '2/3'
+          }
+        })
+      }
+    }
+    fetchStats()
+  }, [])
 
   useEffect(() => {
     if (showCitation && closeButtonRef.current) {
@@ -32,6 +69,48 @@ function LandingPage() {
     setShowCitation(false)
     citationButtonRef.current?.focus()
   }, [])
+
+  // Helper to get zone styling
+  const getZoneStyle = (zone) => {
+    const styles = {
+      'Undertrained': { gradient: 'from-red-600 to-red-500', text: 'text-red-500' },
+      'Optimal': { gradient: 'from-green-600 to-green-500', text: 'text-green-500' },
+      'Elevated': { gradient: 'from-amber-600 to-amber-500', text: 'text-amber-500' },
+      'High Risk': { gradient: 'from-orange-600 to-orange-500', text: 'text-orange-500' }
+    }
+    return styles[zone] || { gradient: 'from-gray-600 to-gray-500', text: 'text-gray-500' }
+  }
+
+  // Helper to get model color class
+  const getModelColor = (color) => {
+    const colors = {
+      'blue': 'text-blue-500 bg-blue-500',
+      'emerald': 'text-emerald-500 bg-emerald-500',
+      'purple': 'text-purple-500 bg-purple-500'
+    }
+    return colors[color] || 'text-gray-500 bg-gray-500'
+  }
+
+  // Helper to get pillar status styling
+  const getPillarStyle = (status) => {
+    if (status === 'pass') {
+      return {
+        bg: isDark ? 'bg-green-500/20' : 'bg-green-100',
+        icon: '✓',
+        color: 'text-green-500'
+      }
+    }
+    return {
+      bg: isDark ? 'bg-amber-500/20' : 'bg-amber-100',
+      icon: '⚠',
+      color: 'text-amber-500'
+    }
+  }
+
+  // Calculate max risk for bar scaling
+  const maxRisk = stats?.acwr_zones?.length > 0
+    ? Math.max(...stats.acwr_zones.map(z => z.risk_per_load))
+    : 3
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-slate-950' : 'bg-gray-50'}`}>
@@ -115,7 +194,7 @@ function LandingPage() {
               <strong className={isDark ? 'text-slate-300' : 'text-gray-800'}>Results:</strong> The framework enables reproducible model development with comprehensive evaluation
               metrics (ROC-AUC, PR-AUC, calibration), interpretability via SHAP-based feature attribution, and counterfactual
               analysis for intervention validation. Validation demonstrates the asymmetric ACWR-injury relationship:
-              undertrained athletes (ACWR &lt; 0.8) exhibit 3.5× higher injury risk per training load unit compared to
+              undertrained athletes (ACWR &lt; 0.8) exhibit {stats?.acwr_zones?.[0]?.relative_risk?.toFixed(1) || '2.7'}× higher injury risk per training load unit compared to
               optimally trained athletes, while overloaded athletes show elevated risk primarily through increased exposure.
             </p>
             <p>
@@ -134,8 +213,8 @@ function LandingPage() {
             {/* Study Overview */}
             <div className={`p-4 rounded-lg border ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-gray-200 shadow-sm'}`}>
               <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
-                Results from reference cohort: <strong className={isDark ? 'text-slate-300' : 'text-gray-800'}>1,000 synthetic athletes</strong>,
-                <strong className={isDark ? 'text-slate-300' : 'text-gray-800'}> 366,000 daily records</strong>, simulating one year of training
+                Results from reference cohort: <strong className={isDark ? 'text-slate-300' : 'text-gray-800'}>{stats?.cohort?.athletes?.toLocaleString() || '1,000'} synthetic athletes</strong>,
+                <strong className={isDark ? 'text-slate-300' : 'text-gray-800'}> {stats?.cohort?.samples?.toLocaleString() || '366,000'} daily records</strong>, simulating one year of training
                 with physiologically-grounded injury mechanisms.
               </p>
             </div>
@@ -147,49 +226,24 @@ function LandingPage() {
                 Injury risk per 1,000 TSS units by ACWR zone, demonstrating the "fitness protects" hypothesis.
               </p>
               <div className="space-y-2">
-                {/* Undertrained */}
-                <div className="flex items-center gap-3">
-                  <div className={`w-24 text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'} text-right`}>Undertrained</div>
-                  <div className={`flex-1 h-6 ${isDark ? 'bg-slate-800' : 'bg-gray-200'} rounded overflow-hidden`}>
-                    <div className="h-full bg-gradient-to-r from-red-600 to-red-500 flex items-center justify-end pr-2" style={{ width: '100%' }}>
-                      <span className="text-xs font-semibold text-white">2.90</span>
+                {stats?.acwr_zones?.map((zone) => {
+                  const style = getZoneStyle(zone.zone)
+                  const barWidth = (zone.risk_per_load / maxRisk) * 100
+                  return (
+                    <div key={zone.zone} className="flex items-center gap-3">
+                      <div className={`w-24 text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'} text-right`}>{zone.zone}</div>
+                      <div className={`flex-1 h-6 ${isDark ? 'bg-slate-800' : 'bg-gray-200'} rounded overflow-hidden`}>
+                        <div className={`h-full bg-gradient-to-r ${style.gradient} flex items-center justify-end pr-2`} style={{ width: `${barWidth}%` }}>
+                          <span className="text-xs font-semibold text-white">{zone.risk_per_load?.toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <div className={`w-14 text-xs ${style.text} font-semibold`}>{zone.relative_risk?.toFixed(2)}×</div>
                     </div>
-                  </div>
-                  <div className="w-14 text-xs text-red-500 font-semibold">2.61×</div>
-                </div>
-                {/* Optimal */}
-                <div className="flex items-center gap-3">
-                  <div className={`w-24 text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'} text-right`}>Optimal</div>
-                  <div className={`flex-1 h-6 ${isDark ? 'bg-slate-800' : 'bg-gray-200'} rounded overflow-hidden`}>
-                    <div className="h-full bg-gradient-to-r from-green-600 to-green-500 flex items-center justify-end pr-2" style={{ width: '38%' }}>
-                      <span className="text-xs font-semibold text-white">1.11</span>
-                    </div>
-                  </div>
-                  <div className="w-14 text-xs text-green-500 font-semibold">1.00×</div>
-                </div>
-                {/* Elevated */}
-                <div className="flex items-center gap-3">
-                  <div className={`w-24 text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'} text-right`}>Elevated</div>
-                  <div className={`flex-1 h-6 ${isDark ? 'bg-slate-800' : 'bg-gray-200'} rounded overflow-hidden`}>
-                    <div className="h-full bg-gradient-to-r from-amber-600 to-amber-500 flex items-center justify-end pr-2" style={{ width: '39%' }}>
-                      <span className="text-xs font-semibold text-white">1.14</span>
-                    </div>
-                  </div>
-                  <div className="w-14 text-xs text-amber-500 font-semibold">1.03×</div>
-                </div>
-                {/* High Risk */}
-                <div className="flex items-center gap-3">
-                  <div className={`w-24 text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'} text-right`}>High Risk</div>
-                  <div className={`flex-1 h-6 ${isDark ? 'bg-slate-800' : 'bg-gray-200'} rounded overflow-hidden`}>
-                    <div className="h-full bg-gradient-to-r from-orange-600 to-orange-500 flex items-center justify-end pr-2" style={{ width: '76%' }}>
-                      <span className="text-xs font-semibold text-white">2.19</span>
-                    </div>
-                  </div>
-                  <div className="w-14 text-xs text-orange-500 font-semibold">1.97×</div>
-                </div>
+                  )
+                })}
               </div>
               <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'} mt-3 italic`}>
-                Undertrained athletes (ACWR &lt; 0.8) show 2.6× higher injury risk per unit training load than optimally trained athletes.
+                Undertrained athletes (ACWR &lt; 0.8) show {stats?.acwr_zones?.[0]?.relative_risk?.toFixed(1) || '2.7'}× higher injury risk per unit training load than optimally trained athletes.
               </p>
             </div>
 
@@ -200,33 +254,20 @@ function LandingPage() {
                 <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-gray-800'} mb-1`}>Figure 2: Model Performance</h3>
                 <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'} mb-3`}>7-day injury prediction (AUC-ROC)</p>
                 <div className="space-y-2">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className={isDark ? 'text-slate-400' : 'text-gray-600'}>XGBoost</span>
-                      <span className="text-blue-500 font-semibold">0.613</span>
-                    </div>
-                    <div className={`h-2 ${isDark ? 'bg-slate-800' : 'bg-gray-200'} rounded-full overflow-hidden`}>
-                      <div className="h-full bg-blue-500 rounded-full" style={{ width: '61.3%' }}></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className={isDark ? 'text-slate-400' : 'text-gray-600'}>Random Forest</span>
-                      <span className="text-emerald-500 font-semibold">0.609</span>
-                    </div>
-                    <div className={`h-2 ${isDark ? 'bg-slate-800' : 'bg-gray-200'} rounded-full overflow-hidden`}>
-                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: '60.9%' }}></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className={isDark ? 'text-slate-400' : 'text-gray-600'}>Lasso (L1)</span>
-                      <span className="text-purple-500 font-semibold">0.586</span>
-                    </div>
-                    <div className={`h-2 ${isDark ? 'bg-slate-800' : 'bg-gray-200'} rounded-full overflow-hidden`}>
-                      <div className="h-full bg-purple-500 rounded-full" style={{ width: '58.6%' }}></div>
-                    </div>
-                  </div>
+                  {stats?.model_performance?.map((model) => {
+                    const colorClass = getModelColor(model.color)
+                    return (
+                      <div key={model.name}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className={isDark ? 'text-slate-400' : 'text-gray-600'}>{model.name}</span>
+                          <span className={`${colorClass.split(' ')[0]} font-semibold`}>{model.auc?.toFixed(3)}</span>
+                        </div>
+                        <div className={`h-2 ${isDark ? 'bg-slate-800' : 'bg-gray-200'} rounded-full overflow-hidden`}>
+                          <div className={`h-full ${colorClass.split(' ')[1]} rounded-full`} style={{ width: `${model.auc * 100}%` }}></div>
+                        </div>
+                      </div>
+                    )
+                  })}
                   <div className={`pt-2 border-t ${isDark ? 'border-slate-700' : 'border-gray-200'}`}>
                     <div className="flex justify-between text-xs">
                       <span className={isDark ? 'text-slate-500' : 'text-gray-500'}>Random baseline</span>
@@ -241,40 +282,61 @@ function LandingPage() {
                 <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-gray-800'} mb-1`}>Figure 3: Validation Pillars</h3>
                 <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'} mb-3`}>Publication-quality validation</p>
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-5 h-5 rounded-full ${isDark ? 'bg-green-500/20' : 'bg-green-100'} flex items-center justify-center`}>
-                      <span className="text-green-500 text-xs">✓</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-gray-800'}`}>Causal Fidelity</p>
-                      <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>ACWR asymmetry confirmed</p>
-                    </div>
-                    <span className="text-xs text-green-500 font-semibold">0.87</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-5 h-5 rounded-full ${isDark ? 'bg-amber-500/20' : 'bg-amber-100'} flex items-center justify-center`}>
-                      <span className="text-amber-500 text-xs">⚠</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-gray-800'}`}>Statistical Fidelity</p>
-                      <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Synthetic-real distribution gap</p>
-                    </div>
-                    <span className="text-xs text-amber-500 font-semibold">0.29</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-5 h-5 rounded-full ${isDark ? 'bg-amber-500/20' : 'bg-amber-100'} flex items-center justify-center`}>
-                      <span className="text-amber-500 text-xs">⚠</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-gray-800'}`}>Transferability</p>
-                      <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Sim2Real AUC 0.51</p>
-                    </div>
-                    <span className="text-xs text-amber-500 font-semibold">0.00</span>
-                  </div>
+                  {/* Statistical Fidelity */}
+                  {(() => {
+                    const pillar = stats?.three_pillars?.statistical_fidelity
+                    const style = getPillarStyle(pillar?.status)
+                    return (
+                      <div className="flex items-center gap-2">
+                        <div className={`w-5 h-5 rounded-full ${style.bg} flex items-center justify-center`}>
+                          <span className={`${style.color} text-xs`}>{style.icon}</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-gray-800'}`}>Statistical Fidelity</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>JS divergence {pillar?.avg_js_divergence?.toFixed(3) || '< 0.1'}</p>
+                        </div>
+                        <span className={`text-xs ${style.color} font-semibold`}>{pillar?.score?.toFixed(2) || '0.00'}</span>
+                      </div>
+                    )
+                  })()}
+                  {/* Causal Fidelity */}
+                  {(() => {
+                    const pillar = stats?.three_pillars?.causal_fidelity
+                    const style = getPillarStyle(pillar?.status)
+                    return (
+                      <div className="flex items-center gap-2">
+                        <div className={`w-5 h-5 rounded-full ${style.bg} flex items-center justify-center`}>
+                          <span className={`${style.color} text-xs`}>{style.icon}</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-gray-800'}`}>Causal Fidelity</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>ACWR asymmetry confirmed</p>
+                        </div>
+                        <span className={`text-xs ${style.color} font-semibold`}>{pillar?.score?.toFixed(2) || '0.00'}</span>
+                      </div>
+                    )
+                  })()}
+                  {/* Transferability */}
+                  {(() => {
+                    const pillar = stats?.three_pillars?.transferability
+                    const style = getPillarStyle(pillar?.status)
+                    return (
+                      <div className="flex items-center gap-2">
+                        <div className={`w-5 h-5 rounded-full ${style.bg} flex items-center justify-center`}>
+                          <span className={`${style.color} text-xs`}>{style.icon}</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-gray-800'}`}>Transferability</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Sim2Real AUC {pillar?.sim2real_auc?.toFixed(2) || '0.00'}</p>
+                        </div>
+                        <span className={`text-xs ${style.color} font-semibold`}>{pillar?.score?.toFixed(2) || '0.00'}</span>
+                      </div>
+                    )
+                  })()}
                 </div>
                 <div className={`mt-3 pt-2 border-t ${isDark ? 'border-slate-700' : 'border-gray-200'} flex justify-between items-center`}>
                   <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Overall Score</span>
-                  <span className={`text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-gray-800'}`}>0.39 / 1.00</span>
+                  <span className={`text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-gray-800'}`}>{stats?.three_pillars?.overall_score?.toFixed(2) || '0.00'} / 1.00</span>
                 </div>
               </div>
             </div>
@@ -282,7 +344,7 @@ function LandingPage() {
             {/* Key Finding Summary */}
             <div className={`p-4 rounded-lg border ${isDark ? 'bg-blue-900/20 border-blue-500/20' : 'bg-blue-50 border-blue-200'}`}>
               <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
-                <strong className="text-blue-600 dark:text-blue-400">Key Finding:</strong> The causal mechanism validation (0.87) confirms that
+                <strong className="text-blue-600 dark:text-blue-400">Key Finding:</strong> The causal mechanism validation ({stats?.three_pillars?.causal_fidelity?.score?.toFixed(2) || '0.90'}) confirms that
                 synthetic data accurately captures the ACWR-injury relationship from sports science literature—undertrained
                 athletes face disproportionately higher injury risk per training unit, supporting the "fitness protects" hypothesis.
               </p>

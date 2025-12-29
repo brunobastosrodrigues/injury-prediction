@@ -627,3 +627,98 @@ def list_scientific_jobs():
         return jsonify({'jobs': jobs}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# =========================================================================
+# LANDING PAGE STATS ENDPOINT
+# =========================================================================
+
+@validation_bp.route('/landing-stats', methods=['GET'])
+def get_landing_stats():
+    """
+    Get aggregated stats for the landing page from pre-seeded validation data.
+    Uses dataset_pmdata_calibrated as the reference dataset.
+
+    Returns:
+        JSON with cohort info, ACWR zones, model performance, and three pillars.
+    """
+    import os
+    import json
+    from flask import current_app
+
+    try:
+        data_dir = current_app.config.get('DATA_DIR', 'data')
+        validation_dir = os.path.join(data_dir, 'validation', 'dataset_pmdata_calibrated')
+        models_dir = os.path.join(data_dir, 'models')
+
+        stats = {
+            'cohort': {
+                'athletes': 1000,
+                'samples': 366000,
+                'year': 1
+            },
+            'acwr_zones': [],
+            'model_performance': [],
+            'three_pillars': {
+                'statistical_fidelity': {'score': 0, 'status': 'pending'},
+                'causal_fidelity': {'score': 0, 'status': 'pending'},
+                'transferability': {'score': 0, 'status': 'pending'},
+                'overall_score': 0,
+                'pillars_passing': '0/3'
+            }
+        }
+
+        # Load three pillars data
+        three_pillars_path = os.path.join(validation_dir, 'three_pillars.json')
+        if os.path.exists(three_pillars_path):
+            with open(three_pillars_path, 'r') as f:
+                tp_data = json.load(f)
+                stats['three_pillars'] = {
+                    'statistical_fidelity': tp_data.get('pillars', {}).get('statistical_fidelity', {}),
+                    'causal_fidelity': tp_data.get('pillars', {}).get('causal_fidelity', {}),
+                    'transferability': tp_data.get('pillars', {}).get('transferability', {}),
+                    'overall_score': tp_data.get('overall_score', 0),
+                    'pillars_passing': tp_data.get('pillars_passing', '0/3')
+                }
+
+        # Load causal mechanism data for ACWR zones
+        causal_path = os.path.join(validation_dir, 'causal_mechanism.json')
+        if os.path.exists(causal_path):
+            with open(causal_path, 'r') as f:
+                causal_data = json.load(f)
+                stats['acwr_zones'] = causal_data.get('causal_asymmetry', {}).get('zones', [])
+                stats['cohort']['athletes'] = causal_data.get('total_athletes', 1000)
+                stats['cohort']['samples'] = causal_data.get('total_samples', 366000)
+
+        # Load model performance from latest models
+        if os.path.exists(models_dir):
+            model_files = [f for f in os.listdir(models_dir) if f.endswith('.json')]
+            model_results = {}
+
+            for mf in model_files:
+                with open(os.path.join(models_dir, mf), 'r') as f:
+                    model_data = json.load(f)
+                    model_type = model_data.get('model_type', '')
+                    # Keep the latest model for each type
+                    if model_type not in model_results or model_data.get('created_at', '') > model_results[model_type].get('created_at', ''):
+                        model_results[model_type] = model_data
+
+            # Format for landing page
+            model_order = ['xgboost', 'random_forest', 'lasso']
+            model_names = {'xgboost': 'XGBoost', 'random_forest': 'Random Forest', 'lasso': 'Lasso (L1)'}
+            model_colors = {'xgboost': 'blue', 'random_forest': 'emerald', 'lasso': 'purple'}
+
+            for mt in model_order:
+                if mt in model_results:
+                    metrics = model_results[mt].get('metrics', {})
+                    stats['model_performance'].append({
+                        'name': model_names.get(mt, mt),
+                        'type': mt,
+                        'auc': metrics.get('roc_auc', 0),
+                        'color': model_colors.get(mt, 'gray')
+                    })
+
+        return jsonify(stats), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
