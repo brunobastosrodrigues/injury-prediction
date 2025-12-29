@@ -29,6 +29,18 @@ function ResultsPage() {
     refreshModels()
   }, [refreshModels])
 
+  // Auto-select best model when models are loaded
+  useEffect(() => {
+    if (models.length > 0 && !selectedModel) {
+      // Prefer XGBoost model with best AUC, or just the best model by AUC
+      const sortedModels = [...models].sort((a, b) =>
+        (b.metrics?.roc_auc || 0) - (a.metrics?.roc_auc || 0)
+      )
+      const xgboostModel = sortedModels.find(m => m.model_type === 'xgboost')
+      setSelectedModel(xgboostModel || sortedModels[0])
+    }
+  }, [models, selectedModel])
+
   useEffect(() => {
     if (selectedModel) {
       loadModelData(selectedModel)
