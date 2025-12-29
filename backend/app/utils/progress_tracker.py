@@ -4,6 +4,28 @@ import os
 from datetime import datetime
 from typing import Dict, Any, Optional
 import redis
+import numpy as np
+
+
+def numpy_to_python(obj: Any) -> Any:
+    """
+    Recursively convert NumPy types to native Python types for JSON serialization.
+
+    Handles: numpy.bool_, numpy.integer, numpy.floating, numpy.ndarray, and nested structures.
+    """
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: numpy_to_python(value) for key, value in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [numpy_to_python(item) for item in obj]
+    return obj
 
 
 class ProgressTracker:
@@ -60,7 +82,8 @@ class ProgressTracker:
             job_data = json.loads(data)
             job_data['progress'] = min(progress, 100)
             job_data['current_step'] = current_step
-            job_data['data'].update(kwargs)
+            # Convert NumPy types to native Python types for JSON serialization
+            job_data['data'].update(numpy_to_python(kwargs))
             client.set(f"job:{job_id}", json.dumps(job_data), ex=86400)
 
     @classmethod
@@ -73,7 +96,8 @@ class ProgressTracker:
             job_data['status'] = 'completed'
             job_data['progress'] = 100
             job_data['completed_at'] = datetime.utcnow().isoformat()
-            job_data['result'] = result
+            # Convert NumPy types to native Python types for JSON serialization
+            job_data['result'] = numpy_to_python(result)
             client.set(f"job:{job_id}", json.dumps(job_data), ex=86400)
 
     @classmethod
