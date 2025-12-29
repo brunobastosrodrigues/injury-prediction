@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import Plot from 'react-plotly.js'
+import { useTheme } from '../../../context/ThemeContext'
 import { analyticsApi } from '../../../api'
 import Card from '../../common/Card'
 
 function OverviewTab({ athleteProfile, athleteTimeline, selectedModel, datasetId }) {
+  const { isDark } = useTheme()
   const [riskData, setRiskData] = useState(null)
   const [loading, setLoading] = useState(false)
 
@@ -211,18 +213,24 @@ function OverviewTab({ athleteProfile, athleteTimeline, selectedModel, datasetId
               }
             ]}
             layout={{
+              paper_bgcolor: 'rgba(0,0,0,0)',
+              plot_bgcolor: 'rgba(0,0,0,0)',
+              font: { color: isDark ? '#94a3b8' : '#374151' },
               polar: {
+                bgcolor: isDark ? 'rgba(15,23,42,0.5)' : 'rgba(249,250,251,0.8)',
                 radialaxis: {
                   visible: true,
                   range: [0, 1],
-                  tickfont: { size: 9 }
+                  tickfont: { size: 9, color: isDark ? '#94a3b8' : '#374151' },
+                  gridcolor: isDark ? '#334155' : '#e5e7eb'
                 },
                 angularaxis: {
-                  tickfont: { size: 9 }
+                  tickfont: { size: 9, color: isDark ? '#94a3b8' : '#374151' },
+                  gridcolor: isDark ? '#334155' : '#e5e7eb'
                 }
               },
               showlegend: true,
-              legend: { x: 0, y: -0.15, orientation: 'h', font: { size: 10 } },
+              legend: { x: 0, y: -0.15, orientation: 'h', font: { size: 10, color: isDark ? '#cbd5e1' : '#1f2937' } },
               margin: { t: 20, r: 20, b: 50, l: 20 },
               autosize: true
             }}

@@ -100,7 +100,7 @@ function IngestionPage() {
             <button
               onClick={handleUpload}
               disabled={!file || !selectedDataset || status === 'processing'}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 text-sm sm:text-base"
+              className="w-full bg-blue-600 text-gray-900 dark:text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 text-sm sm:text-base"
             >
               {status === 'processing' ? 'Processing...' : 'Upload & Ingest'}
             </button>

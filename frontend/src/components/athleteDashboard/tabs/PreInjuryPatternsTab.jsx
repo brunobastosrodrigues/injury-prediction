@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Plot from 'react-plotly.js'
+import { useTheme } from '../../../context/ThemeContext'
 import { analyticsApi } from '../../../api'
 import Card from '../../common/Card'
 
@@ -22,6 +23,7 @@ const METRIC_LABELS = {
 }
 
 function PreInjuryPatternsTab({ datasetId, athleteId, athleteProfile }) {
+  const { isDark } = useTheme()
   const [patterns, setPatterns] = useState(null)
   const [loading, setLoading] = useState(false)
   const [lookbackDays, setLookbackDays] = useState(14)
@@ -219,8 +221,11 @@ function PreInjuryPatternsTab({ datasetId, athleteId, athleteProfile }) {
                     }
                   ]}
                   layout={{
-                    xaxis: { title: 'Days Before Injury', zeroline: true, zerolinecolor: '#ef4444', zerolinewidth: 2, tickfont: { size: 9 } },
-                    yaxis: { title: metric, tickfont: { size: 9 } },
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: isDark ? 'rgba(15,23,42,0.5)' : 'rgba(249,250,251,0.8)',
+                    font: { color: isDark ? '#94a3b8' : '#374151' },
+                    xaxis: { title: 'Days Before Injury', zeroline: true, zerolinecolor: '#ef4444', zerolinewidth: 2, tickfont: { size: 9, color: isDark ? '#94a3b8' : '#374151' }, gridcolor: isDark ? '#334155' : '#e5e7eb' },
+                    yaxis: { title: metric, tickfont: { size: 9, color: isDark ? '#94a3b8' : '#374151' }, gridcolor: isDark ? '#334155' : '#e5e7eb' },
                     margin: { t: 10, r: 10, b: 40, l: 45 },
                     autosize: true,
                     showlegend: false,

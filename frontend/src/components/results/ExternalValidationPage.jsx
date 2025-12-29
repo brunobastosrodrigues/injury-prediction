@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Plot from 'react-plotly.js'
 import { usePipeline } from '../../context/PipelineContext'
+import { useTheme } from '../../context/ThemeContext'
 import { dataApi, validationApi } from '../../api'
 import Card from '../common/Card'
 import ProgressBar from '../common/ProgressBar'
 import ExportButton from '../common/ExportButton'
 
-// Dark theme layout for Plotly (consistent with ResultsPage)
+// Dark theme layout for Plotly
 const darkLayout = {
   paper_bgcolor: 'rgba(0,0,0,0)',
   plot_bgcolor: 'rgba(15,23,42,0.5)',
@@ -16,8 +17,20 @@ const darkLayout = {
   legend: { bgcolor: 'rgba(0,0,0,0)', font: { color: '#cbd5e1' } }
 }
 
+// Light theme layout for Plotly
+const lightLayout = {
+  paper_bgcolor: 'rgba(255,255,255,0)',
+  plot_bgcolor: 'rgba(249,250,251,0.8)',
+  font: { color: '#374151', size: 11 },
+  xaxis: { gridcolor: '#e5e7eb', zerolinecolor: '#d1d5db', tickfont: { color: '#374151' } },
+  yaxis: { gridcolor: '#e5e7eb', zerolinecolor: '#d1d5db', tickfont: { color: '#374151' } },
+  legend: { bgcolor: 'rgba(255,255,255,0)', font: { color: '#1f2937' } }
+}
+
 function ExternalValidationPage() {
   const { datasets, refreshDatasets } = usePipeline()
+  const { isDark } = useTheme()
+  const chartLayout = isDark ? darkLayout : lightLayout
   const [selectedDataset, setSelectedDataset] = useState(null)
   const [cachedValidations, setCachedValidations] = useState([])
   const [validationResults, setValidationResults] = useState(null)
@@ -834,11 +847,11 @@ function ExternalValidationPage() {
                             textfont: { size: 10, color: '#94a3b8' }
                           }]}
                           layout={{
-                            ...darkLayout,
+                            ...chartLayout,
                             height: 300,
                             margin: { t: 20, r: 60, b: 50, l: 150 },
-                            xaxis: { ...darkLayout.xaxis, title: 'Importance (Higher = More Distinguishing)' },
-                            yaxis: { ...darkLayout.yaxis, automargin: true, tickfont: { size: 10, color: '#94a3b8' } }
+                            xaxis: { ...chartLayout.xaxis, title: 'Importance (Higher = More Distinguishing)' },
+                            yaxis: { ...chartLayout.yaxis, automargin: true, tickfont: { size: 10, color: '#94a3b8' } }
                           }}
                           config={{ displayModeBar: false, responsive: true }}
                           useResizeHandler
@@ -1042,14 +1055,14 @@ function ExternalValidationPage() {
                           }
                         ]}
                         layout={{
-                          ...darkLayout,
+                          ...chartLayout,
                           height: 350,
                           margin: { t: 40, r: 20, b: 50, l: 180 },
                           barmode: 'relative',
-                          xaxis: { ...darkLayout.xaxis, title: 'Change in AUC', zeroline: true, zerolinewidth: 2 },
-                          yaxis: { ...darkLayout.yaxis, automargin: true },
+                          xaxis: { ...chartLayout.xaxis, title: 'Change in AUC', zeroline: true, zerolinewidth: 2 },
+                          yaxis: { ...chartLayout.yaxis, automargin: true },
                           showlegend: true,
-                          legend: { ...darkLayout.legend, orientation: 'h', y: 1.1, x: 0.5, xanchor: 'center' }
+                          legend: { ...chartLayout.legend, orientation: 'h', y: 1.1, x: 0.5, xanchor: 'center' }
                         }}
                         config={{ displayModeBar: false, responsive: true }}
                         useResizeHandler
@@ -1185,13 +1198,13 @@ function ExternalValidationPage() {
                         line: { color: '#3b82f6', width: 2, dash: 'dash' }
                       }]}
                       layout={{
-                        ...darkLayout,
+                        ...chartLayout,
                         height: 300,
                         margin: { t: 40, r: 20, b: 60, l: 50 },
-                        xaxis: { ...darkLayout.xaxis, title: 'Athlete (Held-Out)', tickangle: -45 },
-                        yaxis: { ...darkLayout.yaxis, title: 'AUC', range: [0.3, 1] },
+                        xaxis: { ...chartLayout.xaxis, title: 'Athlete (Held-Out)', tickangle: -45 },
+                        yaxis: { ...chartLayout.yaxis, title: 'AUC', range: [0.3, 1] },
                         showlegend: true,
-                        legend: { ...darkLayout.legend, orientation: 'h', y: 1.15, x: 0.5, xanchor: 'center' }
+                        legend: { ...chartLayout.legend, orientation: 'h', y: 1.15, x: 0.5, xanchor: 'center' }
                       }}
                       config={{ displayModeBar: false, responsive: true }}
                       useResizeHandler
@@ -1244,14 +1257,14 @@ function ExternalValidationPage() {
                         }
                       ]}
                       layout={{
-                        ...darkLayout,
+                        ...chartLayout,
                         height: 350,
                         margin: { t: 40, r: 20, b: 50, l: 150 },
                         barmode: 'relative',
-                        xaxis: { ...darkLayout.xaxis, title: 'Change in Asymmetry Ratio', zeroline: true, zerolinewidth: 2 },
-                        yaxis: { ...darkLayout.yaxis, automargin: true },
+                        xaxis: { ...chartLayout.xaxis, title: 'Change in Asymmetry Ratio', zeroline: true, zerolinewidth: 2 },
+                        yaxis: { ...chartLayout.yaxis, automargin: true },
                         showlegend: true,
-                        legend: { ...darkLayout.legend, orientation: 'h', y: 1.1, x: 0.5, xanchor: 'center' }
+                        legend: { ...chartLayout.legend, orientation: 'h', y: 1.1, x: 0.5, xanchor: 'center' }
                       }}
                       config={{ displayModeBar: false, responsive: true }}
                       useResizeHandler
@@ -1431,14 +1444,14 @@ function ExternalValidationPage() {
                         }
                       ]}
                       layout={{
-                        ...darkLayout,
+                        ...chartLayout,
                         barmode: 'overlay',
                         height: 280,
                         margin: { t: 30, r: 20, b: 50, l: 50 },
-                        xaxis: { ...darkLayout.xaxis, title: feat.replace(/_/g, ' '), range: [0, 1] },
-                        yaxis: { ...darkLayout.yaxis, title: 'Density' },
+                        xaxis: { ...chartLayout.xaxis, title: feat.replace(/_/g, ' '), range: [0, 1] },
+                        yaxis: { ...chartLayout.yaxis, title: 'Density' },
                         legend: {
-                          ...darkLayout.legend,
+                          ...chartLayout.legend,
                           orientation: 'h',
                           y: 1.15,
                           x: 0.5,
@@ -1582,16 +1595,16 @@ function ExternalValidationPage() {
                       textfont: { size: 14, color: '#cbd5e1' }
                     }]}
                     layout={{
-                      ...darkLayout,
+                      ...chartLayout,
                       height: 320,
                       margin: { t: 50, r: 30, b: 70, l: 70 },
                       xaxis: {
-                        ...darkLayout.xaxis,
+                        ...chartLayout.xaxis,
                         title: { text: 'ACWR Zone', font: { size: 12, color: '#94a3b8' }, standoff: 15 },
                         tickfont: { size: 11, color: '#94a3b8' }
                       },
                       yaxis: {
-                        ...darkLayout.yaxis,
+                        ...chartLayout.yaxis,
                         title: { text: 'Injuries per 10,000 TSS', font: { size: 12, color: '#94a3b8' }, standoff: 10 },
                         tickfont: { size: 11, color: '#94a3b8' }
                       },
@@ -1657,22 +1670,22 @@ function ExternalValidationPage() {
                       line: { dash: 'dash', color: 'white', width: 2 }
                     }]}
                     layout={{
-                      ...darkLayout,
+                      ...chartLayout,
                       height: 380,
                       margin: { t: 40, r: 100, b: 60, l: 70 },
                       xaxis: {
-                        ...darkLayout.xaxis,
+                        ...chartLayout.xaxis,
                         title: { text: 'Chronic Load (Fitness)', font: { size: 12, color: '#94a3b8' }, standoff: 10 },
                         tickfont: { size: 10, color: '#94a3b8' }
                       },
                       yaxis: {
-                        ...darkLayout.yaxis,
+                        ...chartLayout.yaxis,
                         title: { text: 'Acute Load (Fatigue)', font: { size: 12, color: '#94a3b8' }, standoff: 10 },
                         tickfont: { size: 10, color: '#94a3b8' }
                       },
                       showlegend: true,
                       legend: {
-                        ...darkLayout.legend,
+                        ...chartLayout.legend,
                         orientation: 'h',
                         y: -0.2,
                         x: 0.5,
@@ -1750,11 +1763,11 @@ function ExternalValidationPage() {
                       }
                     }]}
                     layout={{
-                      ...darkLayout,
+                      ...chartLayout,
                       height: 300,
                       margin: { t: 20, r: 20, b: 50, l: 140 },
-                      xaxis: { ...darkLayout.xaxis, title: 'Importance' },
-                      yaxis: { ...darkLayout.yaxis, automargin: true, tickfont: { size: 10, color: '#94a3b8' } }
+                      xaxis: { ...chartLayout.xaxis, title: 'Importance' },
+                      yaxis: { ...chartLayout.yaxis, automargin: true, tickfont: { size: 10, color: '#94a3b8' } }
                     }}
                     config={{ displayModeBar: false, responsive: true }}
                     useResizeHandler

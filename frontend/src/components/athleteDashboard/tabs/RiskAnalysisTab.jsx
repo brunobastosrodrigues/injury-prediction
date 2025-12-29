@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import Plot from 'react-plotly.js'
+import { useTheme } from '../../../context/ThemeContext'
 import { analyticsApi } from '../../../api'
 import Card from '../../common/Card'
 
 function RiskAnalysisTab({ datasetId, athleteId, modelId, athleteProfile, athleteTimeline }) {
+  const { isDark } = useTheme()
   const [riskTimeline, setRiskTimeline] = useState(null)
   const [riskFactors, setRiskFactors] = useState(null)
   const [selectedDate, setSelectedDate] = useState(null)
@@ -187,8 +189,11 @@ function RiskAnalysisTab({ datasetId, athleteId, modelId, athleteProfile, athlet
           <Plot
             data={riskTraces}
             layout={{
-              xaxis: { title: 'Date', type: 'date', rangeslider: { visible: true }, tickfont: { size: 10 } },
-              yaxis: { title: 'Injury Risk (%)', range: [0, Math.max(...risk_scores) * 100 * 1.2, 50], tickfont: { size: 10 } },
+              paper_bgcolor: 'rgba(0,0,0,0)',
+              plot_bgcolor: isDark ? 'rgba(15,23,42,0.5)' : 'rgba(249,250,251,0.8)',
+              font: { color: isDark ? '#94a3b8' : '#374151' },
+              xaxis: { title: 'Date', type: 'date', rangeslider: { visible: true }, tickfont: { size: 10, color: isDark ? '#94a3b8' : '#374151' }, gridcolor: isDark ? '#334155' : '#e5e7eb' },
+              yaxis: { title: 'Injury Risk (%)', range: [0, Math.max(...risk_scores) * 100 * 1.2, 50], tickfont: { size: 10, color: isDark ? '#94a3b8' : '#374151' }, gridcolor: isDark ? '#334155' : '#e5e7eb' },
               shapes: riskShapes,
               margin: { t: 20, r: 20, b: 80, l: 45 },
               autosize: true,
@@ -342,14 +347,20 @@ function RiskAnalysisTab({ datasetId, athleteId, modelId, athleteProfile, athlet
               }
             ]}
             layout={{
+              paper_bgcolor: 'rgba(0,0,0,0)',
+              plot_bgcolor: isDark ? 'rgba(15,23,42,0.5)' : 'rgba(249,250,251,0.8)',
+              font: { color: isDark ? '#94a3b8' : '#374151' },
               xaxis: {
                 title: 'Contribution to Risk (%)',
                 zeroline: true,
-                zerolinecolor: '#888',
-                zerolinewidth: 2
+                zerolinecolor: isDark ? '#888' : '#9ca3af',
+                zerolinewidth: 2,
+                tickfont: { color: isDark ? '#94a3b8' : '#374151' },
+                gridcolor: isDark ? '#334155' : '#e5e7eb'
               },
               yaxis: {
-                automargin: true
+                automargin: true,
+                tickfont: { color: isDark ? '#94a3b8' : '#374151' }
               },
               margin: { t: 20, r: 80, b: 50, l: 150 },
               autosize: true

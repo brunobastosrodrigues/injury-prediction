@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Plot from 'react-plotly.js'
 import { usePipeline } from '../../context/PipelineContext'
+import { useTheme } from '../../context/ThemeContext'
 import { trainingApi, analyticsApi } from '../../api'
 import Card from '../common/Card'
 import StatisticalMetric from '../common/StatisticalMetric'
@@ -11,6 +12,7 @@ import CitationBlock from '../common/CitationBlock'
 
 function ResultsPage() {
   const { models, refreshModels, splits } = usePipeline()
+  const { isDark } = useTheme()
   const [selectedModel, setSelectedModel] = useState(null)
   const [rocData, setRocData] = useState(null)
   const [prData, setPrData] = useState(null)
@@ -89,14 +91,21 @@ function ResultsPage() {
     }))
   }
 
-  // Dark theme layout for Plotly
-  const darkLayout = {
+  // Theme-aware layout for Plotly
+  const chartLayout = isDark ? {
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(15,23,42,0.5)',
     font: { color: '#94a3b8', size: 11 },
     xaxis: { gridcolor: '#334155', zerolinecolor: '#475569' },
     yaxis: { gridcolor: '#334155', zerolinecolor: '#475569' },
     legend: { bgcolor: 'rgba(0,0,0,0)', font: { color: '#cbd5e1' } }
+  } : {
+    paper_bgcolor: 'rgba(255,255,255,0)',
+    plot_bgcolor: 'rgba(249,250,251,0.8)',
+    font: { color: '#374151', size: 11 },
+    xaxis: { gridcolor: '#e5e7eb', zerolinecolor: '#d1d5db' },
+    yaxis: { gridcolor: '#e5e7eb', zerolinecolor: '#d1d5db' },
+    legend: { bgcolor: 'rgba(255,255,255,0)', font: { color: '#1f2937' } }
   }
 
   return (
@@ -104,14 +113,14 @@ function ResultsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Model Evaluation Results</h1>
-          <p className="text-sm sm:text-base text-slate-400 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Model Evaluation Results</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1">
             Performance metrics, discrimination curves, and feature attribution analysis
           </p>
         </div>
         <button
           onClick={() => setShowCitation(!showCitation)}
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-slate-300 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 transition-colors"
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg hover:bg-slate-700 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -139,13 +148,13 @@ function ResultsPage() {
       >
         {models.length === 0 ? (
           <div className="text-center py-8">
-            <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
               </svg>
             </div>
-            <p className="text-slate-400">No trained models available</p>
-            <p className="text-slate-500 text-sm mt-1">Train a model first to view evaluation results</p>
+            <p className="text-gray-600 dark:text-slate-400">No trained models available</p>
+            <p className="text-gray-500 dark:text-slate-500 text-sm mt-1">Train a model first to view evaluation results</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -156,7 +165,7 @@ function ResultsPage() {
                 className={`p-3 sm:p-4 border rounded-xl text-left transition-all ${
                   selectedModel?.id === model.id
                     ? 'border-blue-500 bg-blue-500/10 ring-1 ring-blue-500/50'
-                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800'
+                    : 'border-gray-300 dark:border-slate-700 bg-gray-100 dark:bg-gray-100 dark:bg-slate-800/50 hover:border-slate-600 hover:bg-gray-100 dark:bg-slate-800'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -173,15 +182,15 @@ function ResultsPage() {
                     </svg>
                   )}
                 </div>
-                <p className="text-xs text-slate-500 font-mono truncate mb-2">{model.id}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-500 font-mono truncate mb-2">{model.id}</p>
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">
+                  <span className="text-gray-600 dark:text-slate-400">
                     <MethodologyTooltip {...METHODOLOGY_TERMS.ROC_AUC}>AUC</MethodologyTooltip>: {' '}
-                    <span className="text-white font-medium">{model.metrics?.roc_auc?.toFixed(3)}</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{model.metrics?.roc_auc?.toFixed(3)}</span>
                   </span>
-                  <span className="text-slate-400">
+                  <span className="text-gray-600 dark:text-slate-400">
                     <MethodologyTooltip {...METHODOLOGY_TERMS.PR_AUC}>AP</MethodologyTooltip>: {' '}
-                    <span className="text-white font-medium">{model.metrics?.average_precision?.toFixed(3)}</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{model.metrics?.average_precision?.toFixed(3)}</span>
                   </span>
                 </div>
               </button>
@@ -194,9 +203,9 @@ function ResultsPage() {
         <>
           {/* Primary Metrics with Statistical Context */}
           <Card title="Performance Metrics">
-            <div className="mb-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-              <p className="text-xs text-slate-400">
-                <strong className="text-slate-300">Interpretation Guide:</strong> For imbalanced datasets (typical injury rate ~2-5%),
+            <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-100 dark:bg-slate-800/50 rounded-lg border border-gray-300 dark:border-slate-700">
+              <p className="text-xs text-gray-600 dark:text-slate-400">
+                <strong className="text-gray-700 dark:text-slate-300">Interpretation Guide:</strong> For imbalanced datasets (typical injury rate ~2-5%),
                 prioritize <MethodologyTooltip {...METHODOLOGY_TERMS.PR_AUC}>Average Precision (AP)</MethodologyTooltip> over
                 <MethodologyTooltip {...METHODOLOGY_TERMS.ROC_AUC}> ROC-AUC</MethodologyTooltip>.
                 AP is more sensitive to performance on the minority (injury) class.
@@ -241,29 +250,29 @@ function ResultsPage() {
 
             {/* Additional metrics row */}
             {(selectedModel.metrics?.specificity || selectedModel.metrics?.accuracy) && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mt-4 pt-4 border-t border-slate-800">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mt-4 pt-4 border-t border-gray-200 dark:border-slate-800">
                 {selectedModel.metrics?.specificity && (
-                  <div className="p-3 bg-slate-800/30 rounded-lg">
-                    <div className="text-lg font-bold text-slate-300">{selectedModel.metrics.specificity.toFixed(4)}</div>
-                    <div className="text-xs text-slate-500">Specificity (TNR)</div>
+                  <div className="p-3 bg-gray-100 dark:bg-slate-800/30 rounded-lg">
+                    <div className="text-lg font-bold text-gray-700 dark:text-slate-300">{selectedModel.metrics.specificity.toFixed(4)}</div>
+                    <div className="text-xs text-gray-500 dark:text-slate-500">Specificity (TNR)</div>
                   </div>
                 )}
                 {selectedModel.metrics?.accuracy && (
-                  <div className="p-3 bg-slate-800/30 rounded-lg">
-                    <div className="text-lg font-bold text-slate-300">{selectedModel.metrics.accuracy.toFixed(4)}</div>
-                    <div className="text-xs text-slate-500">Accuracy</div>
+                  <div className="p-3 bg-gray-100 dark:bg-slate-800/30 rounded-lg">
+                    <div className="text-lg font-bold text-gray-700 dark:text-slate-300">{selectedModel.metrics.accuracy.toFixed(4)}</div>
+                    <div className="text-xs text-gray-500 dark:text-slate-500">Accuracy</div>
                   </div>
                 )}
                 {selectedModel.metrics?.brier_score !== undefined && (
-                  <div className="p-3 bg-slate-800/30 rounded-lg">
-                    <div className="text-lg font-bold text-slate-300">{selectedModel.metrics.brier_score.toFixed(4)}</div>
-                    <div className="text-xs text-slate-500">Brier Score</div>
+                  <div className="p-3 bg-gray-100 dark:bg-slate-800/30 rounded-lg">
+                    <div className="text-lg font-bold text-gray-700 dark:text-slate-300">{selectedModel.metrics.brier_score.toFixed(4)}</div>
+                    <div className="text-xs text-gray-500 dark:text-slate-500">Brier Score</div>
                   </div>
                 )}
                 {selectedModel.metrics?.log_loss !== undefined && (
-                  <div className="p-3 bg-slate-800/30 rounded-lg">
-                    <div className="text-lg font-bold text-slate-300">{selectedModel.metrics.log_loss.toFixed(4)}</div>
-                    <div className="text-xs text-slate-500">Log Loss</div>
+                  <div className="p-3 bg-gray-100 dark:bg-slate-800/30 rounded-lg">
+                    <div className="text-lg font-bold text-gray-700 dark:text-slate-300">{selectedModel.metrics.log_loss.toFixed(4)}</div>
+                    <div className="text-xs text-gray-500 dark:text-slate-500">Log Loss</div>
                   </div>
                 )}
               </div>
@@ -285,7 +294,7 @@ function ResultsPage() {
                   title={
                     <span className="flex items-center gap-2">
                       <MethodologyTooltip {...METHODOLOGY_TERMS.ROC_AUC}>ROC Curve</MethodologyTooltip>
-                      <span className="text-xs font-normal text-slate-500">(Receiver Operating Characteristic)</span>
+                      <span className="text-xs font-normal text-gray-500 dark:text-slate-500">(Receiver Operating Characteristic)</span>
                     </span>
                   }
                   actions={
@@ -318,11 +327,11 @@ function ResultsPage() {
                       }
                     ]}
                     layout={{
-                      ...darkLayout,
-                      xaxis: { ...darkLayout.xaxis, title: 'False Positive Rate (1 - Specificity)', range: [0, 1] },
-                      yaxis: { ...darkLayout.yaxis, title: 'True Positive Rate (Sensitivity)', range: [0, 1] },
+                      ...chartLayout,
+                      xaxis: { ...chartLayout.xaxis, title: 'False Positive Rate (1 - Specificity)', range: [0, 1] },
+                      yaxis: { ...chartLayout.yaxis, title: 'True Positive Rate (Sensitivity)', range: [0, 1] },
                       showlegend: true,
-                      legend: { ...darkLayout.legend, x: 0.5, y: 0.1, font: { size: 10, color: '#cbd5e1' } },
+                      legend: { ...chartLayout.legend, x: 0.5, y: 0.1, font: { size: 10, color: '#cbd5e1' } },
                       margin: { t: 10, r: 10, b: 50, l: 50 },
                       autosize: true
                     }}
@@ -330,7 +339,7 @@ function ResultsPage() {
                     style={{ width: '100%', height: '300px' }}
                     config={{ displayModeBar: false }}
                   />
-                  <div className="mt-2 text-xs text-slate-500 text-center">
+                  <div className="mt-2 text-xs text-gray-500 dark:text-slate-500 text-center">
                     AUC = {rocData.auc.toFixed(4)} | Optimal threshold analysis available via export
                   </div>
                 </Card>
@@ -369,11 +378,11 @@ function ResultsPage() {
                       }
                     ]}
                     layout={{
-                      ...darkLayout,
-                      xaxis: { ...darkLayout.xaxis, title: 'Recall (Sensitivity)', range: [0, 1] },
-                      yaxis: { ...darkLayout.yaxis, title: 'Precision (PPV)', range: [0, 1] },
+                      ...chartLayout,
+                      xaxis: { ...chartLayout.xaxis, title: 'Recall (Sensitivity)', range: [0, 1] },
+                      yaxis: { ...chartLayout.yaxis, title: 'Precision (PPV)', range: [0, 1] },
                       showlegend: true,
-                      legend: { ...darkLayout.legend, x: 0.1, y: 0.1, font: { size: 10, color: '#cbd5e1' } },
+                      legend: { ...chartLayout.legend, x: 0.1, y: 0.1, font: { size: 10, color: '#cbd5e1' } },
                       margin: { t: 10, r: 10, b: 50, l: 50 },
                       autosize: true
                     }}
@@ -381,7 +390,7 @@ function ResultsPage() {
                     style={{ width: '100%', height: '300px' }}
                     config={{ displayModeBar: false }}
                   />
-                  <div className="mt-2 text-xs text-slate-500 text-center">
+                  <div className="mt-2 text-xs text-gray-500 dark:text-slate-500 text-center">
                     Average Precision = {prData.average_precision.toFixed(4)} | Recommended for imbalanced data
                   </div>
                 </Card>
@@ -395,7 +404,7 @@ function ResultsPage() {
               title={
                 <span className="flex items-center gap-2">
                   Feature Attribution
-                  <span className="text-xs font-normal text-slate-500">
+                  <span className="text-xs font-normal text-gray-500 dark:text-slate-500">
                     ({selectedModel.model_type === 'lasso' ? 'Coefficient Magnitude' : 'Impurity-based Importance'})
                   </span>
                 </span>
@@ -409,9 +418,9 @@ function ResultsPage() {
                 />
               }
             >
-              <div className="mb-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-                <p className="text-xs text-slate-400">
-                  <strong className="text-slate-300">Note:</strong> Feature importance reflects the relative contribution of each variable to model predictions.
+              <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-100 dark:bg-slate-800/50 rounded-lg border border-gray-300 dark:border-slate-700">
+                <p className="text-xs text-gray-600 dark:text-slate-400">
+                  <strong className="text-gray-700 dark:text-slate-300">Note:</strong> Feature importance reflects the relative contribution of each variable to model predictions.
                   For causal interpretation, consider using <MethodologyTooltip {...METHODOLOGY_TERMS.SHAP}>SHAP values</MethodologyTooltip> from the Interpretability page.
                 </p>
               </div>
@@ -432,9 +441,9 @@ function ResultsPage() {
                     }
                   ]}
                   layout={{
-                    ...darkLayout,
-                    xaxis: { ...darkLayout.xaxis, title: 'Importance Score' },
-                    yaxis: { ...darkLayout.yaxis, automargin: true, tickfont: { size: 10, color: '#94a3b8' } },
+                    ...chartLayout,
+                    xaxis: { ...chartLayout.xaxis, title: 'Importance Score' },
+                    yaxis: { ...chartLayout.yaxis, automargin: true, tickfont: { size: 10, color: '#94a3b8' } },
                     margin: { t: 10, r: 10, b: 50, l: 140 },
                     autosize: true
                   }}
@@ -469,9 +478,9 @@ function ResultsPage() {
                       }
                     ]}
                     layout={{
-                      ...darkLayout,
-                      xaxis: { ...darkLayout.xaxis, title: 'Predicted Label', tickfont: { size: 11, color: '#94a3b8' } },
-                      yaxis: { ...darkLayout.yaxis, title: 'True Label', autorange: 'reversed', tickfont: { size: 11, color: '#94a3b8' } },
+                      ...chartLayout,
+                      xaxis: { ...chartLayout.xaxis, title: 'Predicted Label', tickfont: { size: 11, color: '#94a3b8' } },
+                      yaxis: { ...chartLayout.yaxis, title: 'True Label', autorange: 'reversed', tickfont: { size: 11, color: '#94a3b8' } },
                       margin: { t: 10, r: 10, b: 70, l: 100 },
                       autosize: true
                     }}
@@ -483,30 +492,30 @@ function ResultsPage() {
 
                 {/* Confusion Matrix Interpretation */}
                 <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-white">Matrix Interpretation</h4>
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Matrix Interpretation</h4>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="p-2 bg-green-500/10 border border-green-500/20 rounded">
                       <div className="font-medium text-green-400">True Negatives (TN)</div>
-                      <div className="text-slate-400">{selectedModel.metrics.confusion_matrix[0][0].toLocaleString()}</div>
-                      <div className="text-slate-500">Correctly predicted no injury</div>
+                      <div className="text-gray-600 dark:text-slate-400">{selectedModel.metrics.confusion_matrix[0][0].toLocaleString()}</div>
+                      <div className="text-gray-500 dark:text-slate-500">Correctly predicted no injury</div>
                     </div>
                     <div className="p-2 bg-red-500/10 border border-red-500/20 rounded">
                       <div className="font-medium text-red-400">False Positives (FP)</div>
-                      <div className="text-slate-400">{selectedModel.metrics.confusion_matrix[0][1].toLocaleString()}</div>
-                      <div className="text-slate-500">False alarms</div>
+                      <div className="text-gray-600 dark:text-slate-400">{selectedModel.metrics.confusion_matrix[0][1].toLocaleString()}</div>
+                      <div className="text-gray-500 dark:text-slate-500">False alarms</div>
                     </div>
                     <div className="p-2 bg-orange-500/10 border border-orange-500/20 rounded">
                       <div className="font-medium text-orange-400">False Negatives (FN)</div>
-                      <div className="text-slate-400">{selectedModel.metrics.confusion_matrix[1][0].toLocaleString()}</div>
-                      <div className="text-slate-500">Missed injuries</div>
+                      <div className="text-gray-600 dark:text-slate-400">{selectedModel.metrics.confusion_matrix[1][0].toLocaleString()}</div>
+                      <div className="text-gray-500 dark:text-slate-500">Missed injuries</div>
                     </div>
                     <div className="p-2 bg-blue-500/10 border border-blue-500/20 rounded">
                       <div className="font-medium text-blue-400">True Positives (TP)</div>
-                      <div className="text-slate-400">{selectedModel.metrics.confusion_matrix[1][1].toLocaleString()}</div>
-                      <div className="text-slate-500">Correctly predicted injury</div>
+                      <div className="text-gray-600 dark:text-slate-400">{selectedModel.metrics.confusion_matrix[1][1].toLocaleString()}</div>
+                      <div className="text-gray-500 dark:text-slate-500">Correctly predicted injury</div>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-500 mt-2">
+                  <p className="text-xs text-gray-500 dark:text-slate-500 mt-2">
                     In injury prediction, minimizing False Negatives (missed injuries) is typically prioritized,
                     even at the cost of more False Positives (false alarms).
                   </p>

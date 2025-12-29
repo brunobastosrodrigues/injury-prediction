@@ -1,5 +1,6 @@
 import React from 'react';
 import Plot from 'react-plotly.js';
+import { useTheme } from '../../context/ThemeContext';
 
 /**
  * SHAP Waterfall Plot - "Why am I at risk TODAY?"
@@ -7,6 +8,7 @@ import Plot from 'react-plotly.js';
  * Shows how each feature contributes to the model's prediction for a specific instance.
  */
 const WaterfallPlot = ({ explanation, height = 400 }) => {
+  const { isDark } = useTheme();
   if (!explanation || !explanation.shap_values) {
     return (
       <div className="text-center text-slate-400 py-8">
@@ -62,9 +64,9 @@ const WaterfallPlot = ({ explanation, height = 400 }) => {
     x: x,
     text: text,
     textposition: 'outside',
-    textfont: { color: '#e2e8f0', size: 10 },
+    textfont: { color: isDark ? '#e2e8f0' : '#1f2937', size: 10 },
     connector: {
-      line: { color: '#475569', width: 1 }
+      line: { color: isDark ? '#475569' : '#d1d5db', width: 1 }
     },
     increasing: { marker: { color: '#ef4444' } },
     decreasing: { marker: { color: '#22c55e' } },
@@ -74,23 +76,23 @@ const WaterfallPlot = ({ explanation, height = 400 }) => {
   const layout = {
     title: {
       text: 'Feature Contributions to Risk',
-      font: { size: 14, color: '#e2e8f0', family: 'Inter, sans-serif' }
+      font: { size: 14, color: isDark ? '#e2e8f0' : '#1f2937', family: 'Inter, sans-serif' }
     },
     xaxis: {
-      title: { text: 'SHAP Value', font: { color: '#94a3b8', size: 11 } },
-      gridcolor: '#334155',
-      tickfont: { color: '#94a3b8', size: 10 },
-      zerolinecolor: '#475569'
+      title: { text: 'SHAP Value', font: { color: isDark ? '#94a3b8' : '#4b5563', size: 11 } },
+      gridcolor: isDark ? '#334155' : '#e5e7eb',
+      tickfont: { color: isDark ? '#94a3b8' : '#4b5563', size: 10 },
+      zerolinecolor: isDark ? '#475569' : '#d1d5db'
     },
     yaxis: {
       automargin: true,
-      tickfont: { color: '#e2e8f0', size: 10 }
+      tickfont: { color: isDark ? '#e2e8f0' : '#1f2937', size: 10 }
     },
     height: height,
     margin: { l: 140, r: 60, t: 50, b: 50 },
     paper_bgcolor: 'rgba(0,0,0,0)',
-    plot_bgcolor: 'rgba(30,41,59,0.5)',
-    font: { family: 'Inter, sans-serif', size: 11, color: '#e2e8f0' }
+    plot_bgcolor: isDark ? 'rgba(30,41,59,0.5)' : 'rgba(249,250,251,0.8)',
+    font: { family: 'Inter, sans-serif', size: 11, color: isDark ? '#e2e8f0' : '#1f2937' }
   };
 
   const config = {
@@ -99,7 +101,7 @@ const WaterfallPlot = ({ explanation, height = 400 }) => {
   };
 
   return (
-    <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4">
+    <div className={`${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-gray-200'} rounded-xl border p-4`}>
       <Plot
         data={data}
         layout={layout}
@@ -107,14 +109,14 @@ const WaterfallPlot = ({ explanation, height = 400 }) => {
         className="w-full"
       />
 
-      <div className="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-        <h4 className="text-sm font-medium text-blue-300 mb-2">
+      <div className={`mt-4 p-3 ${isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200'} rounded-lg border`}>
+        <h4 className={`text-sm font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'} mb-2`}>
           How to Read This Chart
         </h4>
-        <div className="text-xs text-slate-400 flex flex-wrap gap-4">
-          <span><span className="text-red-400">Red</span> = Increases risk</span>
-          <span><span className="text-green-400">Green</span> = Decreases risk</span>
-          <span><span className="text-blue-400">Blue</span> = Base/Final value</span>
+        <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'} flex flex-wrap gap-4`}>
+          <span><span className="text-red-500">Red</span> = Increases risk</span>
+          <span><span className="text-green-500">Green</span> = Decreases risk</span>
+          <span><span className="text-blue-500">Blue</span> = Base/Final value</span>
         </div>
       </div>
     </div>

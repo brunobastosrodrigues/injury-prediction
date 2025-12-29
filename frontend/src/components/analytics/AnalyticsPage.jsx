@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Plot from 'react-plotly.js'
 import { usePipeline } from '../../context/PipelineContext'
+import { useTheme } from '../../context/ThemeContext'
 import { analyticsApi, trainingApi } from '../../api'
 import Card from '../common/Card'
 import InterventionSimulator from './InterventionSimulator'
@@ -21,8 +22,8 @@ const METRIC_DESCRIPTIONS = {
   actual_tss: { label: 'TSS', full: 'Training Stress Score', unit: 'points' }
 }
 
-// Dark theme for Plotly
-const darkLayout = {
+// Theme layouts for Plotly (will be selected based on theme)
+const chartLayout = {
   paper_bgcolor: 'rgba(0,0,0,0)',
   plot_bgcolor: 'rgba(15,23,42,0.5)',
   font: { color: '#94a3b8', size: 11 },
@@ -31,8 +32,19 @@ const darkLayout = {
   legend: { bgcolor: 'rgba(0,0,0,0)', font: { color: '#cbd5e1' } }
 }
 
+const lightLayout = {
+  paper_bgcolor: 'rgba(255,255,255,0)',
+  plot_bgcolor: 'rgba(249,250,251,0.8)',
+  font: { color: '#374151', size: 11 },
+  xaxis: { gridcolor: '#e5e7eb', zerolinecolor: '#d1d5db' },
+  yaxis: { gridcolor: '#e5e7eb', zerolinecolor: '#d1d5db' },
+  legend: { bgcolor: 'rgba(255,255,255,0)', font: { color: '#1f2937' } }
+}
+
 function AnalyticsPage() {
   const { datasets, currentDataset, setCurrentDataset, refreshDatasets } = usePipeline()
+  const { isDark } = useTheme()
+  const chartLayout = isDark ? chartLayout : lightLayout
 
   const [selectedDataset, setSelectedDataset] = useState('')
   const [activeTab, setActiveTab] = useState('distributions')
@@ -179,8 +191,8 @@ function AnalyticsPage() {
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-white">Dataset Analytics</h1>
-        <p className="text-sm sm:text-base text-slate-400 mt-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Dataset Analytics</h1>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1">
           Exploratory data analysis and statistical visualization
         </p>
       </div>
@@ -188,14 +200,14 @@ function AnalyticsPage() {
       {/* Dataset Selection */}
       <Card>
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-          <label className="text-sm font-medium text-slate-300">Dataset:</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-slate-300">Dataset:</label>
           <select
             value={selectedDataset}
             onChange={e => {
               setSelectedDataset(e.target.value)
               setCurrentDataset(e.target.value)
             }}
-            className="flex-1 sm:flex-none sm:min-w-64 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 text-sm"
+            className="flex-1 sm:flex-none sm:min-w-64 px-3 py-2 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 text-sm"
           >
             <option value="">Select a dataset...</option>
             {datasets.map(ds => (
@@ -205,7 +217,7 @@ function AnalyticsPage() {
             ))}
           </select>
           {selectedDataset && (
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-gray-500 dark:text-slate-500">
               Selected for analysis
             </span>
           )}
@@ -215,7 +227,7 @@ function AnalyticsPage() {
       {selectedDataset && (
         <>
           {/* Tabs */}
-          <div className="border-b border-slate-800 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
+          <div className="border-b border-gray-200 dark:border-slate-800 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
             <nav className="flex space-x-4 sm:space-x-8 min-w-max">
               {tabs.map(tab => (
                 <button
@@ -224,7 +236,7 @@ function AnalyticsPage() {
                   className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-400'
-                      : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-600'
+                      : 'border-transparent text-gray-500 dark:text-slate-500 hover:text-gray-700 dark:text-slate-300 hover:border-slate-600'
                   }`}
                   title={tab.description}
                 >
@@ -235,7 +247,7 @@ function AnalyticsPage() {
           </div>
 
           {/* Tab Description */}
-          <div className="text-xs text-slate-500 -mt-2">
+          <div className="text-xs text-gray-500 dark:text-slate-500 -mt-2">
             {tabs.find(t => t.id === activeTab)?.description}
           </div>
 
@@ -250,9 +262,9 @@ function AnalyticsPage() {
               {/* Distributions */}
               {activeTab === 'distributions' && (
                 <div className="space-y-6">
-                  <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-                    <p className="text-xs text-slate-400">
-                      <strong className="text-slate-300">Methodology:</strong> Histograms display the empirical distribution of each biomarker.
+                  <div className="p-3 bg-gray-100 dark:bg-gray-100 dark:bg-slate-800/50 rounded-lg border border-gray-300 dark:border-slate-700">
+                    <p className="text-xs text-gray-600 dark:text-slate-400">
+                      <strong className="text-gray-700 dark:text-slate-300">Methodology:</strong> Histograms display the empirical distribution of each biomarker.
                       Vertical annotations indicate sample means. Consider examining distributions by injury status for comparative analysis.
                     </p>
                   </div>
@@ -270,7 +282,7 @@ function AnalyticsPage() {
                                   {metricInfo.full}
                                 </MethodologyTooltip>
                               ) : metricInfo.full}
-                              <span className="text-xs font-normal text-slate-500">({metricInfo.unit})</span>
+                              <span className="text-xs font-normal text-gray-500 dark:text-slate-500">({metricInfo.unit})</span>
                             </span>
                           }
                           actions={
@@ -291,9 +303,9 @@ function AnalyticsPage() {
                               }
                             ]}
                             layout={{
-                              ...darkLayout,
-                              xaxis: { ...darkLayout.xaxis, title: metricInfo.label, tickfont: { size: 10 } },
-                              yaxis: { ...darkLayout.yaxis, title: 'Frequency', tickfont: { size: 10 } },
+                              ...chartLayout,
+                              xaxis: { ...chartLayout.xaxis, title: metricInfo.label, tickfont: { size: 10 } },
+                              yaxis: { ...chartLayout.yaxis, title: 'Frequency', tickfont: { size: 10 } },
                               margin: { t: 10, r: 10, b: 50, l: 50 },
                               autosize: true,
                               annotations: [
@@ -312,7 +324,7 @@ function AnalyticsPage() {
                             style={{ width: '100%', height: '250px' }}
                             config={{ displayModeBar: false }}
                           />
-                          <div className="mt-2 flex justify-between text-xs text-slate-500 font-mono">
+                          <div className="mt-2 flex justify-between text-xs text-gray-500 dark:text-slate-500 font-mono">
                             <span>μ = {data.mean?.toFixed(2)}</span>
                             <span>σ = {data.std?.toFixed(2)}</span>
                             <span>n = {data.n?.toLocaleString()}</span>
@@ -343,9 +355,9 @@ function AnalyticsPage() {
                     />
                   }
                 >
-                  <div className="mb-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-                    <p className="text-xs text-slate-400">
-                      <strong className="text-slate-300">Interpretation:</strong> Pearson correlation coefficients range from -1 (perfect negative)
+                  <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-100 dark:bg-slate-800/50 rounded-lg border border-gray-300 dark:border-slate-700">
+                    <p className="text-xs text-gray-600 dark:text-slate-400">
+                      <strong className="text-gray-700 dark:text-slate-300">Interpretation:</strong> Pearson correlation coefficients range from -1 (perfect negative)
                       to +1 (perfect positive). Values near 0 indicate weak linear relationship. For non-linear relationships, consider
                       Spearman rank correlation.
                     </p>
@@ -377,11 +389,11 @@ function AnalyticsPage() {
                         }
                       ]}
                       layout={{
-                        ...darkLayout,
+                        ...chartLayout,
                         margin: { t: 30, r: 60, b: 100, l: 100 },
                         autosize: true,
-                        xaxis: { ...darkLayout.xaxis, tickfont: { size: 9, color: '#94a3b8' }, tickangle: 45 },
-                        yaxis: { ...darkLayout.yaxis, tickfont: { size: 9, color: '#94a3b8' } }
+                        xaxis: { ...chartLayout.xaxis, tickfont: { size: 9, color: '#94a3b8' }, tickangle: 45 },
+                        yaxis: { ...chartLayout.yaxis, tickfont: { size: 9, color: '#94a3b8' } }
                       }}
                       useResizeHandler
                       style={{ width: '100%', minWidth: '350px', height: '450px' }}
@@ -394,9 +406,9 @@ function AnalyticsPage() {
               {/* Pre-Injury Window */}
               {activeTab === 'preInjury' && preInjury && (
                 <Card title={`Pre-Injury Temporal Patterns (n = ${preInjury.n_injuries} injury events)`}>
-                  <div className="mb-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-                    <p className="text-xs text-slate-400">
-                      <strong className="text-slate-300">Methodology:</strong> Average biomarker values aligned to injury onset (day 0, marked with red dashed line).
+                  <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-100 dark:bg-slate-800/50 rounded-lg border border-gray-300 dark:border-slate-700">
+                    <p className="text-xs text-gray-600 dark:text-slate-400">
+                      <strong className="text-gray-700 dark:text-slate-300">Methodology:</strong> Average biomarker values aligned to injury onset (day 0, marked with red dashed line).
                       Negative days represent the period before injury. Useful for identifying prodromal patterns and early warning indicators.
                     </p>
                   </div>
@@ -404,8 +416,8 @@ function AnalyticsPage() {
                     {Object.entries(preInjury.metrics || {}).map(([metric, data]) => {
                       const metricInfo = METRIC_DESCRIPTIONS[metric] || { label: metric, full: metric }
                       return (
-                        <div key={metric} className="p-4 bg-slate-800/30 rounded-lg">
-                          <h4 className="font-medium text-sm text-white mb-3">
+                        <div key={metric} className="p-4 bg-gray-100 dark:bg-slate-800/30 rounded-lg">
+                          <h4 className="font-medium text-sm text-gray-900 dark:text-white mb-3">
                             {metricInfo.methodology ? (
                               <MethodologyTooltip {...METHODOLOGY_TERMS[metricInfo.methodology]}>
                                 {metricInfo.full}
@@ -425,9 +437,9 @@ function AnalyticsPage() {
                               }
                             ]}
                             layout={{
-                              ...darkLayout,
-                              xaxis: { ...darkLayout.xaxis, title: 'Days Before Injury', zeroline: true, tickfont: { size: 10 } },
-                              yaxis: { ...darkLayout.yaxis, title: metricInfo.label, tickfont: { size: 10 } },
+                              ...chartLayout,
+                              xaxis: { ...chartLayout.xaxis, title: 'Days Before Injury', zeroline: true, tickfont: { size: 10 } },
+                              yaxis: { ...chartLayout.yaxis, title: metricInfo.label, tickfont: { size: 10 } },
                               margin: { t: 10, r: 10, b: 50, l: 60 },
                               autosize: true,
                               shapes: [
@@ -454,32 +466,32 @@ function AnalyticsPage() {
               {/* ACWR Zones */}
               {activeTab === 'acwr' && acwrZones && (
                 <div className="space-y-6">
-                  <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                    <h4 className="text-sm font-medium text-white mb-2">
+                  <div className="p-4 bg-gray-100 dark:bg-gray-100 dark:bg-slate-800/50 rounded-lg border border-gray-300 dark:border-slate-700">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
                       <MethodologyTooltip {...METHODOLOGY_TERMS.ACWR}>
                         Acute:Chronic Workload Ratio (ACWR) Analysis
                       </MethodologyTooltip>
                     </h4>
-                    <p className="text-xs text-slate-400 mb-3">
+                    <p className="text-xs text-gray-600 dark:text-slate-400 mb-3">
                       ACWR compares acute training load (7-day) to chronic load (28-day rolling average).
                       Zone classification follows Gabbett's framework (2016):
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                       <div className="p-2 bg-yellow-500/10 border border-yellow-500/20 rounded">
                         <div className="font-medium text-yellow-400">Low</div>
-                        <div className="text-slate-500">ACWR &lt; 0.8</div>
+                        <div className="text-gray-500 dark:text-slate-500">ACWR &lt; 0.8</div>
                       </div>
                       <div className="p-2 bg-green-500/10 border border-green-500/20 rounded">
                         <div className="font-medium text-green-400">Optimal</div>
-                        <div className="text-slate-500">0.8 ≤ ACWR ≤ 1.3</div>
+                        <div className="text-gray-500 dark:text-slate-500">0.8 ≤ ACWR ≤ 1.3</div>
                       </div>
                       <div className="p-2 bg-orange-500/10 border border-orange-500/20 rounded">
                         <div className="font-medium text-orange-400">High</div>
-                        <div className="text-slate-500">1.3 &lt; ACWR ≤ 1.5</div>
+                        <div className="text-gray-500 dark:text-slate-500">1.3 &lt; ACWR ≤ 1.5</div>
                       </div>
                       <div className="p-2 bg-red-500/10 border border-red-500/20 rounded">
                         <div className="font-medium text-red-400">Very High</div>
-                        <div className="text-slate-500">ACWR &gt; 1.5</div>
+                        <div className="text-gray-500 dark:text-slate-500">ACWR &gt; 1.5</div>
                       </div>
                     </div>
                   </div>
@@ -509,11 +521,11 @@ function AnalyticsPage() {
                           }
                         ]}
                         layout={{
-                          ...darkLayout,
+                          ...chartLayout,
                           margin: { t: 10, r: 10, b: 40, l: 10 },
                           autosize: true,
                           showlegend: true,
-                          legend: { ...darkLayout.legend, font: { size: 10, color: '#cbd5e1' }, orientation: 'h', y: -0.1 }
+                          legend: { ...chartLayout.legend, font: { size: 10, color: '#cbd5e1' }, orientation: 'h', y: -0.1 }
                         }}
                         useResizeHandler
                         style={{ width: '100%', height: '280px' }}
@@ -550,9 +562,9 @@ function AnalyticsPage() {
                           }
                         ]}
                         layout={{
-                          ...darkLayout,
-                          xaxis: { ...darkLayout.xaxis, title: 'ACWR Zone', tickfont: { size: 10 } },
-                          yaxis: { ...darkLayout.yaxis, title: 'Injury Rate (%)', tickfont: { size: 10 } },
+                          ...chartLayout,
+                          xaxis: { ...chartLayout.xaxis, title: 'ACWR Zone', tickfont: { size: 10 } },
+                          yaxis: { ...chartLayout.yaxis, title: 'Injury Rate (%)', tickfont: { size: 10 } },
                           margin: { t: 30, r: 10, b: 60, l: 60 },
                           autosize: true
                         }}
@@ -560,7 +572,7 @@ function AnalyticsPage() {
                         style={{ width: '100%', height: '280px' }}
                         config={{ displayModeBar: false }}
                       />
-                      <p className="mt-2 text-xs text-slate-500 text-center">
+                      <p className="mt-2 text-xs text-gray-500 dark:text-slate-500 text-center">
                         Higher ACWR zones show elevated injury risk, supporting load management protocols.
                       </p>
                     </Card>
@@ -618,8 +630,8 @@ function AnalyticsPage() {
                     />
                   </div>
 
-                  <div className="border-t border-slate-800 pt-6">
-                    <h4 className="font-medium text-sm text-white mb-4">Biomarker Summary Statistics</h4>
+                  <div className="border-t border-gray-200 dark:border-slate-800 pt-6">
+                    <h4 className="font-medium text-sm text-gray-900 dark:text-white mb-4">Biomarker Summary Statistics</h4>
                     <div className="overflow-x-auto">
                       <table className="academic-table">
                         <thead>
@@ -643,8 +655,8 @@ function AnalyticsPage() {
                                   ) : info.full}
                                 </td>
                                 <td className="font-mono">{datasetStats[`${m}_mean`]?.toFixed(2) || 'N/A'}</td>
-                                <td className="font-mono text-slate-500">±{datasetStats[`${m}_std`]?.toFixed(2) || 'N/A'}</td>
-                                <td className="text-slate-500">{info.unit}</td>
+                                <td className="font-mono text-gray-500 dark:text-slate-500">±{datasetStats[`${m}_std`]?.toFixed(2) || 'N/A'}</td>
+                                <td className="text-gray-500 dark:text-slate-500">{info.unit}</td>
                               </tr>
                             )
                           })}
@@ -658,9 +670,9 @@ function AnalyticsPage() {
               {/* What-If Analysis */}
               {activeTab === 'whatIf' && (
                 <div className="space-y-4 sm:space-y-6">
-                  <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                    <h4 className="text-sm font-medium text-white mb-2">Counterfactual Analysis</h4>
-                    <p className="text-xs text-slate-400">
+                  <div className="p-4 bg-gray-100 dark:bg-gray-100 dark:bg-slate-800/50 rounded-lg border border-gray-300 dark:border-slate-700">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Counterfactual Analysis</h4>
+                    <p className="text-xs text-gray-600 dark:text-slate-400">
                       Explore hypothetical intervention scenarios by modifying input features and observing predicted risk changes.
                       This enables "what-if" reasoning for training load optimization and injury prevention strategies.
                     </p>
@@ -669,11 +681,11 @@ function AnalyticsPage() {
                   <Card title="Individual Athlete Selection">
                     <div className="grid grid-cols-1 gap-3 sm:gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Trained Model</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Trained Model</label>
                         <select
                           value={selectedModel}
                           onChange={e => setSelectedModel(e.target.value)}
-                          className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="w-full px-3 py-2 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 text-sm"
                         >
                           <option value="">Select a model...</option>
                           {models
@@ -691,11 +703,11 @@ function AnalyticsPage() {
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Athlete ID</label>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Athlete ID</label>
                           <select
                             value={selectedAthlete}
                             onChange={e => handleAthleteChange(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 text-sm"
+                            className="w-full px-3 py-2 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 text-sm"
                           >
                             <option value="">Select an athlete...</option>
                             {athletes.map(a => (
@@ -704,11 +716,11 @@ function AnalyticsPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Reference Date</label>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Reference Date</label>
                           <select
                             value={selectedDate}
                             onChange={e => setSelectedDate(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 text-sm"
+                            className="w-full px-3 py-2 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 text-sm"
                             disabled={!athleteTimeline}
                           >
                             <option value="">Select a date...</option>
@@ -768,7 +780,7 @@ function AnalyticsPage() {
                       }}
                     />
                   ) : (
-                    <div className="p-8 sm:p-12 text-center border-2 border-dashed border-slate-700 rounded-xl text-slate-500 text-sm">
+                    <div className="p-8 sm:p-12 text-center border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl text-gray-500 dark:text-slate-500 text-sm">
                       <svg className="w-12 h-12 mx-auto mb-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>

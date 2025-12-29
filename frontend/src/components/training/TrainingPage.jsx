@@ -41,9 +41,9 @@ const MODEL_CONFIGS = {
 
 const getColorClasses = (color, selected) => {
   const colors = {
-    blue: selected ? 'border-blue-500/50 bg-blue-500/10' : 'border-slate-700 hover:border-blue-500/30',
-    green: selected ? 'border-green-500/50 bg-green-500/10' : 'border-slate-700 hover:border-green-500/30',
-    amber: selected ? 'border-amber-500/50 bg-amber-500/10' : 'border-slate-700 hover:border-amber-500/30'
+    blue: selected ? 'border-blue-500/50 bg-blue-500/10' : 'border-gray-300 dark:border-slate-700 hover:border-blue-500/30',
+    green: selected ? 'border-green-500/50 bg-green-500/10' : 'border-gray-300 dark:border-slate-700 hover:border-green-500/30',
+    amber: selected ? 'border-amber-500/50 bg-amber-500/10' : 'border-gray-300 dark:border-slate-700 hover:border-amber-500/30'
   }
   return colors[color] || colors.blue
 }
@@ -133,8 +133,8 @@ function TrainingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-white">Model Training</h1>
-        <p className="text-slate-400 mt-2">Train ML models for injury prediction</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Model Training</h1>
+        <p className="text-gray-600 dark:text-slate-400 mt-2">Train ML models for injury prediction</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -142,7 +142,7 @@ function TrainingPage() {
         <Card title="Configuration">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                 Select Split
               </label>
               <select
@@ -152,7 +152,7 @@ function TrainingPage() {
                   setCurrentSplit(e.target.value)
                 }}
                 disabled={isRunning}
-                className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 disabled:bg-slate-800/50 disabled:text-slate-500 transition-all"
+                className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 dark:bg-gray-100 dark:bg-slate-800/50 disabled:text-gray-500 dark:text-slate-500 transition-all"
               >
                 <option value="">Select a split...</option>
                 {splits.map(split => (
@@ -164,7 +164,7 @@ function TrainingPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                 Select Models
               </label>
               <div className="space-y-2">
@@ -184,8 +184,8 @@ function TrainingPage() {
                       {config.icon}
                     </div>
                     <div>
-                      <p className="font-medium text-white">{config.name}</p>
-                      <p className="text-sm text-slate-500">{config.description}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{config.name}</p>
+                      <p className="text-sm text-gray-500 dark:text-slate-500">{config.description}</p>
                     </div>
                   </label>
                 ))}
@@ -195,7 +195,7 @@ function TrainingPage() {
             <button
               onClick={handleTrain}
               disabled={isRunning || !selectedSplit || selectedModels.length === 0}
-              className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-2.5 px-4 rounded-xl hover:from-green-500 hover:to-green-600 disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed transition-all font-medium shadow-lg shadow-green-500/25 disabled:shadow-none"
+              className="w-full bg-gradient-to-r from-green-600 to-green-700 text-gray-900 dark:text-white py-2.5 px-4 rounded-xl hover:from-green-500 hover:to-green-600 disabled:from-slate-700 disabled:to-slate-700 disabled:text-gray-500 dark:text-slate-500 disabled:cursor-not-allowed transition-all font-medium shadow-lg shadow-green-500/25 disabled:shadow-none"
             >
               {isRunning ? 'Training...' : `Train ${selectedModels.length} Model(s)`}
             </button>
@@ -207,7 +207,7 @@ function TrainingPage() {
           {jobStatus ? (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="font-medium text-slate-300">Status</span>
+                <span className="font-medium text-gray-700 dark:text-slate-300">Status</span>
                 <StatusBadge status={jobStatus.status} />
               </div>
 
@@ -218,7 +218,7 @@ function TrainingPage() {
               />
 
               {jobStatus.current_step && (
-                <p className="text-sm text-slate-400">{jobStatus.current_step}</p>
+                <p className="text-sm text-gray-600 dark:text-slate-400">{jobStatus.current_step}</p>
               )}
 
               {jobStatus.status === 'completed' && jobStatus.result?.models && (
@@ -227,9 +227,9 @@ function TrainingPage() {
                   {jobStatus.result.models.map(model => (
                     <div key={model.model_id} className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl">
                       <p className="font-mono text-sm text-green-400">{model.model_type}</p>
-                      <p className="text-sm text-slate-400 mt-1">
-                        AUC: <span className="text-white">{model.metrics?.roc_auc?.toFixed(4)}</span> |
-                        AP: <span className="text-white">{model.metrics?.average_precision?.toFixed(4)}</span>
+                      <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
+                        AUC: <span className="text-gray-900 dark:text-white">{model.metrics?.roc_auc?.toFixed(4)}</span> |
+                        AP: <span className="text-gray-900 dark:text-white">{model.metrics?.average_precision?.toFixed(4)}</span>
                       </p>
                     </div>
                   ))}
@@ -244,12 +244,12 @@ function TrainingPage() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
                 </svg>
               </div>
-              <p className="text-slate-500">Configure and start training to see progress</p>
+              <p className="text-gray-500 dark:text-slate-500">Configure and start training to see progress</p>
             </div>
           )}
         </Card>
@@ -259,32 +259,32 @@ function TrainingPage() {
       <Card title="Trained Models">
         {models.length === 0 ? (
           <div className="text-center py-8">
-            <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3" />
               </svg>
             </div>
-            <p className="text-slate-500">No models trained yet</p>
+            <p className="text-gray-500 dark:text-slate-500">No models trained yet</p>
             <p className="text-slate-600 text-sm mt-1">Select a split and train some models</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
-                <tr className="border-b border-slate-800">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Model</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Dataset</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">ROC AUC</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg Precision</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Created</th>
+                <tr className="border-b border-gray-200 dark:border-slate-800">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider">Model</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider">Dataset</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider">Type</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider">ROC AUC</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider">Avg Precision</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider">Created</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
                 {models.map(model => (
-                  <tr key={model.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-sm text-slate-300">{model.id}</td>
-                    <td className="px-4 py-3 text-sm text-slate-500 truncate max-w-[150px]" title={model.dataset_id}>
+                  <tr key={model.id} className="hover:bg-gray-100 dark:bg-gray-100 dark:bg-slate-800/50 transition-colors">
+                    <td className="px-4 py-3 font-mono text-sm text-gray-700 dark:text-slate-300">{model.id}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-slate-500 truncate max-w-[150px]" title={model.dataset_id}>
                       {model.dataset_id || 'N/A'}
                     </td>
                     <td className="px-4 py-3 text-sm">
@@ -292,13 +292,13 @@ function TrainingPage() {
                         {model.model_name || model.model_type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium text-white">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                       {model.metrics?.roc_auc?.toFixed(4) || 'N/A'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-300">
+                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">
                       {model.metrics?.average_precision?.toFixed(4) || 'N/A'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-500">
+                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-slate-500">
                       {model.created_at ? new Date(model.created_at).toLocaleDateString() : 'N/A'}
                     </td>
                   </tr>

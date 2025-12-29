@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Plot from 'react-plotly.js'
+import { useTheme } from '../../../context/ThemeContext'
 import Card from '../../common/Card'
 
 const AVAILABLE_METRICS = [
@@ -13,6 +14,7 @@ const AVAILABLE_METRICS = [
 ]
 
 function TimelineTab({ athleteTimeline, athleteProfile }) {
+  const { isDark } = useTheme()
   const [selectedMetrics, setSelectedMetrics] = useState(['hrv', 'stress', 'sleep_hours'])
   const [showInjuries, setShowInjuries] = useState(true)
 
@@ -139,24 +141,29 @@ function TimelineTab({ athleteTimeline, athleteProfile }) {
           <Plot
             data={traces}
             layout={{
+              paper_bgcolor: 'rgba(0,0,0,0)',
+              plot_bgcolor: isDark ? 'rgba(15,23,42,0.5)' : 'rgba(249,250,251,0.8)',
+              font: { color: isDark ? '#94a3b8' : '#374151' },
               xaxis: {
                 title: 'Date',
                 rangeslider: { visible: true },
                 type: 'date',
-                tickfont: { size: 10 }
+                tickfont: { size: 10, color: isDark ? '#94a3b8' : '#374151' },
+                gridcolor: isDark ? '#334155' : '#e5e7eb'
               },
               yaxis: {
                 title: 'HRV / Body Battery',
                 side: 'left',
                 showgrid: true,
-                tickfont: { size: 10 }
+                tickfont: { size: 10, color: isDark ? '#94a3b8' : '#374151' },
+                gridcolor: isDark ? '#334155' : '#e5e7eb'
               },
               yaxis2: {
                 title: 'Heart Rate (bpm)',
                 side: 'right',
                 overlaying: 'y',
                 showgrid: false,
-                tickfont: { size: 10 }
+                tickfont: { size: 10, color: isDark ? '#94a3b8' : '#374151' }
               },
               yaxis3: {
                 title: 'Sleep',
@@ -181,7 +188,7 @@ function TimelineTab({ athleteTimeline, athleteProfile }) {
               legend: {
                 orientation: 'h',
                 y: -0.25,
-                font: { size: 10 }
+                font: { size: 10, color: isDark ? '#cbd5e1' : '#1f2937' }
               },
               margin: { t: 20, r: 50, b: 100, l: 50 },
               autosize: true,
