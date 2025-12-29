@@ -93,12 +93,23 @@ function AthleteDashboardPage() {
     setLoading(true)
     setError(null)
     try {
+      // Use individual catches to prevent one failure from blocking all data
       const [profileRes, timelineRes] = await Promise.all([
-        analyticsApi.getAthleteProfile(selectedDataset, selectedAthlete),
-        analyticsApi.getAthleteTimeline(selectedDataset, selectedAthlete)
+        analyticsApi.getAthleteProfile(selectedDataset, selectedAthlete).catch(err => {
+          console.warn('Failed to load athlete profile:', err)
+          return { data: null }
+        }),
+        analyticsApi.getAthleteTimeline(selectedDataset, selectedAthlete).catch(err => {
+          console.warn('Failed to load athlete timeline:', err)
+          return { data: null }
+        })
       ])
       setAthleteProfile(profileRes.data)
       setAthleteTimeline(timelineRes.data)
+      // Set error only if both failed
+      if (!profileRes.data && !timelineRes.data) {
+        setError('Failed to load athlete data. Please try again.')
+      }
     } catch (err) {
       console.error('Failed to load athlete data:', err)
       setError('Failed to load athlete data. Please try again.')

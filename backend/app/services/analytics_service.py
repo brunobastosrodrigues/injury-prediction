@@ -149,9 +149,16 @@ class AnalyticsService:
         if not os.path.exists(model_path) or not os.path.exists(metadata_path):
             return None
 
-        model = joblib.load(model_path)
-        with open(metadata_path, 'r') as f:
-            metadata = json.load(f)
+        try:
+            model = joblib.load(model_path)
+        except Exception:
+            return None
+
+        try:
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return None
 
         dataset_id = metadata.get('dataset_id')
         feature_names = metadata.get('feature_names')
@@ -454,11 +461,13 @@ class AnalyticsService:
         # Calculate zone distribution
         zone_counts = df['acwr_zone'].value_counts().to_dict()
         total = len(df)
-        zone_distribution = {zone: count / total for zone, count in zone_counts.items()}
+        # Prevent division by zero when dataset is empty
+        zone_distribution = {zone: count / total if total > 0 else 0 for zone, count in zone_counts.items()}
 
         # Calculate injury rate by zone
         injury_by_zone = df.groupby('acwr_zone')['injury'].agg(['sum', 'count'])
-        injury_rates = (injury_by_zone['sum'] / injury_by_zone['count']).to_dict()
+        # Prevent division by zero with replace
+        injury_rates = (injury_by_zone['sum'] / injury_by_zone['count'].replace(0, 1)).to_dict()
 
         return {
             'zone_distribution': zone_distribution,
@@ -744,9 +753,16 @@ class AnalyticsService:
         if not os.path.exists(model_path) or not os.path.exists(metadata_path):
             return None
 
-        model = joblib.load(model_path)
-        with open(metadata_path, 'r') as f:
-            metadata = json.load(f)
+        try:
+            model = joblib.load(model_path)
+        except Exception:
+            return None
+
+        try:
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return None
 
         feature_names = metadata.get('feature_names', [])
 
@@ -827,9 +843,16 @@ class AnalyticsService:
         if not os.path.exists(model_path) or not os.path.exists(metadata_path):
             return None
 
-        model = joblib.load(model_path)
-        with open(metadata_path, 'r') as f:
-            metadata = json.load(f)
+        try:
+            model = joblib.load(model_path)
+        except Exception:
+            return None
+
+        try:
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return None
 
         feature_names = metadata.get('feature_names', [])
         model_type = metadata.get('model_type', 'unknown')

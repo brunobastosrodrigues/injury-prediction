@@ -36,10 +36,20 @@ function ResultsPage() {
   const loadModelData = async (model) => {
     setLoading(true)
     try {
+      // Use individual catches to prevent one failure from blocking all data
       const [rocRes, prRes, fiRes] = await Promise.all([
-        trainingApi.getRocCurve(model.id, model.split_id),
-        trainingApi.getPrCurve(model.id, model.split_id),
-        analyticsApi.getFeatureImportance(model.id)
+        trainingApi.getRocCurve(model.id, model.split_id).catch(err => {
+          console.warn('Failed to load ROC curve:', err)
+          return { data: null }
+        }),
+        trainingApi.getPrCurve(model.id, model.split_id).catch(err => {
+          console.warn('Failed to load PR curve:', err)
+          return { data: null }
+        }),
+        analyticsApi.getFeatureImportance(model.id).catch(err => {
+          console.warn('Failed to load feature importance:', err)
+          return { data: null }
+        })
       ])
 
       setRocData(rocRes.data)
@@ -71,11 +81,11 @@ function ResultsPage() {
   }
 
   const getROCExportData = () => {
-    if (!rocData) return []
+    if (!rocData || !rocData.fpr || !rocData.tpr) return []
     return rocData.fpr.map((fpr, i) => ({
       false_positive_rate: fpr,
-      true_positive_rate: rocData.tpr[i],
-      threshold: rocData.thresholds?.[i] || null
+      true_positive_rate: i < rocData.tpr.length ? rocData.tpr[i] : null,
+      threshold: rocData.thresholds && i < rocData.thresholds.length ? rocData.thresholds[i] : null
     }))
   }
 

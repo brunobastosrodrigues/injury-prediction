@@ -1,9 +1,13 @@
+import re
 from flask import Blueprint, request, jsonify
 from ...services.data_generation_service import DataGenerationService
 from ..schemas import DataGenerationSchema
 from pydantic import ValidationError
 
 bp = Blueprint('data_generation', __name__)
+
+# Regex pattern for valid dataset_id format (prevents path traversal)
+VALID_DATASET_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_\-]+$')
 
 
 @bp.route('/generate', methods=['POST'])
@@ -62,6 +66,10 @@ def list_datasets():
 @bp.route('/datasets/<dataset_id>', methods=['GET'])
 def get_dataset(dataset_id):
     """Get dataset details and summary statistics."""
+    # Validate dataset_id format to prevent path traversal
+    if not VALID_DATASET_ID_PATTERN.match(dataset_id):
+        return jsonify({'error': 'Invalid dataset_id format'}), 400
+
     dataset = DataGenerationService.get_dataset(dataset_id)
 
     if not dataset:
@@ -73,6 +81,10 @@ def get_dataset(dataset_id):
 @bp.route('/datasets/<dataset_id>', methods=['DELETE'])
 def delete_dataset(dataset_id):
     """Delete a dataset."""
+    # Validate dataset_id format to prevent path traversal
+    if not VALID_DATASET_ID_PATTERN.match(dataset_id):
+        return jsonify({'error': 'Invalid dataset_id format'}), 400
+
     success = DataGenerationService.delete_dataset(dataset_id)
 
     if success:
@@ -84,8 +96,16 @@ def delete_dataset(dataset_id):
 @bp.route('/datasets/<dataset_id>/sample', methods=['GET'])
 def get_dataset_sample(dataset_id):
     """Get a sample of data from a dataset."""
+    # Validate dataset_id format to prevent path traversal
+    if not VALID_DATASET_ID_PATTERN.match(dataset_id):
+        return jsonify({'error': 'Invalid dataset_id format'}), 400
+
     table = request.args.get('table', 'daily_data')
     n_rows = request.args.get('n_rows', 100, type=int)
+
+    # Validate n_rows bounds
+    if n_rows < 1 or n_rows > 10000:
+        return jsonify({'error': 'n_rows must be between 1 and 10000'}), 400
 
     if table not in ['athletes', 'daily_data', 'activity_data']:
         return jsonify({'error': 'Invalid table name'}), 400

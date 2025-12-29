@@ -70,10 +70,17 @@ export function PipelineProvider({ children }) {
 
   // Update job status
   const updateJob = useCallback((jobId, updates) => {
-    setActiveJobs(prev => ({
-      ...prev,
-      [jobId]: { ...prev[jobId], ...updates }
-    }))
+    setActiveJobs(prev => {
+      // Only update if job exists to prevent undefined spread
+      if (!prev[jobId]) {
+        console.warn(`Attempted to update non-existent job: ${jobId}`)
+        return prev
+      }
+      return {
+        ...prev,
+        [jobId]: { ...prev[jobId], ...updates }
+      }
+    })
   }, [])
 
   // Remove job from tracking

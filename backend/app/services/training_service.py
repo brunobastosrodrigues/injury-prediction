@@ -506,15 +506,27 @@ class TrainingService:
         if not os.path.exists(model_path):
             return None
 
-        model = joblib.load(model_path)
+        try:
+            model = joblib.load(model_path)
+        except Exception as e:
+            logger.error(f"Failed to load model from {model_path}: {e}")
+            return None
 
         # Load test data
         split_dir = os.path.join(processed_dir, split_id)
-        X_test = FileManager.read_df(os.path.join(split_dir, 'X_test'))
-        y_test = FileManager.read_df(os.path.join(split_dir, 'y_test')).values.ravel()
+        try:
+            X_test = FileManager.read_df(os.path.join(split_dir, 'X_test'))
+            y_test = FileManager.read_df(os.path.join(split_dir, 'y_test')).values.ravel()
+        except Exception as e:
+            logger.error(f"Failed to load test data from {split_dir}: {e}")
+            return None
 
-        y_pred_proba = model.predict_proba(X_test)[:, 1]
-        fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
+        try:
+            y_pred_proba = model.predict_proba(X_test)[:, 1]
+            fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
+        except Exception as e:
+            logger.error(f"Failed to compute ROC curve: {e}")
+            return None
 
         return {
             'fpr': fpr.tolist(),
@@ -534,15 +546,27 @@ class TrainingService:
         if not os.path.exists(model_path):
             return None
 
-        model = joblib.load(model_path)
+        try:
+            model = joblib.load(model_path)
+        except Exception as e:
+            logger.error(f"Failed to load model from {model_path}: {e}")
+            return None
 
         # Load test data
         split_dir = os.path.join(processed_dir, split_id)
-        X_test = FileManager.read_df(os.path.join(split_dir, 'X_test'))
-        y_test = FileManager.read_df(os.path.join(split_dir, 'y_test')).values.ravel()
+        try:
+            X_test = FileManager.read_df(os.path.join(split_dir, 'X_test'))
+            y_test = FileManager.read_df(os.path.join(split_dir, 'y_test')).values.ravel()
+        except Exception as e:
+            logger.error(f"Failed to load test data from {split_dir}: {e}")
+            return None
 
-        y_pred_proba = model.predict_proba(X_test)[:, 1]
-        precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
+        try:
+            y_pred_proba = model.predict_proba(X_test)[:, 1]
+            precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
+        except Exception as e:
+            logger.error(f"Failed to compute PR curve: {e}")
+            return None
 
         return {
             'precision': precision.tolist(),

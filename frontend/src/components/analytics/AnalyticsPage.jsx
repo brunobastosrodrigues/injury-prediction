@@ -79,18 +79,20 @@ function AnalyticsPage() {
   const fetchAthletes = async (datasetId) => {
     try {
       const res = await analyticsApi.listAthletes(datasetId)
-      setAthletes(res.data.athletes)
+      setAthletes(res.data?.athletes || [])
     } catch (error) {
       console.error('Failed to fetch athletes:', error)
+      setAthletes([])
     }
   }
 
   const fetchModels = async () => {
     try {
       const res = await trainingApi.listModels()
-      setModels(res.data.models)
+      setModels(res.data?.models || [])
     } catch (error) {
       console.error('Failed to fetch models:', error)
+      setModels([])
     }
   }
 
@@ -112,8 +114,14 @@ function AnalyticsPage() {
     try {
       switch (activeTab) {
         case 'distributions':
+          // Use individual catches to prevent one failure from blocking all distributions
           const distPromises = METRICS.map(m =>
-            analyticsApi.getDistribution(selectedDataset, m).then(r => ({ metric: m, data: r.data }))
+            analyticsApi.getDistribution(selectedDataset, m)
+              .then(r => ({ metric: m, data: r.data }))
+              .catch(err => {
+                console.warn(`Failed to load distribution for ${m}:`, err)
+                return { metric: m, data: null }
+              })
           )
           const distResults = await Promise.all(distPromises)
           const distMap = {}
