@@ -342,8 +342,9 @@ def run_validation_task(job_id: str, dataset_id: str):
             ProgressTracker.start_job(job_id, total_steps=100)
             ProgressTracker.update_progress(job_id, 5, 'Loading datasets...', dataset_id=dataset_id)
 
-            # Create validation results directory
-            validation_dir = os.path.join(app.config.get('BASE_DIR', '/data'), 'data', 'validation', dataset_id)
+            # Create validation results directory (use service's cache path for consistency)
+            validation_cache_base = ValidationService.get_validation_cache_dir()
+            validation_dir = os.path.join(validation_cache_base, dataset_id)
             os.makedirs(validation_dir, exist_ok=True)
 
             # Step 1: Distribution comparison (20%)

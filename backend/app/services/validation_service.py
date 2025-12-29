@@ -876,12 +876,14 @@ class ValidationService:
             }
             df = df.rename(columns=rename_map)
 
-            # Normalize to 0-1
-            for col in ['sleep_quality_daily', 'stress_score', 'recovery_score', 'sleep_hours']:
-                if col in df.columns:
-                    col_min, col_max = df[col].min(), df[col].max()
-                    if col_max > col_min:
-                        df[col] = (df[col] - col_min) / (col_max - col_min)
+            # Skip normalization for calibrated datasets (already matched to PMData range)
+            if 'calibrated' not in dataset_id:
+                # Normalize to 0-1 for non-calibrated datasets
+                for col in ['sleep_quality_daily', 'stress_score', 'recovery_score', 'sleep_hours']:
+                    if col in df.columns:
+                        col_min, col_max = df[col].min(), df[col].max()
+                        if col_max > col_min:
+                            df[col] = (df[col] - col_min) / (col_max - col_min)
 
             return df
         except Exception as e:
