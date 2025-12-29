@@ -1,19 +1,11 @@
 import { Link } from 'react-router-dom'
-import { usePipeline } from '../../context/PipelineContext'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import CitationBlock from '../common/CitationBlock'
 import MethodologyTooltip, { METHODOLOGY_TERMS } from '../common/MethodologyTooltip'
 
 function LandingPage() {
-  const { datasets, splits, models, refreshDatasets, refreshSplits, refreshModels } = usePipeline()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showCitation, setShowCitation] = useState(false)
-
-  useEffect(() => {
-    refreshDatasets()
-    refreshSplits()
-    refreshModels()
-  }, [refreshDatasets, refreshSplits, refreshModels])
 
   const pipelineSteps = [
     {
@@ -147,11 +139,12 @@ function LandingPage() {
     }
   ]
 
+  // Static statistics about the framework capabilities
   const stats = [
-    { label: 'Synthetic Cohorts', value: datasets.length, suffix: '' },
-    { label: 'Feature Sets', value: splits.length, suffix: '' },
-    { label: 'Trained Models', value: models.length, suffix: '' },
-    { label: 'Prediction Horizon', value: 7, suffix: ' days' }
+    { label: 'Cohort Size', value: '100-5000', suffix: ' athletes' },
+    { label: 'Time Series', value: '365', suffix: ' days' },
+    { label: 'ML Models', value: '3', suffix: ' algorithms' },
+    { label: 'Prediction Horizon', value: '7', suffix: ' days' }
   ]
 
   return (
@@ -339,7 +332,7 @@ function LandingPage() {
               </Link>
             </div>
 
-            {/* Platform Stats */}
+            {/* Framework Capabilities */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-0">
               {stats.map((stat, index) => (
                 <div key={index} className="p-4 sm:p-5 rounded-xl bg-slate-900/50 border border-slate-800">
@@ -349,6 +342,168 @@ function LandingPage() {
                   <div className="text-xs sm:text-sm text-slate-500">{stat.label}</div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Abstract Section */}
+      <section className="py-16 sm:py-20 relative bg-gradient-to-b from-slate-950 via-slate-900/30 to-slate-950">
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-3">
+              Abstract
+            </h2>
+          </div>
+          
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 sm:p-8 lg:p-10">
+            <p className="text-base sm:text-lg text-slate-300 leading-relaxed mb-4">
+              <span className="font-semibold text-white">Background:</span> Training-related injuries represent a critical challenge in endurance sports, 
+              with incidence rates of 37-56% reported among triathletes. Despite widespread adoption of wearable sensor technology, 
+              prospective injury prediction remains constrained by limited access to large-scale, labeled datasets and the complex, 
+              multifactorial nature of injury etiology.
+            </p>
+            
+            <p className="text-base sm:text-lg text-slate-300 leading-relaxed mb-4">
+              <span className="font-semibold text-white">Methods:</span> We present a computational framework addressing data scarcity through synthetic cohort generation. 
+              Our stochastic simulation engine models year-long training trajectories for 100-5000 athletes, incorporating periodization theory, 
+              physiological adaptation dynamics (CTL/ATL via impulse-response models), and load-dependent injury mechanisms. 
+              Feature engineering implements established sports science constructs including Acute:Chronic Workload Ratio (ACWR) and 
+              Training Stress Balance (TSB). Three supervised learning algorithms (L1-regularized logistic regression, Random Forest, XGBoost) 
+              are benchmarked for 7-day prospective injury classification.
+            </p>
+            
+            <p className="text-base sm:text-lg text-slate-300 leading-relaxed mb-4">
+              <span className="font-semibold text-white">Results:</span> The framework enables reproducible model development with comprehensive evaluation metrics 
+              (ROC-AUC, PR-AUC, calibration), interpretability via SHAP-based feature attribution, and counterfactual analysis 
+              for intervention validation. Individual athlete dashboards facilitate temporal risk pattern extraction and 
+              mechanistic hypothesis generation.
+            </p>
+            
+            <p className="text-base sm:text-lg text-slate-300 leading-relaxed">
+              <span className="font-semibold text-white">Conclusion:</span> This platform demonstrates a methodology for synthetic data-driven research in sports medicine, 
+              providing infrastructure for algorithm development while preserving athlete privacy. 
+              The modular architecture supports extension to other endurance disciplines and integration with real-world wearable data streams.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Why Triathletes Section */}
+      <section className="py-16 sm:py-20 relative">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 items-start">
+            {/* Left Column - Why Triathletes */}
+            <div>
+              <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-3">
+                Domain Focus
+              </h2>
+              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-6">
+                Why Triathletes?
+              </h3>
+              
+              <div className="space-y-4 text-slate-400 text-sm sm:text-base">
+                <p className="leading-relaxed">
+                  Triathlon provides an ideal testbed for injury prediction research due to its unique 
+                  biomechanical and physiological characteristics:
+                </p>
+                
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
+                    <div>
+                      <span className="text-white font-medium">Multi-Modal Load Patterns:</span>
+                      <span className="text-slate-400"> Swimming, cycling, and running impose distinct biomechanical stresses, 
+                      creating complex load distribution dynamics not present in single-discipline sports.</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
+                    <div>
+                      <span className="text-white font-medium">High Injury Incidence:</span>
+                      <span className="text-slate-400"> Epidemiological studies report 37-56% annual injury rates among competitive 
+                      triathletes, with overuse injuries comprising 70-85% of cases—predominantly load-management failures.</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
+                    <div>
+                      <span className="text-white font-medium">Wearable Technology Adoption:</span>
+                      <span className="text-slate-400"> Near-ubiquitous use of GPS watches, power meters, and heart rate monitors 
+                      in competitive age-group populations provides rich, multi-sensor data streams ideal for ML applications.</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
+                    <div>
+                      <span className="text-white font-medium">Structured Periodization:</span>
+                      <span className="text-slate-400"> Triathlon training follows well-established periodization models 
+                      (base, build, peak, taper), facilitating temporal pattern analysis and intervention timing optimization.</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
+                    <div>
+                      <span className="text-white font-medium">Generalizable Framework:</span>
+                      <span className="text-slate-400"> While focused on triathlon, the underlying load monitoring constructs 
+                      (ACWR, CTL/ATL, impulse-response models) are discipline-agnostic and transferable to other endurance sports.</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <p className="leading-relaxed pt-4 text-slate-500 italic">
+                  By targeting triathletes, we address a high-impact problem domain while developing methodologies 
+                  applicable across endurance athletics, team sports, and occupational injury prevention contexts.
+                </p>
+              </div>
+            </div>
+
+            {/* Right Column - Key Statistics */}
+            <div className="space-y-6">
+              <div className="p-6 sm:p-8 rounded-xl bg-slate-900/80 border border-slate-800">
+                <h4 className="text-base sm:text-lg font-semibold text-white mb-6">Triathlon Injury Epidemiology</h4>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                    <span className="text-slate-400 text-sm">Annual Injury Incidence</span>
+                    <span className="text-white font-bold text-xl">37-56%</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                    <span className="text-slate-400 text-sm">Overuse Injury Proportion</span>
+                    <span className="text-white font-bold text-xl">70-85%</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                    <span className="text-slate-400 text-sm">Running-Related Injuries</span>
+                    <span className="text-white font-bold text-xl">~65%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 text-sm">Load Management Attribution</span>
+                    <span className="text-white font-bold text-xl">~80%</span>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 mt-4 italic">
+                  Source: Vleck et al. (2010), Gosling et al. (2008), Korkia et al. (1994)
+                </p>
+              </div>
+
+              <div className="p-6 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                <div className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h5 className="text-sm font-medium text-blue-400 mb-2">Clinical Relevance</h5>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Prospective injury prediction enables proactive load modification before microtrauma accumulation 
+                      reaches clinical injury thresholds—a paradigm shift from reactive injury management to 
+                      preventive risk stratification.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
