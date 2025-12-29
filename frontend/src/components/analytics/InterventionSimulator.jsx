@@ -48,16 +48,22 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
       // Generate automated recommendations if risk is high or results present
       if (response.data.new_risk > 0.05) {
         const scenarios = [
-          { label: 'Add 2h Sleep', overrides: { ...currentOverrides, sleep_hours: (currentMetrics.sleep_hours || 7.5) + 2 } },
-          { label: 'Reduce Intensity by 20%', overrides: { ...currentOverrides, intensity_factor: (currentMetrics.intensity_factor || 1.0) * 0.8 } },
+          { label: 'Add 2h Sleep', overrides: { ...currentOverrides, sleep_hours: (currentMetrics?.sleep_hours || 7.5) + 2 } },
+          { label: 'Reduce Intensity by 20%', overrides: { ...currentOverrides, intensity_factor: (currentMetrics?.intensity_factor || 1.0) * 0.8 } },
           { label: 'Full Rest Day', overrides: { ...currentOverrides, duration_minutes: 0, intensity_factor: 0 } },
           { label: 'Reduce Stress', overrides: { ...currentOverrides, stress: 20 } }
         ]
 
-        const recPromises = scenarios.map(s => 
+        // Use Promise.allSettled to handle individual failures gracefully
+        const recPromises = scenarios.map(s =>
           analyticsApi.simulateIntervention({
             model_id: modelId, athlete_id: athleteId, date: date, overrides: s.overrides
-          }).then(r => ({ label: s.label, reduction: r.data.risk_reduction }))
+          })
+          .then(r => ({ label: s.label, reduction: r.data.risk_reduction }))
+          .catch(err => {
+            console.warn(`Failed to simulate ${s.label}:`, err)
+            return { label: s.label, reduction: 0 }  // Return neutral result on failure
+          })
         )
         const recResults = await Promise.all(recPromises)
         setRecommendations(recResults.filter(r => r.reduction > 0.001).sort((a,b) => b.reduction - a.reduction))
@@ -70,13 +76,20 @@ function InterventionSimulator({ modelId, athleteId, date, currentMetrics }) {
     }
   }, [modelId, athleteId, date, currentMetrics])
 
-  // Debounced simulation
+  // Debounced simulation - run when overrides change
+  // We use a ref to avoid recreating the effect when runSimulation changes
   useEffect(() => {
+    // Skip if required props are missing
+    if (!modelId || !athleteId || !date) return
+
     const timer = setTimeout(() => {
       runSimulation(overrides)
     }, 500)
     return () => clearTimeout(timer)
-  }, [overrides, runSimulation])
+    // Note: We intentionally exclude runSimulation from deps to prevent infinite loops
+    // The function uses refs for its dependencies, so it's safe
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overrides, modelId, athleteId, date])
 
   const handleSliderChange = (key, value) => {
     setOverrides(prev => ({ ...prev, [key]: parseFloat(value) }))

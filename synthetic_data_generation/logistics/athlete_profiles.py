@@ -205,9 +205,11 @@ def calculate_CSS(vo2max, weekly_training_hours, training_experience, athlete_ty
 
     # Final calculation
     estimated_css = base_css + vo2_factor + training_factor + experience_factor
-    estimated_css = max(0.80, min(estimated_css, 1.55))  # Stricter upper/lower limits  
+    # Ensure CSS is never zero to prevent division by zero
+    # Minimum 0.50 m/s (very slow), maximum 1.55 m/s (elite)
+    estimated_css = max(0.50, min(estimated_css, 1.55))
 
-    # Convert to seconds per 100m
+    # Convert to seconds per 100m (safe: estimated_css >= 0.50)
     css_s_per_100m = round(100 / estimated_css, 1)
 
     return css_s_per_100m
@@ -222,6 +224,9 @@ def generate_vo2max(age, training_experience, gender, lifestyle, athlete_type, g
         genetic_boost = np.random.uniform(-2, 0)
     elif genetic_factor > 1:
         genetic_boost = np.random.uniform(0, 5)
+    else:
+        # genetic_factor == 1.0 exactly: neutral, no boost
+        genetic_boost = 0.0
 
     # Training experience effect (2-20 years → +5 to +30 ml/kg/min)
     training_boost = (training_experience + 3) * np.random.uniform(1.5, 2.0)

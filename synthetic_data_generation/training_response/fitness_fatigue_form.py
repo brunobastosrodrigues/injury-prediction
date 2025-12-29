@@ -45,10 +45,20 @@ def calculate_training_metrics(tss_history, hrv_history, baseline_hrv):
     
     # Training Form = Fitness - Fatigue
     form = fitness - fatigue
-    
+
     # ACWR (Acute:Chronic Workload Ratio)
-    acwr = fatigue / fitness if fitness > 0 else 0
-    
+    # Use minimum threshold to prevent astronomically high values when fitness is near zero
+    MIN_FITNESS_THRESHOLD = 1.0
+    if fitness > MIN_FITNESS_THRESHOLD:
+        acwr = fatigue / fitness
+    elif fitness > 0:
+        # Fitness between 0 and threshold: cap ACWR at reasonable maximum
+        acwr = fatigue / MIN_FITNESS_THRESHOLD
+    else:
+        acwr = 0.0
+    # Cap ACWR to physiologically reasonable range (no athlete trains 3x acute vs chronic sustainably)
+    acwr = min(acwr, 3.0)
+
     return round(fitness, 2), round(fatigue, 2), round(form, 2), round(acwr, 2)
 
 
@@ -251,8 +261,11 @@ def _calculate_daily_hrv(daily_tss, prev_hrv, sleep_quality):
     # Random physiological variation (limit to smaller range)
     random_variation = np.random.normal(0, 1)
     
-    # Compute today's HRV with a cap to prevent values going too low
-    return max(40, prev_hrv + tss_impact + sleep_effect + random_variation)
+    # Compute today's HRV with bounds to prevent unrealistic values
+    # Min: 40 ms (very low but possible under extreme fatigue)
+    # Max: 150 ms (physiological ceiling for elite athletes)
+    new_hrv = prev_hrv + tss_impact + sleep_effect + random_variation
+    return max(40, min(new_hrv, 150))
 
 
 def update_history(tss_history, hrv_history, new_tss_value, new_hrv_value, max_history_length=28):

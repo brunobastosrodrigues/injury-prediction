@@ -52,8 +52,25 @@ class SimConfig:
                 "Please ensure simulation_config.yaml exists in the config directory."
             )
 
-        with open(config_path, 'r') as f:
-            cls._config = yaml.safe_load(f)
+        try:
+            with open(config_path, 'r') as f:
+                cls._config = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise ValueError(
+                f"Invalid YAML syntax in configuration file {config_path}:\n{e}"
+            )
+
+        # Validate config is not empty
+        if cls._config is None:
+            raise ValueError(
+                f"Configuration file is empty: {config_path}\n"
+                "Please ensure the file contains valid YAML configuration."
+            )
+
+        if not isinstance(cls._config, dict):
+            raise ValueError(
+                f"Configuration must be a dictionary, got {type(cls._config).__name__}: {config_path}"
+            )
 
         return cls._config
 

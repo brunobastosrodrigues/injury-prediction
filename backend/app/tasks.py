@@ -48,16 +48,41 @@ def generate_dataset_task(job_id: str, n_athletes: int, simulation_year: int, ra
             ProgressTracker.fail_job(job_id, f"{str(e)}\n{traceback.format_exc()}")
 
 
+def _validate_numeric_param(value: Any, name: str, min_val: float = None, max_val: float = None) -> str:
+    """Validate and sanitize numeric parameter for subprocess command.
+
+    Prevents command injection by ensuring value is a valid number within bounds.
+    """
+    try:
+        num = float(value)
+        if min_val is not None and num < min_val:
+            raise ValueError(f"{name} must be >= {min_val}, got {num}")
+        if max_val is not None and num > max_val:
+            raise ValueError(f"{name} must be <= {max_val}, got {num}")
+        # Return as string for subprocess, using int format if it's a whole number
+        return str(int(num)) if num == int(num) else str(num)
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"Invalid {name}: {value} - must be a number. {e}")
+
+
 def _generate_with_rust(job_id: str, n_athletes: int, simulation_year: int, random_seed: int,
                         injury_config: Optional[Dict[str, Any]], app) -> str:
     """Generate dataset using fast Rust binary."""
+    # Validate base parameters to prevent injection
+    if not isinstance(n_athletes, int) or n_athletes < 1 or n_athletes > 10000:
+        raise ValueError(f"n_athletes must be an integer between 1 and 10000, got {n_athletes}")
+    if not isinstance(simulation_year, int) or simulation_year < 2000 or simulation_year > 2100:
+        raise ValueError(f"simulation_year must be between 2000 and 2100, got {simulation_year}")
+    if not isinstance(random_seed, int) or random_seed < 0:
+        raise ValueError(f"random_seed must be a non-negative integer, got {random_seed}")
+
     dataset_id = f"dataset_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{str(uuid.uuid4())[:6]}"
     output_dir = os.path.join(app.config['RAW_DATA_DIR'], dataset_id)
     os.makedirs(output_dir, exist_ok=True)
 
     ProgressTracker.update_progress(job_id, 5, 'Starting Rust data generator...')
 
-    # Build command with base arguments
+    # Build command with base arguments (validated above)
     cmd = [
         RUST_DATAGEN_BINARY,
         '--n-athletes', str(n_athletes),
@@ -68,43 +93,58 @@ def _generate_with_rust(job_id: str, n_athletes: int, simulation_year: int, rand
         '--no-progress',
     ]
 
-    # Add configuration parameters if provided
+    # Add configuration parameters if provided (with validation)
     if injury_config:
-        # Injury model parameters
+        # Injury model parameters - validate each before adding
         if 'acwr_danger_threshold' in injury_config:
-            cmd.extend(['--acwr-danger', str(injury_config['acwr_danger_threshold'])])
+            val = _validate_numeric_param(injury_config['acwr_danger_threshold'], 'acwr_danger_threshold', 0.5, 3.0)
+            cmd.extend(['--acwr-danger', val])
         if 'acwr_caution_threshold' in injury_config:
-            cmd.extend(['--acwr-caution', str(injury_config['acwr_caution_threshold'])])
+            val = _validate_numeric_param(injury_config['acwr_caution_threshold'], 'acwr_caution_threshold', 0.5, 3.0)
+            cmd.extend(['--acwr-caution', val])
         if 'acwr_undertrained_threshold' in injury_config:
-            cmd.extend(['--acwr-undertrained', str(injury_config['acwr_undertrained_threshold'])])
+            val = _validate_numeric_param(injury_config['acwr_undertrained_threshold'], 'acwr_undertrained_threshold', 0.1, 1.5)
+            cmd.extend(['--acwr-undertrained', val])
         if 'base_injury_probability' in injury_config:
-            cmd.extend(['--base-injury-prob', str(injury_config['base_injury_probability'])])
+            val = _validate_numeric_param(injury_config['base_injury_probability'], 'base_injury_probability', 0.0, 0.1)
+            cmd.extend(['--base-injury-prob', val])
         if 'max_injury_probability' in injury_config:
-            cmd.extend(['--max-injury-prob', str(injury_config['max_injury_probability'])])
+            val = _validate_numeric_param(injury_config['max_injury_probability'], 'max_injury_probability', 0.0, 0.5)
+            cmd.extend(['--max-injury-prob', val])
 
         # Training model parameters
         if 'ctl_time_constant' in injury_config:
-            cmd.extend(['--ctl-days', str(injury_config['ctl_time_constant'])])
+            val = _validate_numeric_param(injury_config['ctl_time_constant'], 'ctl_time_constant', 7, 84)
+            cmd.extend(['--ctl-days', val])
         if 'atl_time_constant' in injury_config:
-            cmd.extend(['--atl-days', str(injury_config['atl_time_constant'])])
+            val = _validate_numeric_param(injury_config['atl_time_constant'], 'atl_time_constant', 3, 21)
+            cmd.extend(['--atl-days', val])
         if 'acwr_acute_window' in injury_config:
-            cmd.extend(['--acwr-acute-window', str(injury_config['acwr_acute_window'])])
+            val = _validate_numeric_param(injury_config['acwr_acute_window'], 'acwr_acute_window', 3, 14)
+            cmd.extend(['--acwr-acute-window', val])
         if 'acwr_chronic_window' in injury_config:
-            cmd.extend(['--acwr-chronic-window', str(injury_config['acwr_chronic_window'])])
+            val = _validate_numeric_param(injury_config['acwr_chronic_window'], 'acwr_chronic_window', 14, 42)
+            cmd.extend(['--acwr-chronic-window', val])
 
         # Athlete generation parameters
         if 'min_age' in injury_config:
-            cmd.extend(['--min-age', str(injury_config['min_age'])])
+            val = _validate_numeric_param(injury_config['min_age'], 'min_age', 16, 70)
+            cmd.extend(['--min-age', val])
         if 'max_age' in injury_config:
-            cmd.extend(['--max-age', str(injury_config['max_age'])])
+            val = _validate_numeric_param(injury_config['max_age'], 'max_age', 16, 70)
+            cmd.extend(['--max-age', val])
         if 'min_weekly_hours' in injury_config:
-            cmd.extend(['--min-hours', str(injury_config['min_weekly_hours'])])
+            val = _validate_numeric_param(injury_config['min_weekly_hours'], 'min_weekly_hours', 1, 30)
+            cmd.extend(['--min-hours', val])
         if 'max_weekly_hours' in injury_config:
-            cmd.extend(['--max-hours', str(injury_config['max_weekly_hours'])])
+            val = _validate_numeric_param(injury_config['max_weekly_hours'], 'max_weekly_hours', 1, 40)
+            cmd.extend(['--max-hours', val])
         if 'female_probability' in injury_config:
-            cmd.extend(['--female-prob', str(injury_config['female_probability'])])
+            val = _validate_numeric_param(injury_config['female_probability'], 'female_probability', 0.0, 1.0)
+            cmd.extend(['--female-prob', val])
 
-    # Run Rust binary with JSON progress output
+    # Run Rust binary with timeout to prevent hangs
+    # Use communicate() to avoid deadlock from buffer filling
     process = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
@@ -112,30 +152,48 @@ def _generate_with_rust(job_id: str, n_athletes: int, simulation_year: int, rand
         text=True,
     )
 
-    # Stream progress from stderr
-    for line in process.stderr:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            progress_data = json.loads(line)
-            completed = progress_data.get('progress', 0)
-            total = progress_data.get('total', n_athletes)
-            pct = int(90 * completed / total) + 5  # 5-95% range
-            ProgressTracker.update_progress(
-                job_id, pct,
-                f'Simulating athlete {completed}/{total}...',
-                current_athlete=completed,
-                total_athletes=total
-            )
-        except (json.JSONDecodeError, KeyError):
-            pass
+    # Use a thread to read stderr for progress updates while avoiding deadlock
+    import threading
 
-    process.wait()
+    def read_progress():
+        """Read progress from stderr without blocking."""
+        try:
+            for line in process.stderr:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    progress_data = json.loads(line)
+                    completed = progress_data.get('progress', 0)
+                    total = progress_data.get('total', n_athletes)
+                    if total > 0:
+                        pct = int(90 * completed / total) + 5  # 5-95% range
+                        ProgressTracker.update_progress(
+                            job_id, pct,
+                            f'Simulating athlete {completed}/{total}...',
+                            current_athlete=completed,
+                            total_athletes=total
+                        )
+                except (json.JSONDecodeError, KeyError, ZeroDivisionError):
+                    pass  # Ignore malformed progress lines
+        except Exception:
+            pass  # Thread cleanup on process termination
+
+    progress_thread = threading.Thread(target=read_progress, daemon=True)
+    progress_thread.start()
+
+    # Wait for process with timeout (1 hour max for large datasets)
+    try:
+        stdout, _ = process.communicate(timeout=3600)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.communicate()  # Clean up
+        raise RuntimeError("Rust datagen timed out after 1 hour")
+
+    progress_thread.join(timeout=5)  # Wait for progress thread to finish
 
     if process.returncode != 0:
-        stdout, stderr = process.communicate()
-        raise RuntimeError(f"Rust datagen failed with code {process.returncode}: {stderr}")
+        raise RuntimeError(f"Rust datagen failed with code {process.returncode}")
 
     ProgressTracker.update_progress(job_id, 96, 'Finalizing data files...')
 

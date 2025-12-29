@@ -193,9 +193,14 @@ def inject_realistic_injury_patterns(athlete, daily_data_list, injury_day_index,
             deep_sleep_reduction = sleep_alpha * (1.0 + random.uniform(stage_var[0], stage_var[1]))
             rem_sleep_reduction = sleep_alpha * (0.8 + random.uniform(stage_var[0], stage_var[1]))
 
-            day_data['deep_sleep'] = day_data['deep_sleep'] * (1 - deep_sleep_reduction)
-            day_data['rem_sleep'] = day_data['rem_sleep'] * (1 - rem_sleep_reduction)
-            day_data['light_sleep'] = day_data['sleep_hours'] - day_data['deep_sleep'] - day_data['rem_sleep']
+            # Cap reduction to prevent negative sleep values (max 95% reduction)
+            deep_sleep_reduction = min(deep_sleep_reduction, 0.95)
+            rem_sleep_reduction = min(rem_sleep_reduction, 0.95)
+
+            day_data['deep_sleep'] = max(0, day_data['deep_sleep'] * (1 - deep_sleep_reduction))
+            day_data['rem_sleep'] = max(0, day_data['rem_sleep'] * (1 - rem_sleep_reduction))
+            # Ensure light_sleep doesn't go negative (sleep stages must sum to total)
+            day_data['light_sleep'] = max(0, day_data['sleep_hours'] - day_data['deep_sleep'] - day_data['rem_sleep'])
         
         # 4. Modify body battery metrics if this athlete shows that pattern
         if show_bb_pattern and 'body_battery_morning' in day_data:
