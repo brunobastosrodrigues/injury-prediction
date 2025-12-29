@@ -2,102 +2,185 @@
 
 ## Application Preview
 
-<img width="941" height="570" alt="injury-prediction-landingpage-new" src="https://github.com/user-attachments/assets/47f36be8-627d-43dc-8fb3-a1e3717a43c7" />
+<img width="941" height="570" alt="injury-prediction-landingpage-new" src="https://github.com/user-attachments/assets/47f36be8-647d-43dc-8fb3-a1e3717a43c7" />
 
+> *Landing page with research abstract and validation results overview.*
 
-> *The main dashboard providing an overview of the data pipeline status.*
+This repository contains a comprehensive framework for injury prediction in endurance athletes using machine learning. The platform provides:
 
-This repository contains a comprehensive framework for generating synthetic training, physiological, and injury data for endurance athletes. The simulation models athlete profiles, training plans, daily metrics, and physiological responses over extended time periods, enabling machine learning applications in sports science without requiring access to sensitive real-world athlete data.
+- **Synthetic Data Generation**: Physiologically plausible training and physiological data simulation
+- **ML Pipeline**: Complete workflow from data preprocessing to model training and evaluation
+- **Scientific Validation Suite**: Publication-quality validation with Three Pillars framework
+- **Explainable AI (XAI)**: SHAP-based model interpretability with counterfactual explanations
+- **Interactive Analytics**: Risk analysis, what-if scenarios, and athlete-level dashboards
 
-In addition to the simulation pipeline, the repository includes self-contained Jupyter notebooks demonstrating how to build and evaluate predictive models. A core task explored is injury prediction, specifically forecasting whether an athlete will experience an injury within the next 7 days based on wearable-derived metrics.
+While focused on triathlon, the framework is adaptable to other endurance sports facing similar data accessibility challenges.
 
-While this application focuses specifically on triathlon, the framework is adaptable to other sports and domains facing similar privacy and data accessibility challenges. 
+## Key Features
 
-Given sufficient time this repository also offers strategies for real data collection using the Garmin Connect and Strava API's.
+### Data Generation & Ingestion
+- **Synthetic Athlete Profiles**: Diverse athlete characteristics based on realistic physiological parameters for competitive age-group triathletes
+- **Periodized Training Plans**: Structured training prescriptions with appropriate intensity distribution
+- **Wearable Sensor Simulation**: Heart rate, sleep, HRV, and metrics commonly collected by devices
+- **Real Data Support**: Garmin Connect data ingestion for real-world validation
+
+### Machine Learning Pipeline
+- **Preprocessing**: Feature engineering with ACWR (Acute:Chronic Workload Ratio), rolling statistics, and lag features
+- **Three Model Types**: Lasso (L1 regularized), Random Forest, and XGBoost
+- **7-Day Injury Prediction Window**: Binary classification for near-term injury risk
+- **Hyperparameter Configuration**: YAML-based settings for reproducible experiments
+
+### Scientific Validation
+- **Three Pillars Framework**: Face validity, predictive validity, and hypothesis validity
+- **Causal Mechanism Analysis**: ACWR zone injury rate verification
+- **External Validation**: Real PMData dataset support for cross-validation
+- **Publication-Ready Metrics**: AUC-ROC, sensitivity, specificity, calibration curves
+
+### Explainable AI (Federated XAI)
+- **SHAP Waterfall Plots**: Individual prediction explanations
+- **Feature Dependence**: Partial dependence and interaction effects
+- **Counterfactual Explanations**: "What-if" scenarios for risk modification
+- **Personalized Recommendations**: Actionable insights for injury prevention
+
+### Analytics & Visualization
+- **Dataset Explorer**: Distribution analysis, correlations, and pre-injury patterns
+- **Athlete Dashboard**: Individual athlete profiles with risk timeline
+- **What-If Simulator**: Interactive intervention planning
+- **Dark/Light Theme**: Full theme support across all components
+- **Mobile Responsive**: Optimized for all screen sizes
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Frontend (React + Vite)                   │
+│  Landing → Dashboard → Generation → Preprocessing → Training    │
+│           → Results → Interpretability → Analytics → Validation │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     Backend (Flask + Celery)                     │
+│  Routes: data_generation, preprocessing, training, analytics,   │
+│          validation, explainability                              │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                         Data Storage                             │
+│  /data/raw/      - Generated/ingested datasets                  │
+│  /data/processed/ - Train/test splits                           │
+│  /data/models/    - Trained model artifacts                     │
+│  /data/validation/ - Pre-seeded validation results              │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## How to Run
 
-### Docker
-
-To run the project using Docker, navigate to the root directory of the project in your terminal and run:
+### Docker (Recommended)
 
 ```bash
 docker-compose up --build
 ```
 
-This will build the Docker images for both the backend and frontend, and then start the services. The backend will be accessible on `http://localhost:5000` and the frontend on `http://localhost:5173`.
-
-If you also want to generate synthetic data before running the application, you can execute the following command in a separate terminal:
-
-```bash
-python synthetic_data_generation/main.py
-```
+Services:
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:5000`
+- Redis: `localhost:6379` (for Celery task queue)
 
 ### Local Development
 
-1.  **Clone the repository:**
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/brunobastosrodrigues/injury-prediction
+   cd injury-prediction
+   ```
 
-    ```bash
-    git clone https://github.com/brunobastosrodrigues/injury-prediction
-    cd injury-prediction
-    ```
+2. **Backend setup:**
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   python run.py
+   ```
+   Backend runs at: `http://localhost:5000`
 
-2.  **Install backend dependencies:**
+3. **Celery worker (for async tasks):**
+   ```bash
+   celery -A app.celery_app.celery_app worker --loglevel=info
+   ```
 
-    ```bash
-    cd backend
-    pip install -r requirements.txt
-    ```
+4. **Frontend setup:**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   Frontend runs at: `http://localhost:5173`
 
-3.  **Start the Flask backend:**
-
-    ```bash
-    python run.py
-    ```
-
-    Backend runs at: `http://localhost:5000`
-
-4.  **Install and start the React frontend:**
-
-    ```bash
-    cd ../frontend
-    npm install
-    npm run dev
-    ```
-
-    Frontend runs at: `http://localhost:5173`
-
-## Key Features
-
-
-
-- **Physiologically Plausible Athlete Profiles:** Generates diverse athlete characteristics based on realistic physiological parameters (in this implementatin targeted to competitive age-group triathletes)
-- **Periodized Training Plans:** Creates structured training prescriptions with appropriate intensity distribution specifically targeted to athlete profiles
-- **Wearable Sensor Data Simulation:** Models heart rate, sleep, HRV, and other metrics commonly collected by wearable devices
-- **Training Response Modeling:** Simulates fitness, fatigue, and form based on established sports science models
-- **Injury Risk Simulation:** Incorporates scheduled injuries and generates realistic injury patterns preceding them
-- 
-<img width="1254" height="690" alt="injury-prediction-athlete-profile" src="https://github.com/user-attachments/assets/4c0a263a-6a64-4aa6-849d-1a5b6a799018" />  
-<img width="1254" height="690" alt="injury-prediction-athlete-profile2" src="https://github.com/user-attachments/assets/d93eeadf-8125-4940-b931-63586344c344" />
-
-
-## Usage
-
-### Generating Synthetic Data
-To run the full simulation pipeline and generate all datasets:
+### Generating Synthetic Data (Standalone)
 
 ```bash
 python synthetic_data_generation/main.py
 ```
 
-This will generate multiple CSV files in the `simulated_data/` directory:
+Outputs to `data/raw/`:
 - `athletes.csv`: Synthetic athlete profiles
 - `daily_data.csv`: Daily physiological readings
-- `activity_data.csv`: Wearable activity logs
+- `activity_data.csv`: Training activity logs
+
+## Project Structure
+
+```
+injury-prediction/
+├── backend/
+│   ├── app/
+│   │   ├── api/routes/          # Flask blueprints
+│   │   ├── services/            # Business logic
+│   │   ├── config/              # Hyperparameters (YAML)
+│   │   └── utils/               # Progress tracking, helpers
+│   └── run.py
+├── frontend/
+│   ├── src/
+│   │   ├── components/          # React components by feature
+│   │   ├── context/             # Pipeline & Theme context
+│   │   └── api/                 # Axios client
+│   └── vite.config.js
+├── synthetic_data_generation/
+│   ├── main.py                  # Entry point
+│   ├── simulate_year.py         # Year-long simulation
+│   ├── logistics/               # Athlete profiles, training plans
+│   └── training_response/       # Injury simulation models
+└── data/
+    ├── raw/                     # Generated datasets
+    ├── processed/               # Train/test splits
+    ├── models/                  # Trained models
+    └── validation/              # Pre-seeded validation results
+```
+
+## Configuration
+
+- **ML Hyperparameters**: `backend/app/config/hyperparameters.yaml`
+- **Backend Config**: `backend/app/config.py` (100 athletes, 2024 year, seed 42)
+- **Frontend Proxy**: `frontend/vite.config.js` (`/api` → backend)
+
+## Screenshots
+
+<img width="1254" height="690" alt="injury-prediction-athlete-profile" src="https://github.com/user-attachments/assets/4c0a263a-6a64-4aa6-849d-1a5b6a799018" />
+
+> *Athlete profile generation with physiological parameters.*
+
+<img width="1254" height="690" alt="injury-prediction-athlete-profile2" src="https://github.com/user-attachments/assets/d93eeadf-8125-4940-b931-63586344c344" />
+
+> *Training simulation with CTL/ATL/TSB modeling.*
 
 ## Research Context
-This framework was developed as part of a thesis on synthetic data generation for sports science applications. It addresses the challenge of limited data accessibility in sports performance research due to privacy concerns and the proprietary nature of athlete monitoring data.
+
+This framework was developed as part of research on injury prediction in endurance athletes at the University of St. Gallen, Embedded Sensing Group. It addresses the challenge of limited data accessibility in sports performance research due to privacy concerns and the proprietary nature of athlete monitoring data.
+
+The platform supports both synthetic data experimentation and validation with real-world datasets (e.g., PMData from Ni et al., 2019).
 
 ## Acknowledgments
-- This project builds on established concepts in sports science
-- The simulation parameters were informed by literature on endurance athlete physiological profiles and injury risk factors
+
+- Built on established sports science concepts (Banister's Impulse-Response Model, ACWR)
+- Simulation parameters informed by literature on endurance athlete physiology and injury risk factors
+- Validation framework inspired by publication standards in sports medicine research
