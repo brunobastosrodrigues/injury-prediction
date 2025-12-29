@@ -327,18 +327,6 @@ function LandingPage() {
               </svg>
               View on GitHub
             </a>
-            <Link
-              to="/data-generation"
-              className={`px-4 py-2 border ${isDark ? 'border-slate-600 text-slate-300 hover:bg-slate-800' : 'border-gray-300 text-gray-700 hover:bg-gray-100'} text-sm font-medium rounded`}
-            >
-              Generate Synthetic Data
-            </Link>
-            <Link
-              to="/athletes"
-              className={`px-4 py-2 border ${isDark ? 'border-slate-600 text-slate-300 hover:bg-slate-800' : 'border-gray-300 text-gray-700 hover:bg-gray-100'} text-sm font-medium rounded`}
-            >
-              View Athlete Profiles
-            </Link>
           </div>
         </section>
       </main>
