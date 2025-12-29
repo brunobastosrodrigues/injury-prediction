@@ -7,26 +7,37 @@ function ProgressBar({ progress, status, label, showPercentage = true }) {
         return 'bg-gradient-to-r from-red-500 to-red-600'
       case 'cancelled':
         return 'bg-gradient-to-r from-yellow-500 to-amber-500'
+      case 'starting':
+        return 'bg-gradient-to-r from-purple-500 to-purple-600'
       default:
         return 'bg-gradient-to-r from-blue-500 to-purple-500'
     }
   }
+
+  const isIndeterminate = status === 'starting'
 
   return (
     <div className="w-full">
       {label && (
         <div className="flex justify-between mb-2">
           <span className="text-sm font-medium text-slate-300">{label}</span>
-          {showPercentage && (
+          {showPercentage && !isIndeterminate && (
             <span className="text-sm font-medium text-slate-400">{Math.round(progress)}%</span>
+          )}
+          {isIndeterminate && (
+            <span className="text-sm font-medium text-slate-400">Initializing...</span>
           )}
         </div>
       )}
       <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
-        <div
-          className={`h-2.5 rounded-full transition-all duration-300 ${getStatusColor()}`}
-          style={{ width: `${Math.min(progress, 100)}%` }}
-        ></div>
+        {isIndeterminate ? (
+          <div className="h-2.5 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 animate-pulse w-full opacity-60"></div>
+        ) : (
+          <div
+            className={`h-2.5 rounded-full transition-all duration-300 ${getStatusColor()}`}
+            style={{ width: `${Math.min(progress, 100)}%` }}
+          ></div>
+        )}
       </div>
     </div>
   )
