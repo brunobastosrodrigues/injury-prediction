@@ -116,6 +116,169 @@ function LandingPage() {
           </div>
         </section>
 
+        {/* Key Results */}
+        <section className="mb-12">
+          <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide mb-4">Key Results</h2>
+          <div className="space-y-6">
+            {/* Study Overview */}
+            <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-800">
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Results from reference cohort: <strong className="text-slate-300">1,000 synthetic athletes</strong>,
+                <strong className="text-slate-300"> 366,000 daily records</strong>, simulating one year of training
+                with physiologically-grounded injury mechanisms.
+              </p>
+            </div>
+
+            {/* ACWR Risk Asymmetry */}
+            <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-800">
+              <h3 className="text-sm font-semibold text-slate-300 mb-1">Figure 1: ACWR-Injury Risk Asymmetry</h3>
+              <p className="text-xs text-slate-500 mb-4">
+                Injury risk per 1,000 TSS units by ACWR zone, demonstrating the "fitness protects" hypothesis.
+              </p>
+              <div className="space-y-2">
+                {/* Undertrained */}
+                <div className="flex items-center gap-3">
+                  <div className="w-24 text-xs text-slate-400 text-right">Undertrained</div>
+                  <div className="flex-1 h-6 bg-slate-800 rounded overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-red-600 to-red-500 flex items-center justify-end pr-2" style={{ width: '100%' }}>
+                      <span className="text-xs font-semibold text-white">2.90</span>
+                    </div>
+                  </div>
+                  <div className="w-14 text-xs text-red-400 font-semibold">2.61×</div>
+                </div>
+                {/* Optimal */}
+                <div className="flex items-center gap-3">
+                  <div className="w-24 text-xs text-slate-400 text-right">Optimal</div>
+                  <div className="flex-1 h-6 bg-slate-800 rounded overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-green-600 to-green-500 flex items-center justify-end pr-2" style={{ width: '38%' }}>
+                      <span className="text-xs font-semibold text-white">1.11</span>
+                    </div>
+                  </div>
+                  <div className="w-14 text-xs text-green-400 font-semibold">1.00×</div>
+                </div>
+                {/* Elevated */}
+                <div className="flex items-center gap-3">
+                  <div className="w-24 text-xs text-slate-400 text-right">Elevated</div>
+                  <div className="flex-1 h-6 bg-slate-800 rounded overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-amber-600 to-amber-500 flex items-center justify-end pr-2" style={{ width: '39%' }}>
+                      <span className="text-xs font-semibold text-white">1.14</span>
+                    </div>
+                  </div>
+                  <div className="w-14 text-xs text-amber-400 font-semibold">1.03×</div>
+                </div>
+                {/* High Risk */}
+                <div className="flex items-center gap-3">
+                  <div className="w-24 text-xs text-slate-400 text-right">High Risk</div>
+                  <div className="flex-1 h-6 bg-slate-800 rounded overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-orange-600 to-orange-500 flex items-center justify-end pr-2" style={{ width: '76%' }}>
+                      <span className="text-xs font-semibold text-white">2.19</span>
+                    </div>
+                  </div>
+                  <div className="w-14 text-xs text-orange-400 font-semibold">1.97×</div>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 mt-3 italic">
+                Undertrained athletes (ACWR &lt; 0.8) show 2.6× higher injury risk per unit training load than optimally trained athletes.
+              </p>
+            </div>
+
+            {/* Model Performance & Validation Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Model Performance */}
+              <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-800">
+                <h3 className="text-sm font-semibold text-slate-300 mb-1">Figure 2: Model Performance</h3>
+                <p className="text-xs text-slate-500 mb-3">7-day injury prediction (AUC-ROC)</p>
+                <div className="space-y-2">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-slate-400">XGBoost</span>
+                      <span className="text-blue-400 font-semibold">0.613</span>
+                    </div>
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: '61.3%' }}></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-slate-400">Random Forest</span>
+                      <span className="text-emerald-400 font-semibold">0.609</span>
+                    </div>
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: '60.9%' }}></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-slate-400">Lasso (L1)</span>
+                      <span className="text-purple-400 font-semibold">0.586</span>
+                    </div>
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-purple-500 rounded-full" style={{ width: '58.6%' }}></div>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-slate-700">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Random baseline</span>
+                      <span className="text-slate-500">0.500</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Validation Three Pillars */}
+              <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-800">
+                <h3 className="text-sm font-semibold text-slate-300 mb-1">Figure 3: Validation Pillars</h3>
+                <p className="text-xs text-slate-500 mb-3">Publication-quality validation</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <span className="text-green-400 text-xs">✓</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-slate-300">Causal Fidelity</p>
+                      <p className="text-xs text-slate-500">ACWR asymmetry confirmed</p>
+                    </div>
+                    <span className="text-xs text-green-400 font-semibold">0.87</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center">
+                      <span className="text-amber-400 text-xs">⚠</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-slate-300">Statistical Fidelity</p>
+                      <p className="text-xs text-slate-500">Synthetic-real distribution gap</p>
+                    </div>
+                    <span className="text-xs text-amber-400 font-semibold">0.29</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center">
+                      <span className="text-amber-400 text-xs">⚠</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-slate-300">Transferability</p>
+                      <p className="text-xs text-slate-500">Sim2Real AUC 0.51</p>
+                    </div>
+                    <span className="text-xs text-amber-400 font-semibold">0.00</span>
+                  </div>
+                </div>
+                <div className="mt-3 pt-2 border-t border-slate-700 flex justify-between items-center">
+                  <span className="text-xs text-slate-400">Overall Score</span>
+                  <span className="text-sm font-semibold text-slate-300">0.39 / 1.00</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Key Finding Summary */}
+            <div className="p-4 bg-blue-900/20 rounded-lg border border-blue-500/20">
+              <p className="text-sm text-slate-300">
+                <strong className="text-blue-400">Key Finding:</strong> The causal mechanism validation (0.87) confirms that
+                synthetic data accurately captures the ACWR-injury relationship from sports science literature—undertrained
+                athletes face disproportionately higher injury risk per training unit, supporting the "fitness protects" hypothesis.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* Keywords */}
         <section className="mb-12">
           <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide mb-3">Keywords</h2>
