@@ -302,21 +302,117 @@ def ingest_real_data_task(job_id: str, dataset_id: str, file_path: str, data_typ
         try:
             ProgressTracker.start_job(job_id, total_steps=3)
             ProgressTracker.update_progress(job_id, 33, 'Processing real data...')
-            
+
             real_df = IngestionService.process_real_data(file_path, data_type)
-            
+
             ProgressTracker.update_progress(job_id, 66, 'Merging into dataset...')
             # Create a virtual athlete ID for real data
             athlete_id = f"real_athlete_{uuid.uuid4().hex[:6]}"
             IngestionService.merge_real_into_dataset(dataset_id, real_df, athlete_id)
-            
+
             ProgressTracker.update_progress(job_id, 100, 'Ingestion complete.')
             ProgressTracker.complete_job(job_id, result={'athlete_id': athlete_id})
-            
+
             # Clean up temp file
             if os.path.exists(file_path):
                 os.remove(file_path)
-                
+
         except Exception as e:
             import traceback
             ProgressTracker.fail_job(job_id, f"{str(e)}\n{traceback.format_exc()}")
+
+
+@celery_app.task(name='run_validation')
+def run_validation_task(job_id: str, dataset_id: str):
+    """Celery task for running external validation (Sim2Real).
+
+    Compares a synthetic dataset against real PMData, computing:
+    - Distribution alignment (JS divergence)
+    - Sim2Real transfer learning
+    - Causal mechanism analysis
+    - Three Pillars of Validity
+
+    Results are cached to /data/validation/<dataset_id>/
+    """
+    from app import create_app
+    from .services.validation_service import ValidationService
+    app = create_app()
+    with app.app_context():
+        try:
+            ProgressTracker.start_job(job_id, total_steps=100)
+            ProgressTracker.update_progress(job_id, 5, 'Loading datasets...', dataset_id=dataset_id)
+
+            # Create validation results directory
+            validation_dir = os.path.join(app.config.get('BASE_DIR', '/data'), 'data', 'validation', dataset_id)
+            os.makedirs(validation_dir, exist_ok=True)
+
+            # Step 1: Distribution comparison (20%)
+            ProgressTracker.update_progress(job_id, 10, 'Computing distribution alignment...')
+            distributions = ValidationService.get_distribution_comparison_for_dataset(dataset_id)
+            _save_validation_result(validation_dir, 'distributions.json', distributions)
+            ProgressTracker.update_progress(job_id, 25, 'Distribution comparison complete')
+
+            # Step 2: Sim2Real transfer learning (40%)
+            ProgressTracker.update_progress(job_id, 30, 'Running Sim2Real transfer experiment...')
+            sim2real = ValidationService.run_sim2real_for_dataset(dataset_id)
+            _save_validation_result(validation_dir, 'sim2real.json', sim2real)
+            ProgressTracker.update_progress(job_id, 50, 'Sim2Real transfer complete')
+
+            # Step 3: PMData analysis (20%)
+            ProgressTracker.update_progress(job_id, 55, 'Analyzing PMData patterns...')
+            pmdata_analysis = ValidationService.get_pmdata_analysis()
+            _save_validation_result(validation_dir, 'pmdata_analysis.json', pmdata_analysis)
+            ProgressTracker.update_progress(job_id, 65, 'PMData analysis complete')
+
+            # Step 4: Causal mechanism analysis (20%)
+            ProgressTracker.update_progress(job_id, 70, 'Computing causal mechanism analysis...')
+            causal = ValidationService.get_causal_mechanism_for_dataset(dataset_id)
+            _save_validation_result(validation_dir, 'causal_mechanism.json', causal)
+            ProgressTracker.update_progress(job_id, 85, 'Causal mechanism complete')
+
+            # Step 5: Three Pillars summary (5%)
+            ProgressTracker.update_progress(job_id, 90, 'Computing Three Pillars summary...')
+            three_pillars = ValidationService.get_three_pillars_for_dataset(dataset_id)
+            _save_validation_result(validation_dir, 'three_pillars.json', three_pillars)
+
+            # Step 6: Create overall summary
+            ProgressTracker.update_progress(job_id, 95, 'Generating summary...')
+            summary = {
+                'dataset_id': dataset_id,
+                'computed_at': datetime.utcnow().isoformat(),
+                'overall_score': three_pillars.get('overall_score', 0),
+                'pillars_passing': three_pillars.get('pillars_passing', '0/3'),
+                'ready_for_publication': three_pillars.get('ready_for_publication', False),
+                'sim2real_auc': sim2real.get('auc', 0),
+                'avg_js_divergence': _calculate_avg_js(distributions),
+            }
+            _save_validation_result(validation_dir, 'summary.json', summary)
+
+            ProgressTracker.complete_job(job_id, result={
+                'dataset_id': dataset_id,
+                'validation_dir': validation_dir,
+                'summary': summary
+            })
+
+        except Exception as e:
+            import traceback
+            ProgressTracker.fail_job(job_id, f"{str(e)}\n{traceback.format_exc()}")
+
+
+def _save_validation_result(validation_dir: str, filename: str, data: dict):
+    """Save validation result to JSON file."""
+    filepath = os.path.join(validation_dir, filename)
+    with open(filepath, 'w') as f:
+        json.dump(data, f, indent=2, default=str)
+
+
+def _calculate_avg_js(distributions: dict) -> float:
+    """Calculate average JS divergence from distribution results."""
+    if 'features' not in distributions:
+        return 1.0
+    js_values = [
+        f.get('js_divergence', 1.0)
+        for f in distributions.get('features', {}).values()
+        if isinstance(f, dict) and 'js_divergence' in f
+    ]
+    return sum(js_values) / len(js_values) if js_values else 1.0

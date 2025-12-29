@@ -102,6 +102,15 @@ export const analyticsApi = {
 
 // Validation API (Sim2Real)
 export const validationApi = {
+  // Async validation endpoints (new)
+  runValidation: (datasetId) => api.post('/validation/run', { dataset_id: datasetId }),
+  getJobStatus: (jobId) => api.get(`/validation/jobs/${jobId}/status`),
+  listJobs: () => api.get('/validation/jobs'),
+  getCachedResults: (datasetId) => api.get(`/validation/results/${datasetId}`),
+  listCachedValidations: () => api.get('/validation/results'),
+  deleteCachedResults: (datasetId) => api.delete(`/validation/results/${datasetId}`),
+
+  // Legacy endpoints (for backward compatibility)
   getSummary: () => api.get('/validation/summary'),
   getDistributions: () => api.get('/validation/distributions'),
   runSim2Real: () => api.get('/validation/sim2real'),

@@ -5,11 +5,151 @@ Provides endpoints to compare synthetic data against real PMData,
 view distribution alignment, and run transfer learning experiments.
 """
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from ...services.validation_service import ValidationService
+from ...utils.progress_tracker import ProgressTracker
+from ...tasks import run_validation_task
 
 validation_bp = Blueprint('validation', __name__)
+
+
+# =========================================================================
+# ASYNC VALIDATION ENDPOINTS (New)
+# =========================================================================
+
+@validation_bp.route('/run', methods=['POST'])
+def start_validation():
+    """
+    Start an async validation job for a specific dataset.
+
+    Request Body:
+        dataset_id: str - The synthetic dataset to validate against PMData
+
+    Returns:
+        JSON with job_id and status.
+    """
+    try:
+        data = request.get_json() or {}
+        dataset_id = data.get('dataset_id')
+
+        if not dataset_id:
+            return jsonify({'error': 'dataset_id is required'}), 400
+
+        # Check if dataset exists
+        from ...services.validation_service import ValidationService
+        df = ValidationService.load_synthetic_by_id(dataset_id)
+        if df is None:
+            return jsonify({'error': f'Dataset {dataset_id} not found'}), 404
+
+        # Create job and start async task
+        job_id = ProgressTracker.create_job('validation')
+        run_validation_task.delay(job_id, dataset_id)
+
+        return jsonify({
+            'job_id': job_id,
+            'dataset_id': dataset_id,
+            'status': 'pending'
+        }), 202
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/jobs/<job_id>/status', methods=['GET'])
+def get_validation_job_status(job_id):
+    """
+    Get status of a validation job.
+
+    Returns:
+        JSON with job status, progress, and result if completed.
+    """
+    try:
+        job = ProgressTracker.get_job(job_id)
+        if not job:
+            return jsonify({'error': 'Job not found'}), 404
+
+        return jsonify(job), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/results', methods=['GET'])
+def list_cached_validations():
+    """
+    List all datasets with cached validation results.
+
+    Returns:
+        JSON with list of validation summaries.
+    """
+    try:
+        validations = ValidationService.list_cached_validations()
+        return jsonify({'validations': validations}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/results/<dataset_id>', methods=['GET'])
+def get_cached_results(dataset_id):
+    """
+    Get cached validation results for a specific dataset.
+
+    Returns:
+        JSON with full validation results or 404 if not cached.
+    """
+    try:
+        results = ValidationService.get_cached_results(dataset_id)
+        if not results:
+            return jsonify({
+                'error': 'No cached results found',
+                'dataset_id': dataset_id,
+                'cached': False
+            }), 404
+
+        results['cached'] = True
+        return jsonify(results), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/results/<dataset_id>', methods=['DELETE'])
+def delete_cached_results(dataset_id):
+    """
+    Delete cached validation results for a dataset (for recompute).
+
+    Returns:
+        JSON with success status.
+    """
+    try:
+        deleted = ValidationService.delete_cached_results(dataset_id)
+        return jsonify({
+            'deleted': deleted,
+            'dataset_id': dataset_id
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@validation_bp.route('/jobs', methods=['GET'])
+def list_validation_jobs():
+    """
+    List all validation jobs.
+
+    Returns:
+        JSON with list of jobs.
+    """
+    try:
+        jobs = ProgressTracker.get_all_jobs('validation')
+        return jsonify({'jobs': jobs}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# =========================================================================
+# LEGACY ENDPOINTS (Keep for backward compatibility)
+# =========================================================================
 
 
 @validation_bp.route('/summary', methods=['GET'])

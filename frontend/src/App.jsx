@@ -7,10 +7,10 @@ import IngestionPage from './components/dataGeneration/IngestionPage'
 import PreprocessingPage from './components/preprocessing/PreprocessingPage'
 import TrainingPage from './components/training/TrainingPage'
 import ResultsPage from './components/results/ResultsPage'
+import ExternalValidationPage from './components/results/ExternalValidationPage'
 import AnalyticsPage from './components/analytics/AnalyticsPage'
 import AthleteDashboardPage from './components/athleteDashboard/AthleteDashboardPage'
 import ModelInterpretability from './pages/ModelInterpretability'
-import ValidationPage from './components/validation/ValidationPage'
 
 function App() {
   return (
@@ -25,7 +25,7 @@ function App() {
       <Route path="/preprocessing" element={<Layout><PreprocessingPage /></Layout>} />
       <Route path="/training" element={<Layout><TrainingPage /></Layout>} />
       <Route path="/results" element={<Layout><ResultsPage /></Layout>} />
-      <Route path="/validation" element={<Layout><ValidationPage /></Layout>} />
+      <Route path="/external-validation" element={<Layout><ExternalValidationPage /></Layout>} />
       <Route path="/analytics" element={<Layout><AnalyticsPage /></Layout>} />
       <Route path="/interpretability" element={<Layout><ModelInterpretability /></Layout>} />
       <Route path="/athletes" element={<Layout><AthleteDashboardPage /></Layout>} />
