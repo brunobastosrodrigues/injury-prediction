@@ -1,0 +1,20 @@
+[package]
+name = "datagen-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "CLI for synthetic triathlete data generation"
+
+[[bin]]
+name = "datagen"
+path = "src/main.rs"
+
+[dependencies]
+datagen-core = { path = "../datagen-core" }
+clap.workspace = true
+indicatif.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+serde_json.workspace = true
