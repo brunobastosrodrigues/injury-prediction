@@ -4,6 +4,9 @@ import math
 import os
 import json
 
+# Get project root (go up one level from scripts/)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 def calculate_correlation(x, y):
     if len(x) != len(y) or len(x) == 0:
         return 0
@@ -26,7 +29,7 @@ def validate_pmdata():
     print("--- PMData Validation (Standard Lib) ---")
     
     # 1. PMData Analysis
-    pmdata_path = 'data/pmdata'
+    pmdata_path = os.path.join(PROJECT_ROOT, 'data/pmdata')
     wellness_files = glob.glob(f'{pmdata_path}/*/pmsys/wellness.csv')
     
     pm_sleep_quality = []
@@ -54,7 +57,7 @@ def validate_pmdata():
 
     # 2. Synthetic Data Analysis
     # Using the CSV dataset since we don't have parquet tools
-    csv_dataset = 'data/raw/dataset_20251224_150028_919185'
+    csv_dataset = os.path.join(PROJECT_ROOT, 'data/raw/dataset_20251224_150028_919185')
     print(f"Using synthetic dataset: {csv_dataset}")
     
     synth_sleep_quality = []

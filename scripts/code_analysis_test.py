@@ -411,6 +411,7 @@ class CodeAnalysisQA:
 
 
 if __name__ == '__main__':
-    project_root = os.path.dirname(os.path.abspath(__file__))
+    # Go up one level from scripts/
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     qa = CodeAnalysisQA(project_root)
     qa.run_all_analyses()
