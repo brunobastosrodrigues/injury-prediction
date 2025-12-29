@@ -196,7 +196,7 @@ function Dashboard() {
                 </div>
                 <span className="text-xs text-slate-500">Optional</span>
               </Link>
-              <Link to="/validation" className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/50 transition-colors group">
+              <Link to="/external-validation" className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/50 transition-colors group">
                 <div className="flex items-center gap-3">
                   <span className="text-base">✅</span>
                   <span className="text-sm text-slate-300 group-hover:text-white">Data Quality</span>
