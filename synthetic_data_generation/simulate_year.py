@@ -41,6 +41,15 @@ def calculate_injury_probability_asymmetric(day_data, athlete, fatigue, form, ac
     Returns: (total_probability, injury_type) where injury_type is
              'physiological', 'exposure', or 'baseline'
     """
+    # ========================================
+    # ZERO-LOAD GUARD: No training = No injury
+    # ========================================
+    # Critical fix: Athletes cannot get injured while resting.
+    # This prevents the "Couch Injury" artifact that causes
+    # Sim2Real AUC < 0.50 (anti-predictive models).
+    if daily_load <= 0:
+        return 0.0, 'none'
+
     # Load configuration
     thresholds = cfg.acwr_thresholds()
     physio_cfg = cfg.get('injury_model.physiological', {})

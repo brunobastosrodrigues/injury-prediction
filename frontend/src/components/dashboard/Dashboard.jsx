@@ -239,7 +239,7 @@ function Dashboard() {
                 <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
                   <h4 className="font-semibold text-slate-300 mb-1">Figure 1: ACWR-Injury Risk Asymmetry</h4>
                   <p className="text-xs text-slate-500 mb-4">
-                    Injury risk per 1,000 TSS units by ACWR zone. Undertrained athletes show 2.7× higher risk than optimal—
+                    Injury risk per 1,000 TSS units by ACWR zone. Undertrained athletes show 2.6× higher risk than optimal—
                     confirming the "fitness protects" hypothesis.
                   </p>
                   <div className="space-y-3">
@@ -249,12 +249,12 @@ function Dashboard() {
                       <div className="flex-1 h-8 bg-slate-900 rounded overflow-hidden relative">
                         <div
                           className="h-full bg-gradient-to-r from-red-600 to-red-500 flex items-center justify-end pr-2"
-                          style={{ width: '94%' }}
+                          style={{ width: '100%' }}
                         >
-                          <span className="text-xs font-bold text-white">2.82</span>
+                          <span className="text-xs font-bold text-white">2.90</span>
                         </div>
                       </div>
-                      <div className="w-16 text-xs text-red-400 font-semibold">2.69×</div>
+                      <div className="w-16 text-xs text-red-400 font-semibold">2.61×</div>
                     </div>
                     {/* Optimal */}
                     <div className="flex items-center gap-3">
@@ -262,9 +262,9 @@ function Dashboard() {
                       <div className="flex-1 h-8 bg-slate-900 rounded overflow-hidden relative">
                         <div
                           className="h-full bg-gradient-to-r from-green-600 to-green-500 flex items-center justify-end pr-2"
-                          style={{ width: '35%' }}
+                          style={{ width: '38%' }}
                         >
-                          <span className="text-xs font-bold text-white">1.05</span>
+                          <span className="text-xs font-bold text-white">1.11</span>
                         </div>
                       </div>
                       <div className="w-16 text-xs text-green-400 font-semibold">1.00× (ref)</div>
@@ -275,12 +275,12 @@ function Dashboard() {
                       <div className="flex-1 h-8 bg-slate-900 rounded overflow-hidden relative">
                         <div
                           className="h-full bg-gradient-to-r from-amber-600 to-amber-500 flex items-center justify-end pr-2"
-                          style={{ width: '34%' }}
+                          style={{ width: '39%' }}
                         >
-                          <span className="text-xs font-bold text-white">1.03</span>
+                          <span className="text-xs font-bold text-white">1.14</span>
                         </div>
                       </div>
-                      <div className="w-16 text-xs text-amber-400 font-semibold">0.98×</div>
+                      <div className="w-16 text-xs text-amber-400 font-semibold">1.03×</div>
                     </div>
                     {/* High Risk */}
                     <div className="flex items-center gap-3">
@@ -288,12 +288,12 @@ function Dashboard() {
                       <div className="flex-1 h-8 bg-slate-900 rounded overflow-hidden relative">
                         <div
                           className="h-full bg-gradient-to-r from-orange-600 to-orange-500 flex items-center justify-end pr-2"
-                          style={{ width: '75%' }}
+                          style={{ width: '76%' }}
                         >
-                          <span className="text-xs font-bold text-white">2.23</span>
+                          <span className="text-xs font-bold text-white">2.19</span>
                         </div>
                       </div>
-                      <div className="w-16 text-xs text-orange-400 font-semibold">2.12×</div>
+                      <div className="w-16 text-xs text-orange-400 font-semibold">1.97×</div>
                     </div>
                   </div>
                   <p className="text-xs text-slate-500 mt-3 italic">
@@ -312,30 +312,30 @@ function Dashboard() {
                       <div>
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-slate-400">XGBoost</span>
-                          <span className="text-blue-400 font-semibold">0.600</span>
+                          <span className="text-blue-400 font-semibold">0.613</span>
                         </div>
                         <div className="h-3 bg-slate-900 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full" style={{ width: '60%' }}></div>
+                          <div className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full" style={{ width: '61.3%' }}></div>
                         </div>
                       </div>
                       {/* Random Forest */}
                       <div>
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-slate-400">Random Forest</span>
-                          <span className="text-emerald-400 font-semibold">0.600</span>
+                          <span className="text-emerald-400 font-semibold">0.609</span>
                         </div>
                         <div className="h-3 bg-slate-900 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full" style={{ width: '60%' }}></div>
+                          <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full" style={{ width: '60.9%' }}></div>
                         </div>
                       </div>
                       {/* Lasso */}
                       <div>
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-slate-400">Lasso (L1)</span>
-                          <span className="text-purple-400 font-semibold">0.565</span>
+                          <span className="text-purple-400 font-semibold">0.586</span>
                         </div>
                         <div className="h-3 bg-slate-900 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full" style={{ width: '56.5%' }}></div>
+                          <div className="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full" style={{ width: '58.6%' }}></div>
                         </div>
                       </div>
                       {/* Baseline */}
@@ -363,9 +363,9 @@ function Dashboard() {
                         </div>
                         <div className="flex-1">
                           <p className="text-xs text-slate-300 font-medium">Statistical Fidelity</p>
-                          <p className="text-xs text-slate-500">JS divergence slightly high (expected for synthetic)</p>
+                          <p className="text-xs text-slate-500">JS divergence high (synthetic-real gap)</p>
                         </div>
-                        <span className="text-xs text-amber-400 font-semibold">0.32</span>
+                        <span className="text-xs text-amber-400 font-semibold">0.29</span>
                       </div>
                       {/* Causal Fidelity */}
                       <div className="flex items-center gap-3">
@@ -374,9 +374,9 @@ function Dashboard() {
                         </div>
                         <div className="flex-1">
                           <p className="text-xs text-slate-300 font-medium">Causal Fidelity</p>
-                          <p className="text-xs text-slate-500">ACWR asymmetry confirmed (2.7× vs 2.1×)</p>
+                          <p className="text-xs text-slate-500">ACWR asymmetry confirmed (2.6× vs 2.0×)</p>
                         </div>
-                        <span className="text-xs text-green-400 font-semibold">0.90</span>
+                        <span className="text-xs text-green-400 font-semibold">0.87</span>
                       </div>
                       {/* Transferability */}
                       <div className="flex items-center gap-3">
@@ -385,7 +385,7 @@ function Dashboard() {
                         </div>
                         <div className="flex-1">
                           <p className="text-xs text-slate-300 font-medium">Transferability</p>
-                          <p className="text-xs text-slate-500">Sim2Real AUC 0.48 (domain gap expected)</p>
+                          <p className="text-xs text-slate-500">Sim2Real AUC 0.50 (domain gap)</p>
                         </div>
                         <span className="text-xs text-amber-400 font-semibold">0.00</span>
                       </div>
@@ -393,10 +393,10 @@ function Dashboard() {
                     <div className="mt-4 pt-3 border-t border-slate-700">
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-slate-400">Overall Score</span>
-                        <span className="text-sm font-bold text-slate-300">0.41 / 1.00</span>
+                        <span className="text-sm font-bold text-slate-300">0.39 / 1.00</span>
                       </div>
                       <p className="text-xs text-slate-500 mt-1">
-                        Causal mechanism validated ✓ — synthetic data captures real injury dynamics
+                        Causal mechanism validated ✓ — synthetic data captures injury dynamics
                       </p>
                     </div>
                   </div>
