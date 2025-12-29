@@ -87,13 +87,6 @@ function LandingPage() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-6 py-12">
-        {/* Affiliation */}
-        <div className="text-center mb-8">
-          <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-gray-500'} uppercase tracking-wide`}>
-            Embedded Sensing Group · University of St. Gallen
-          </p>
-        </div>
-
         {/* Title */}
         <h1 className={`text-3xl font-serif font-bold ${isDark ? 'text-white' : 'text-gray-900'} text-center mb-12 leading-tight`}>
           Prospective Injury Risk Prediction in Triathletes:<br />
