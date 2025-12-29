@@ -1,0 +1,9 @@
+{
+  "dataset_id": "dataset_reference",
+  "computed_at": "2025-12-29T19:38:50.215529",
+  "overall_score": 0.36,
+  "pillars_passing": "1/3",
+  "ready_for_publication": false,
+  "sim2real_auc": 0.5119803930621605,
+  "avg_js_divergence": 0.8067
+}

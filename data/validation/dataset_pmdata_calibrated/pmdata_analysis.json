@@ -1,0 +1,264 @@
+{
+  "samples": 1747,
+  "injury_rate": 0.3074,
+  "safe_days": 1210,
+  "preinjury_days": 537,
+  "correlations": [
+    {
+      "feature": "chronic_load",
+      "correlation": -0.1749,
+      "p_value": 0.0,
+      "significant": true,
+      "direction": "decreases risk"
+    },
+    {
+      "feature": "chronic_load_norm",
+      "correlation": -0.1749,
+      "p_value": 0.0,
+      "significant": true,
+      "direction": "decreases risk"
+    },
+    {
+      "feature": "acute_load",
+      "correlation": -0.1588,
+      "p_value": 0.0,
+      "significant": true,
+      "direction": "decreases risk"
+    },
+    {
+      "feature": "acute_load_norm",
+      "correlation": -0.1588,
+      "p_value": 0.0,
+      "significant": true,
+      "direction": "decreases risk"
+    },
+    {
+      "feature": "daily_load",
+      "correlation": -0.1338,
+      "p_value": 0.0,
+      "significant": true,
+      "direction": "decreases risk"
+    },
+    {
+      "feature": "daily_load_norm",
+      "correlation": -0.1338,
+      "p_value": 0.0,
+      "significant": true,
+      "direction": "decreases risk"
+    },
+    {
+      "feature": "sleep_hours",
+      "correlation": -0.0834,
+      "p_value": 0.0005,
+      "significant": true,
+      "direction": "decreases risk"
+    },
+    {
+      "feature": "recovery_score",
+      "correlation": 0.0437,
+      "p_value": 0.0681,
+      "significant": false,
+      "direction": "increases risk"
+    },
+    {
+      "feature": "sleep_quality_daily",
+      "correlation": -0.027,
+      "p_value": 0.2586,
+      "significant": false,
+      "direction": "decreases risk"
+    },
+    {
+      "feature": "fatigue_score",
+      "correlation": 0.0199,
+      "p_value": 0.406,
+      "significant": false,
+      "direction": "increases risk"
+    },
+    {
+      "feature": "mood_score",
+      "correlation": -0.0151,
+      "p_value": 0.5271,
+      "significant": false,
+      "direction": "decreases risk"
+    },
+    {
+      "feature": "acwr",
+      "correlation": -0.0143,
+      "p_value": 0.5562,
+      "significant": false,
+      "direction": "decreases risk"
+    },
+    {
+      "feature": "stress_score",
+      "correlation": 0.0048,
+      "p_value": 0.8418,
+      "significant": false,
+      "direction": "increases risk"
+    },
+    {
+      "feature": "soreness_score",
+      "correlation": 0.0012,
+      "p_value": 0.9606,
+      "significant": false,
+      "direction": "increases risk"
+    }
+  ],
+  "injury_signature": [
+    {
+      "feature": "daily_load",
+      "safe_mean": 268.8702,
+      "preinjury_mean": 204.9236,
+      "delta_percent": -23.78,
+      "direction": "decreases"
+    },
+    {
+      "feature": "daily_load_norm",
+      "safe_mean": 0.1494,
+      "preinjury_mean": 0.1138,
+      "delta_percent": -23.78,
+      "direction": "decreases"
+    },
+    {
+      "feature": "acute_load",
+      "safe_mean": 261.9558,
+      "preinjury_mean": 205.4414,
+      "delta_percent": -21.57,
+      "direction": "decreases"
+    },
+    {
+      "feature": "acute_load_norm",
+      "safe_mean": 0.1898,
+      "preinjury_mean": 0.1489,
+      "delta_percent": -21.57,
+      "direction": "decreases"
+    },
+    {
+      "feature": "chronic_load_norm",
+      "safe_mean": 0.3197,
+      "preinjury_mean": 0.2538,
+      "delta_percent": -20.6,
+      "direction": "decreases"
+    },
+    {
+      "feature": "chronic_load",
+      "safe_mean": 254.6321,
+      "preinjury_mean": 203.0383,
+      "delta_percent": -20.26,
+      "direction": "decreases"
+    },
+    {
+      "feature": "recovery_score",
+      "safe_mean": 0.4864,
+      "preinjury_mean": 0.5132,
+      "delta_percent": 5.5,
+      "direction": "increases"
+    },
+    {
+      "feature": "acwr",
+      "safe_mean": 1.041,
+      "preinjury_mean": 1.0121,
+      "delta_percent": -2.77,
+      "direction": "decreases"
+    },
+    {
+      "feature": "sleep_hours",
+      "safe_mean": 0.564,
+      "preinjury_mean": 0.5503,
+      "delta_percent": -2.44,
+      "direction": "decreases"
+    },
+    {
+      "feature": "fatigue_score",
+      "safe_mean": 0.539,
+      "preinjury_mean": 0.5482,
+      "delta_percent": 1.71,
+      "direction": "increases"
+    },
+    {
+      "feature": "sleep_quality_daily",
+      "safe_mean": 0.6051,
+      "preinjury_mean": 0.5974,
+      "delta_percent": -1.28,
+      "direction": "decreases"
+    },
+    {
+      "feature": "mood_score",
+      "safe_mean": 0.6405,
+      "preinjury_mean": 0.6361,
+      "delta_percent": -0.68,
+      "direction": "decreases"
+    },
+    {
+      "feature": "stress_score",
+      "safe_mean": 0.5803,
+      "preinjury_mean": 0.5832,
+      "delta_percent": 0.5,
+      "direction": "increases"
+    },
+    {
+      "feature": "soreness_score",
+      "safe_mean": 0.5655,
+      "preinjury_mean": 0.565,
+      "delta_percent": -0.08,
+      "direction": "decreases"
+    }
+  ],
+  "feature_importance": [
+    {
+      "feature": "chronic_load_norm",
+      "importance": 0.1662
+    },
+    {
+      "feature": "chronic_load",
+      "importance": 0.1537
+    },
+    {
+      "feature": "acute_load_norm",
+      "importance": 0.1175
+    },
+    {
+      "feature": "acute_load",
+      "importance": 0.1058
+    },
+    {
+      "feature": "acwr",
+      "importance": 0.0838
+    },
+    {
+      "feature": "recovery_score",
+      "importance": 0.0831
+    },
+    {
+      "feature": "daily_load_norm",
+      "importance": 0.0766
+    },
+    {
+      "feature": "daily_load",
+      "importance": 0.0686
+    },
+    {
+      "feature": "sleep_hours",
+      "importance": 0.038
+    },
+    {
+      "feature": "fatigue_score",
+      "importance": 0.0291
+    },
+    {
+      "feature": "stress_score",
+      "importance": 0.0254
+    },
+    {
+      "feature": "soreness_score",
+      "importance": 0.0228
+    },
+    {
+      "feature": "mood_score",
+      "importance": 0.0176
+    },
+    {
+      "feature": "sleep_quality_daily",
+      "importance": 0.0117
+    }
+  ]
+}

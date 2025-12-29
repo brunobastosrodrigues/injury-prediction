@@ -51,4 +51,7 @@ data/
 *.csv
 !synthetic_data_generation/*.csv
 !data/.gitkeep
+# Keep pre-computed validation data for immediate use
+!data/validation/
+!data/validation/**/*.json
 CLAUDE.md

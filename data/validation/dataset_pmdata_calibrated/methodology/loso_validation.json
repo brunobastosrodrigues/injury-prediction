@@ -1,0 +1,144 @@
+{
+  "mean_auc": 0.4957,
+  "std_auc": 0.1092,
+  "mean_ap": 0.359,
+  "std_ap": 0.1955,
+  "n_folds": 15,
+  "n_athletes_total": 16,
+  "confidence_interval_95": [
+    0.4352,
+    0.5562
+  ],
+  "fold_results": [
+    {
+      "fold": 1,
+      "test_athlete": "p01",
+      "auc": 0.4199157007376185,
+      "ap": 0.4386123300505472,
+      "n_test_samples": 138,
+      "test_positive_rate": 0.47101449275362317
+    },
+    {
+      "fold": 2,
+      "test_athlete": "p02",
+      "auc": 0.49722222222222223,
+      "ap": 0.17865336690637895,
+      "n_test_samples": 99,
+      "test_positive_rate": 0.15151515151515152
+    },
+    {
+      "fold": 3,
+      "test_athlete": "p03",
+      "auc": 0.4329824561403509,
+      "ap": 0.27852079244930383,
+      "n_test_samples": 82,
+      "test_positive_rate": 0.3048780487804878
+    },
+    {
+      "fold": 4,
+      "test_athlete": "p04",
+      "auc": 0.4105455326460481,
+      "ap": 0.281791507180757,
+      "n_test_samples": 145,
+      "test_positive_rate": 0.3310344827586207
+    },
+    {
+      "fold": 5,
+      "test_athlete": "p05",
+      "auc": 0.2978571428571428,
+      "ap": 0.13444456772227936,
+      "n_test_samples": 137,
+      "test_positive_rate": 0.18248175182481752
+    },
+    {
+      "fold": 6,
+      "test_athlete": "p06",
+      "auc": 0.4550108932461874,
+      "ap": 0.2942881647156857,
+      "n_test_samples": 147,
+      "test_positive_rate": 0.30612244897959184
+    },
+    {
+      "fold": 7,
+      "test_athlete": "p07",
+      "auc": 0.5066718995290423,
+      "ap": 0.3172734455407981,
+      "n_test_samples": 133,
+      "test_positive_rate": 0.3157894736842105
+    },
+    {
+      "fold": 9,
+      "test_athlete": "p09",
+      "auc": 0.5962962962962962,
+      "ap": 0.6297511665958804,
+      "n_test_samples": 102,
+      "test_positive_rate": 0.5588235294117647
+    },
+    {
+      "fold": 10,
+      "test_athlete": "p10",
+      "auc": 0.44733044733044736,
+      "ap": 0.2982359045273006,
+      "n_test_samples": 96,
+      "test_positive_rate": 0.34375
+    },
+    {
+      "fold": 11,
+      "test_athlete": "p11",
+      "auc": 0.48857142857142855,
+      "ap": 0.0796151940707252,
+      "n_test_samples": 107,
+      "test_positive_rate": 0.06542056074766354
+    },
+    {
+      "fold": 12,
+      "test_athlete": "p12",
+      "auc": 0.6194295900178253,
+      "ap": 0.8645463738972918,
+      "n_test_samples": 83,
+      "test_positive_rate": 0.7951807228915663
+    },
+    {
+      "fold": 13,
+      "test_athlete": "p13",
+      "auc": 0.4177606177606178,
+      "ap": 0.4590255950706407,
+      "n_test_samples": 72,
+      "test_positive_rate": 0.5138888888888888
+    },
+    {
+      "fold": 14,
+      "test_athlete": "p14",
+      "auc": 0.6348778735632185,
+      "ap": 0.42115187151730565,
+      "n_test_samples": 125,
+      "test_positive_rate": 0.232
+    },
+    {
+      "fold": 15,
+      "test_athlete": "p15",
+      "auc": 0.7316017316017316,
+      "ap": 0.31785991785991785,
+      "n_test_samples": 95,
+      "test_positive_rate": 0.11578947368421053
+    },
+    {
+      "fold": 16,
+      "test_athlete": "p16",
+      "auc": 0.47968750000000004,
+      "ap": 0.3908184703602061,
+      "n_test_samples": 82,
+      "test_positive_rate": 0.3902439024390244
+    }
+  ],
+  "features_used": [
+    "sleep_quality_daily",
+    "stress_score",
+    "recovery_score",
+    "sleep_hours"
+  ],
+  "model_type": "xgboost",
+  "interpretation": "Weak transfer - synthetic patterns may not match real data. High variance indicates substantial individual differences in predictability. CI includes chance level - results may not be statistically significant.",
+  "dataset_id": "dataset_pmdata_calibrated",
+  "validation_type": "loso"
+}

@@ -1,0 +1,19 @@
+{
+  "auc": 0.5119803930621605,
+  "ap": 0.3115049870272121,
+  "n_train": 366000,
+  "n_test": 1747,
+  "features_used": [
+    "sleep_quality_daily",
+    "stress_score",
+    "recovery_score",
+    "sleep_hours"
+  ],
+  "class_distribution": {
+    "train_positive_rate": 0.05239344262295082,
+    "test_positive_rate": 0.3073840870062965
+  },
+  "interpretation": "Poor transfer - synthetic patterns do not match real data",
+  "status": "error",
+  "dataset_id": "dataset_reference"
+}

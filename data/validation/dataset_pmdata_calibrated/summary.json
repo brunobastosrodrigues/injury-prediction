@@ -1,0 +1,9 @@
+{
+  "dataset_id": "dataset_pmdata_calibrated",
+  "computed_at": "2025-12-29T10:32:10.009107",
+  "overall_score": 0.61,
+  "pillars_passing": "2/3",
+  "ready_for_publication": false,
+  "sim2real_auc": 0.48630130661618726,
+  "avg_js_divergence": 0.06642500000000001
+}

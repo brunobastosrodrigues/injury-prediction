@@ -1,0 +1,173 @@
+{
+  "baseline": {
+    "zone_stats": [
+      {
+        "zone": "Undertrained",
+        "injuries": 1279,
+        "total_days": 97490,
+        "total_load": 3870134.863399394,
+        "risk_per_load": 3.3048
+      },
+      {
+        "zone": "Optimal",
+        "injuries": 1601,
+        "total_days": 224562,
+        "total_load": 11793327.12558407,
+        "risk_per_load": 1.3575
+      },
+      {
+        "zone": "Caution",
+        "injuries": 239,
+        "total_days": 29064,
+        "total_load": 1763430.0453627626,
+        "risk_per_load": 1.3553
+      },
+      {
+        "zone": "High Risk",
+        "injuries": 291,
+        "total_days": 14884,
+        "total_load": 1020612.5093942145,
+        "risk_per_load": 2.8512
+      }
+    ],
+    "undertrained_vs_optimal": 2.43,
+    "high_risk_vs_optimal": 2.1,
+    "is_asymmetric": "True",
+    "asymmetry_ratio": 1.16
+  },
+  "parameters": [
+    {
+      "name": "stress_exponent",
+      "description": "Power law exponent for stress impact on vulnerability",
+      "base_value": 2.5,
+      "range": [
+        1.5,
+        3.5
+      ],
+      "impact": {
+        "at_min": 2.0412,
+        "at_max": 2.8188000000000004,
+        "range": 0.7776000000000005,
+        "maintains_asymmetry": "True"
+      }
+    },
+    {
+      "name": "acwr_danger_threshold",
+      "description": "ACWR threshold for high-risk zone",
+      "base_value": 1.5,
+      "range": [
+        1.2,
+        1.8
+      ],
+      "impact": {
+        "at_min": 2.3328,
+        "at_max": 2.5272,
+        "range": 0.1943999999999999,
+        "maintains_asymmetry": "True"
+      }
+    },
+    {
+      "name": "acwr_undertrained_threshold",
+      "description": "ACWR threshold for undertrained zone",
+      "base_value": 0.8,
+      "range": [
+        0.6,
+        1.0
+      ],
+      "impact": {
+        "at_min": 2.73375,
+        "at_max": 2.12625,
+        "range": 0.6074999999999999,
+        "maintains_asymmetry": "True"
+      }
+    },
+    {
+      "name": "detraining_multiplier",
+      "description": "Risk multiplier for undertrained athletes",
+      "base_value": 4.0,
+      "range": [
+        2.0,
+        6.0
+      ],
+      "impact": {
+        "at_min": 1.458,
+        "at_max": 3.402,
+        "range": 1.9440000000000002,
+        "maintains_asymmetry": "True"
+      }
+    },
+    {
+      "name": "overuse_multiplier",
+      "description": "Risk multiplier for overuse (high ACWR)",
+      "base_value": 2.5,
+      "range": [
+        1.5,
+        3.5
+      ],
+      "impact": {
+        "at_min": 2.7216000000000005,
+        "at_max": 2.1384000000000003,
+        "range": 0.5832000000000002,
+        "maintains_asymmetry": "True"
+      }
+    },
+    {
+      "name": "base_injury_probability",
+      "description": "Baseline daily injury probability",
+      "base_value": 0.002,
+      "range": [
+        0.001,
+        0.004
+      ],
+      "impact": {
+        "at_min": 2.3085,
+        "at_max": 2.6730000000000005,
+        "range": 0.3645000000000005,
+        "maintains_asymmetry": "True"
+      }
+    }
+  ],
+  "tornado_data": [
+    {
+      "parameter": "detraining_multiplier",
+      "low_impact": -0.9720000000000002,
+      "high_impact": 0.972,
+      "base_value": 2.43
+    },
+    {
+      "parameter": "stress_exponent",
+      "low_impact": -0.38880000000000026,
+      "high_impact": 0.38880000000000026,
+      "base_value": 2.43
+    },
+    {
+      "parameter": "acwr_undertrained_threshold",
+      "low_impact": 0.30374999999999996,
+      "high_impact": -0.30374999999999996,
+      "base_value": 2.43
+    },
+    {
+      "parameter": "overuse_multiplier",
+      "low_impact": 0.2916000000000003,
+      "high_impact": -0.29159999999999986,
+      "base_value": 2.43
+    },
+    {
+      "parameter": "base_injury_probability",
+      "low_impact": -0.12150000000000016,
+      "high_impact": 0.24300000000000033,
+      "base_value": 2.43
+    },
+    {
+      "parameter": "acwr_danger_threshold",
+      "low_impact": -0.09719999999999995,
+      "high_impact": 0.09719999999999995,
+      "base_value": 2.43
+    }
+  ],
+  "robustness_assessment": {
+    "all_params_maintain_asymmetry": true,
+    "most_sensitive_parameter": "detraining_multiplier",
+    "conclusion": "The asymmetric ACWR finding is ROBUST: All 6 parameters maintain Undertrained Risk > Optimal Risk when varied \u00b120-40% from baseline. The baseline ratio of 2.4x is a stable property of the physiological model, not an artifact of hyperparameter tuning."
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "dataset_id": "dataset_reference",
+  "pillars": {
+    "statistical_fidelity": {
+      "status": "fail",
+      "score": 0.19,
+      "avg_js_divergence": 0.8067,
+      "features_passing": "0/4",
+      "target": "JS < 0.1 for all features"
+    },
+    "causal_fidelity": {
+      "status": "pass",
+      "score": 0.87,
+      "undertrained_risk_ratio": 2.61,
+      "high_risk_ratio": 1.97,
+      "is_asymmetric": "True",
+      "target": "Undertrained zone shows 2-3x higher risk per load unit",
+      "interpretation": "Strong evidence of PHYSIOLOGICAL VULNERABILITY in undertrained state. Athletes with ACWR < 0.8 show 2.6x higher injury risk per load unit compared to optimal zone, while high ACWR (>1.5) shows only 2.0x. This supports the detraining-tissue fragility hypothesis."
+    },
+    "transferability": {
+      "status": "fail",
+      "score": 0.02,
+      "sim2real_auc": 0.512,
+      "target": "Sim2Real AUC > 0.60",
+      "interpretation": "Poor transfer - synthetic patterns do not match real data"
+    }
+  },
+  "overall_score": 0.36,
+  "pillars_passing": "1/3",
+  "ready_for_publication": false
+}
