@@ -1,7 +1,5 @@
 # Preventing Injuries in Triathletes with Machine Learning using Wearable Sensor Data
 
-## Application Preview
-
 <img width="667" height="694" alt="injury-prediction-landingpage-new" src="https://github.com/user-attachments/assets/e9dfeed6-79c7-4e20-b150-07558018b5fd" />
 
 
