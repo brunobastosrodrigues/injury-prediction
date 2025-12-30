@@ -17,6 +17,9 @@ import json
 import glob
 from datetime import timedelta
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PMDataAdapter:
@@ -106,8 +109,10 @@ class PMDataAdapter:
                 # Calculate sRPE Load
                 df['srpe_load'] = df['perceived_exertion'] * df['duration_min']
                 all_srpe.append(df)
-            except Exception:
-                pass
+            except (pd.errors.EmptyDataError, pd.errors.ParserError, KeyError) as e:
+                logger.warning(f"Skipping sRPE file {f}: {e}")
+            except Exception as e:
+                logger.error(f"Unexpected error reading sRPE file {f}: {e}")
 
         if all_srpe:
             return pd.concat(all_srpe, ignore_index=True)
@@ -143,8 +148,10 @@ class PMDataAdapter:
                             if date not in daily_metrics:
                                 daily_metrics[date] = {'athlete_id': athlete_id}
                             daily_metrics[date]['very_active_min'] = int(entry['value'])
-                except Exception:
-                    pass
+                except (json.JSONDecodeError, KeyError, ValueError) as e:
+                    logger.warning(f"Skipping very_active_minutes for {athlete_id}: {e}")
+                except Exception as e:
+                    logger.error(f"Unexpected error reading {vam_file}: {e}")
 
             # Moderately active minutes
             mam_file = os.path.join(fitbit_dir, 'moderately_active_minutes.json')
@@ -157,8 +164,10 @@ class PMDataAdapter:
                             if date not in daily_metrics:
                                 daily_metrics[date] = {'athlete_id': athlete_id}
                             daily_metrics[date]['moderately_active_min'] = int(entry['value'])
-                except Exception:
-                    pass
+                except (json.JSONDecodeError, KeyError, ValueError) as e:
+                    logger.warning(f"Skipping moderately_active_minutes for {athlete_id}: {e}")
+                except Exception as e:
+                    logger.error(f"Unexpected error reading {mam_file}: {e}")
 
             # Convert to list
             for date, metrics in daily_metrics.items():
@@ -280,7 +289,7 @@ class PMDataAdapter:
         Returns:
             DataFrame with wellness, load, and injury features
         """
-        print(f"Loading PMData from: {self.root_path}")
+        logger.info(f"Loading PMData from: {self.root_path}")
 
         # 1. Load wellness data
         wellness_df = self._load_wellness_data()

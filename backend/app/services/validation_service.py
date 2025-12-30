@@ -7,6 +7,7 @@ calculate distribution alignment, and run transfer learning experiments.
 
 import os
 import glob
+import logging
 import pandas as pd
 import numpy as np
 from scipy import stats
@@ -15,6 +16,8 @@ from typing import Dict, List, Any, Optional
 
 from .pm_adapter import PMDataAdapter
 from .training_service import TrainingService
+
+logger = logging.getLogger(__name__)
 
 
 class ValidationService:
@@ -75,7 +78,7 @@ class ValidationService:
             adapter = PMDataAdapter(pmdata_path)
             return adapter.load_and_unify()
         except Exception as e:
-            print(f"Error loading PMData: {e}")
+            logger.error(f"Error loading PMData: {e}")
             return None
 
     @classmethod
@@ -114,7 +117,7 @@ class ValidationService:
 
             return df
         except Exception as e:
-            print(f"Error loading synthetic data: {e}")
+            logger.error(f"Error loading synthetic data: {e}")
             return None
 
     @classmethod
@@ -328,8 +331,8 @@ class ValidationService:
                         'significant': bool(spearman_p < 0.05),
                         'direction': 'increases risk' if spearman_r > 0 else 'decreases risk'
                     })
-                except (ValueError, TypeError, FloatingPointError):
-                    pass
+                except (ValueError, TypeError, FloatingPointError) as e:
+                    logger.debug(f"Skipping correlation for {feat}: {e}")
 
         correlations.sort(key=lambda x: abs(x['correlation']), reverse=True)
 
@@ -356,8 +359,8 @@ class ValidationService:
                         'delta_percent': round(float(delta_pct), 2),
                         'direction': 'increases' if delta_pct > 0 else 'decreases'
                     })
-                except (ValueError, TypeError, FloatingPointError):
-                    pass
+                except (ValueError, TypeError, FloatingPointError) as e:
+                    logger.debug(f"Skipping injury signature for {feat}: {e}")
 
         signature.sort(key=lambda x: abs(x['delta_percent']), reverse=True)
 
@@ -640,7 +643,7 @@ class ValidationService:
             else:
                 return None
         except Exception as e:
-            print(f"Error loading synthetic data: {e}")
+            logger.error(f"Error loading synthetic data: {e}")
             return None
 
     @classmethod
@@ -796,7 +799,7 @@ class ValidationService:
 
             return results
         except Exception as e:
-            print(f"Error loading cached results: {e}")
+            logger.error(f"Error loading cached results: {e}")
             return None
 
     @classmethod
@@ -823,8 +826,8 @@ class ValidationService:
                             'ready_for_publication': summary.get('ready_for_publication', False),
                             'sim2real_auc': summary.get('sim2real_auc', 0),
                         })
-                except Exception:
-                    pass
+                except (json.JSONDecodeError, KeyError) as e:
+                    logger.warning(f"Skipping invalid validation cache for {dataset_id}: {e}")
 
         return sorted(validations, key=lambda x: x.get('computed_at', ''), reverse=True)
 
@@ -887,7 +890,7 @@ class ValidationService:
 
             return df
         except Exception as e:
-            print(f"Error loading synthetic dataset {dataset_id}: {e}")
+            logger.error(f"Error loading synthetic dataset {dataset_id}: {e}")
             return None
 
     @classmethod
@@ -920,7 +923,7 @@ class ValidationService:
             else:
                 return None
         except Exception as e:
-            print(f"Error loading synthetic dataset {dataset_id}: {e}")
+            logger.error(f"Error loading synthetic dataset {dataset_id}: {e}")
             return None
 
     @classmethod

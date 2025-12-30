@@ -59,7 +59,29 @@ class PreprocessingService:
             merged = merged.merge(activity_pivot, on=['athlete_id', 'date'], how='left')
 
         merged['date'] = pd.to_datetime(merged['date'])
-        merged.fillna(0, inplace=True)
+
+        # Handle missing values with appropriate strategies per column type
+        # Activity columns: fillna(0) is correct (no activity = 0 duration/tss/etc)
+        activity_cols = [c for c in merged.columns if any(
+            sport in c.lower() for sport in ['run', 'swim', 'bike', 'cycling', 'strength']
+        ) or any(
+            metric in c.lower() for metric in ['duration', 'tss', 'power', 'distance', 'speed']
+        )]
+        for col in activity_cols:
+            if col in merged.columns:
+                merged[col] = merged[col].fillna(0)
+
+        # Numeric columns: forward fill then backward fill (preserves athlete trends)
+        numeric_cols = merged.select_dtypes(include=[np.number]).columns
+        wellness_numeric = [c for c in numeric_cols if c not in activity_cols]
+        merged[wellness_numeric] = merged.groupby('athlete_id')[wellness_numeric].transform(
+            lambda x: x.fillna(method='ffill').fillna(method='bfill')
+        )
+
+        # Any remaining NaN in numeric columns: fill with column median
+        for col in numeric_cols:
+            if merged[col].isna().any():
+                merged[col] = merged[col].fillna(merged[col].median())
 
         return merged
 
